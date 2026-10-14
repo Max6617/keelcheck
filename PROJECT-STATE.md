@@ -57,6 +57,15 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   user's word (D17). One ratified gate, `review-prompt`, `kind: prompt`. The mechanical half still reports
   **vacuity**, and correctly: a prompt is a locked instruction, not an executable gate. That clears when
   `tools/coverage.py` and the suite-and-coverage gate are declared and ratified (R8, D13, D19).
+- **R7's mechanical half, dry-run 2026-10-14 ~23:10 (Gilbert).** An archive export is not auditable — the run
+  ends `CANNOT RUN HONESTLY: git cannot name HEAD` — so each revision is read through a real repository
+  (`git worktree add --detach <dir> <rev>`; `git clone` spawns `sh`, which cannot start in this session). At
+  `bd63920` and at `310f449` the output is **identical**: `[missing-section] problems`, `[vacuity] gates`,
+  `NOT AUDITABLE` because rentguard's charter names no ratification commit, the review line missing, exit 2.
+  So the two-revision pair does **not** discriminate by itself, and neither revision names any of the five
+  by-hand defects through the mechanical half — **the drift review is what must name them**. R7's write-up
+  therefore makes the narrower sentence: the five scored per half with what neither half found named, never
+  "the audit reproduces the by-hand audit".
 - The first audit is the demonstration: **rentguard**, whose charter is `rentguard/CHARTER.md` and whose
   by-hand audit found five real defects there. The catalogue of record is **D11**: R2, **R4+W4 as one**
   finding, W1, W2, W3 — all six names, because this line first listed R2, R4, W1, W3, W4 and dropped W2.

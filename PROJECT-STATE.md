@@ -458,6 +458,14 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   `.keel` path segment — not only the record root of the current invocation, or a repository that commits its
   record hands the reviewer its own history (Mason's lane; `export.py:106`).
 
+- **D18 — a cell names the rule, not the value it resolves to today (2026-10-14, found while fixing R3; the same family
+  as D16).** R3's `enforced-by` said the frozen-original block "is diffed against `ae375c6`" — true when written, and
+  true after the anchor moved to `117ac7c` only by accident: the block is byte-identical at both commits, so nothing
+  fired. A cell that names a moving value goes quietly stale and depends on an accident to stay true. It now names the
+  rule — "diffed against the charter at the ratification anchor, the `Ratified at:` line" — and cannot rot when the
+  anchor moves again. The test generalises and belongs with D16's: **if the value a cell names can change without the
+  cell changing, the cell names the wrong thing.** The same test found R4's record path (D16) and this one.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

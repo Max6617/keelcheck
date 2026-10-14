@@ -21,6 +21,13 @@ And the recommendation those words accept, as written in `ECC-ASSESSMENT.md` bef
 > exactly as the spec already orders it — and keep using rentguard as the demonstration, because we can
 > then say the audit found five real defects on a real project rather than that it seems like a good idea.
 
+## Ratification
+
+- `Ratified at:` `ae375c6` — the freeze commit, and the reference side of every comparison (D1, D8). This
+  line and the first entry of `.keel/runs.jsonl` must agree; if they do not, the audit exits 1.
+- **Gates ratified: none yet.** Until the first gate is declared and ratified the mechanical half of the
+  audit reports *vacuous*, which is a divergence — an audit that verified nothing is not a clean run.
+
 ## What it is for
 
 Two artefacts, one loop.
@@ -84,7 +91,7 @@ impossible, fatal or recoverable. `checked-by:` = a human judges it, or a demo m
 | R4 | The drift review runs with **clean context**: a fresh agent holding only the frozen original and the current state, never the history that produced it | code: the runner writes the reviewer's inputs to `.keel/review-context.json` and the drift report names that file | — | draft |
 | R5 | Integration surfaces in this order: git hook first, CLI second, MCP third, harness hook adapter last | code: the hook installer | — | draft |
 | R6 | No daemon and no server: a bounded CLI run, and an MCP call that returns | code: no long-lived process, no listening socket | — | draft |
-| R7 | The tool proves itself on **rentguard**: at the revision immediately before each fix the audit reports that defect as divergence, and at HEAD it reports only what is still open (the conditional cap, the absent publish lock) | the audit run against `rentguard/CHARTER.md` at `bd63920`, `ce69cea`, `c512125` and `310f449` | the human reads the report | draft |
+| R7 | The tool proves itself on **rentguard**: the audit — mechanical half plus clean-context drift review — names the five defects the by-hand audit found, each attributed to the half that finds it, and reports a gate-less input as **vacuous**, never clean | the audit run against `rentguard/CHARTER.md` at `bd63920`, `ce69cea`, `c512125` and `310f449` | the human reads the report | draft |
 | R8 | 94% of the code and 100% of the surface exercised; one writer per file; every count names a commit; red tests before fixes | `tools/coverage.py` and the suite | the CI run | draft |
 | R9 | Nothing is published without the user's explicit word | — | the user's explicit word before any push | checked, not enforced |
 

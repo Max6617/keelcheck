@@ -154,6 +154,40 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   HEAD rediscovers history. The fifth by-hand defect (the unexercised volume path) is a wish in prose, not a
   requirement row: the parser's miss there is the README's demo half, exactly as Folio measured.
 
+- **D8 — A1–A3 ruled, and an audit that verifies nothing is not clean (2026-10-14, Proctor's red set and the
+  R7 score).** This corrects D3's exit table, which is the point of D3's own rule that a contract change
+  lands in this file first.
+
+  - **A1 — confirmed.** A gate is a row `| gate | path | hash |` under `## Gates`; the path is
+    repo-relative (D6); the hash is `sha256:<64 hex>` computed over the script's bytes; the reference table
+    is the one at the ratified commit. A malformed or missing hash is a **divergence**, never a skip.
+  - **A2 — the pointer is named twice, and nowhere is it trusted alone.** The ratified commit is written as
+    `Ratified at: <sha>` in the charter's living state **and** as the first line of `.keel/runs.jsonl`; the
+    audit exits **1** when the two disagree, when the named SHA is not an ancestor of HEAD, or when its
+    frozen-original block differs from the working tree's (D5). A charter with no `Ratified at:` line is not
+    auditable: exit **2**, never 0. Two copies is what makes a single silent edit visible, and "edit both"
+    stays the documented human-check residual from D1.
+  - **A3 — confirmed, plus one correction.** Records are `.keel/runs.jsonl` (append-only, one JSON object per
+    run, written even when the run fails) and `.keel/review-context.json`. The record is **tracked by git**,
+    so a deleted line is a diff rather than a secret. It lives in the audited repo by default — but D4 keeps
+    `rentguard/` read-only, so the audit takes `--record <path>` and the demonstration records into keel's
+    own tree.
+  - **Vacuity is a finding, not a clean run.** An audit that finds zero ratified gates must say so as a named
+    divergence and must not exit 0. Proctor measured exactly this on rentguard: 0 gate hashes, so the
+    hash-checking half verified nothing.
+  - **The report prints all four columns.** A row whose only mechanism is `checked-by` is a **human check**,
+    never silence: keel's own R9 is a sentence, and a report that reads "0 wishes, 0 asserted" while a
+    sentence is the only guard on publishing is the render lying about the charter.
+  - **`--json` is UTF-8 regardless of console codepage.** The cp1252 failure on R5's arrow breaks the
+    machine-readable path, which is the one the run record consumes — a real bug, not a cosmetic one.
+  - **R7 is scored per half, because the audit is two halves (R3).** Mechanical: hash changed after
+    ratification, a gate with no run record, a missing section, vacuous enforcement. Clean-context drift
+    review: undeclared divergence. Proctor's attribution stands — R8 and R9 declared, R2 symptomatic (a
+    `met` claim with nothing behind it), **W4 and W3 drift-review only** (they live in code and in prose, not
+    in a requirement row). The user's words are still honoured — "the audit found five real defects" — because
+    the drift review is part of the audit by R3's own wording; what is refused is the claim that the
+    mechanical half found them.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

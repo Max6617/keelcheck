@@ -57,14 +57,21 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   user's word (D17). One ratified gate, `review-prompt`, `kind: prompt`. The mechanical half still reports
   **vacuity**, and correctly: a prompt is a locked instruction, not an executable gate. That clears when
   `tools/coverage.py` and the suite-and-coverage gate are declared and ratified (R8, D13, D19).
-- **R7's mechanical half, dry-run 2026-10-14 ~23:10 (Gilbert).** An archive export is not auditable — the run
-  ends `CANNOT RUN HONESTLY: git cannot name HEAD` — so each revision is read through a real repository
-  (`git worktree add --detach <dir> <rev>`; `git clone` spawns `sh`, which cannot start in this session). At
-  `bd63920` and at `310f449` the output is **identical**: `[missing-section] problems`, `[vacuity] gates`,
-  `NOT AUDITABLE` because rentguard's charter names no ratification commit, the review line missing, exit 2.
-  So the two-revision pair does **not** discriminate by itself, and neither revision names any of the five
-  by-hand defects through the mechanical half — **the drift review is what must name them**. R7's write-up
-  therefore makes the narrower sentence: the five scored per half with what neither half found named, never
+- **R7's mechanical half, dry-run 2026-10-14 ~23:10 (Gilbert), corrected by Proctor's reproduction the same
+  evening.** An archive export is not auditable — the run ends `CANNOT RUN HONESTLY: git cannot name HEAD` — so
+  each revision is read through a real repository (`git worktree add --detach <dir> <rev>`; `git clone` spawns
+  `sh`, which cannot start in this session). At `bd63920` and at `310f449` the **divergence list is identical**:
+  `[missing-section] problems`, `[vacuity] gates`, `NOT AUDITABLE` because rentguard's charter names no
+  ratification commit, the review line missing, exit 2 — and neither revision names any of the five by-hand
+  defects through it. **The reports are not identical below the divergences**: the living state moves between
+  the two revisions (asserted enforcement 3 → 2; R2, R5, R6 and R10 change state and cells; R3's cell goes from
+  prose to a backticked sha, which is *why* the asserted count drops) and **the mechanical half names none of
+  that as divergence**. Proctor's per-half table (`c3526c6`; raw outputs in
+  `tests/_artefacts/assay_r7_mechanical_two_revisions.txt`) scores it: three of the five appear only as *state
+  classes* — R2's `met` is the one that is a lie, with R9 and R8 stating their gaps — two are invisible to it
+  (W4, W3), and `problems` and vacuity are extra findings about the charter, not among the five. So the
+  two-revision pair does **not** discriminate by itself, and **the drift review is what must name the rest**.
+  R7's write-up makes the narrower sentence: the five scored per half with what neither half found named, never
   "the audit reproduces the by-hand audit".
 - The first audit is the demonstration: **rentguard**, whose charter is `rentguard/CHARTER.md` and whose
   by-hand audit found five real defects there. The catalogue of record is **D11**: R2, **R4+W4 as one**

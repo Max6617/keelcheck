@@ -102,14 +102,15 @@ def run_gate_command(
         emit_err(f"keel gate run: {finding.line().strip()}")
     if audit.reference is None:
         return [], 2, audit.cannot_run or "the ratified charter could not be read"
-    if not audit.reference.gates:
+    gate_rows = [g for g in audit.reference.gates if g.kind == "gate"]
+    if not gate_rows:
         return [], 1, (
             "no ratified gate: the hash half of this repository verifies nothing, so "
             "there is nothing to run (vacuity is a finding, not a clean run -- D8)"
         )
 
     results: list[dict] = []
-    for gate in audit.reference.gates:
+    for gate in gate_rows:
         results.append(_check_and_run(audit, gate, runs, timeout))
 
     exit_code = 0 if results and all(r["result"] == PASS for r in results) else 1

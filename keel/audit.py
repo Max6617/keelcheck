@@ -24,7 +24,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import gitcmd, normalize, record
+from . import export, gitcmd, normalize, record
 from .charter import Charter, CharterFormatError, Gate, named_repo_paths, parse_charter, render
 from .output import emit, emit_err
 
@@ -82,6 +82,8 @@ class Audit:
     fatal: str | None = None
     cannot_run: str | None = None
     fail_on_wish: bool = False
+    require_review: bool = False
+    review_state: dict | None = None
     exit_code: int = EXIT_CLEAN
 
     # --- reporting ------------------------------------------------------------
@@ -143,11 +145,50 @@ class Audit:
             out.append("")
             out.append(f"WARNINGS ({len(self.warnings)})")
             out.extend(f"  {w}" for w in self.warnings)
+        out.extend(self._review_lines())
         out.append("")
         out.append(f"exit: {self.exit_code}")
         out.append("")
         out.append(render(self.charter))
         return "\n".join(out)
+
+    def _review_lines(self) -> list[str]:
+        """The review half, always reported: fresh, stale, failed or missing (D15).
+
+        Always printed, even when a review is not required: the reader has to be able to see that
+        the drift half did not run, and a report that omits it reads as if it had.
+        """
+        state = self.review_state or {"status": "missing", "line": None}
+        status = state.get("status")
+        line = state.get("line") or {}
+        out = ["", f"REVIEW (clean context, R4): {status}"]
+        if status == "fresh":
+            out.append(f"  command:  {' '.join(line.get('command', []))}")
+            out.append(f"  verdict:  {line.get('verdict')}")
+            counts = line.get("items") or {}
+            if counts:
+                out.append("  counts:   " + ", ".join(f"{k} {v}" for k, v in counts.items()))
+            if line.get("unreviewed"):
+                out.append("  unreviewed: " + "; ".join(str(u) for u in line["unreviewed"]))
+            for item in line.get("claims", []):
+                flag = "" if item.get("verified") else "  [evidence-missing]"
+                out.append(f"    {item.get('class')}: {item.get('subject')} -- {item.get('why')}{flag}")
+        elif status == "stale":
+            out.append(
+                f"  the recorded review covers {state.get('recorded')}; the state now hashes "
+                f"{state.get('manifest')}"
+            )
+        elif status == "failed":
+            out.append(
+                f"  the last review attempt produced no verdict ({line.get('result')}): "
+                f"{line.get('reason', '(no reason recorded)')}"
+            )
+        else:
+            out.append(
+                f"  no review line in {self.record_path.name}; run "
+                '`keel review <repo> --reviewer "<command>"` (D15)'
+            )
+        return out
 
     def as_dict(self) -> dict:
         return {
@@ -161,6 +202,7 @@ class Audit:
             "not_auditable": self.cannot_run,
             "findings": [f.as_dict() for f in self.findings],
             "warnings": self.warnings,
+            "review": self.review_state,
             "gates": self.gates,
             "record": str(self.record_path),
             "review_context": str(self.review_context_path),
@@ -359,6 +401,39 @@ def _check_run_record(audit: Audit, gate: Gate, name: str) -> None:
     )
 
 
+def _review_state(audit: Audit) -> dict:
+    """Does a clean-context review cover the current state? (R4, D15.)
+
+    Always reported, fatal only when a review is required. Freshness is the export *manifest*: the
+    review records the manifest it handed over and the audit recomputes it with the same function
+    (one function, both sides -- Proctor, design item 9). A line whose reviewer failed, timed out or
+    returned something unusable is not a review, so `result` must be `pass`.
+    """
+    lines = [obj for obj in audit.record_objects if obj.get("kind") == "review"]
+    if not lines:
+        return {"status": "missing", "line": None, "manifest": None, "recorded": None}
+    usable = [obj for obj in lines if obj.get("result") == "pass"]
+    if not usable:
+        last = lines[-1]
+        return {
+            "status": "failed",
+            "line": last,
+            "manifest": None,
+            "recorded": last.get("manifest"),
+        }
+    manifest = export.build_manifest(audit)
+    current = manifest["manifest_sha256"]
+    for obj in reversed(usable):
+        if obj.get("manifest") == current:
+            return {"status": "fresh", "line": obj, "manifest": current, "recorded": current}
+    return {
+        "status": "stale",
+        "line": usable[-1],
+        "manifest": current,
+        "recorded": usable[-1].get("manifest"),
+    }
+
+
 def _anchor_moved(audit: Audit) -> None:
     """D12: the anchor moving is a human event, named once, not a re-measurement.
 
@@ -367,7 +442,11 @@ def _anchor_moved(audit: Audit) -> None:
     audit says so and exits 1. It fires once, because the entry this run appends carries the
     new value.
     """
-    previous = record.last_of_kind(audit.record_objects, "audit")
+    previous = None
+    for obj in reversed(audit.record_objects):
+        if obj.get("kind") in ("audit", "review"):
+            previous = obj
+            break
     if previous is None:
         return
     before = previous.get("ratified")
@@ -439,7 +518,16 @@ def check_gate(audit: Audit, gate: Gate, working: Gate | None) -> None:
         "status": "unknown",
     }
     audit.gates.append(entry)
+    entry["kind"] = gate.kind
 
+    if not gate.known_kind:
+        entry["status"] = "unknown-kind"
+        audit.add(
+            "gate",
+            name,
+            f"kind {gate.kind!r} is not one of `gate`, `prompt`; an unknown kind is a divergence, "
+            "never a skip (A1, D15)",
+        )
     if gate.malformed_hash:
         entry["status"] = "malformed"
         audit.add(
@@ -493,7 +581,8 @@ def check_gate(audit: Audit, gate: Gate, working: Gate | None) -> None:
             else:
                 entry["status"] = "locked"
 
-    _check_run_record(audit, gate, name)
+    if gate.kind == "gate":
+        _check_run_record(audit, gate, name)
 
 
 def _table_commit(audit: Audit) -> str:
@@ -550,8 +639,14 @@ def run_audit(
     *,
     record_path: Path | str | None = None,
     fail_on_wish: bool = False,
+    require_review: bool = False,
+    write: bool = True,
 ) -> Audit:
-    """Run the audit, write the record and the reviewer's input file, and return the result."""
+    """Run the audit, write the record and the reviewer's input file, and return the result.
+
+    ``write=False`` evaluates without touching the tree: the review command needs the mechanical
+    findings for the reviewer's export and must not append an audit line of its own while doing it.
+    """
     repo = Path(repo).resolve()
     runs, context = record.record_paths(repo, record_path)
     audit = Audit(
@@ -560,6 +655,7 @@ def run_audit(
         record_path=runs,
         review_context_path=context,
         fail_on_wish=fail_on_wish,
+        require_review=require_review,
     )
 
     try:
@@ -598,15 +694,19 @@ def run_audit(
             "the record has no header line, so its format and version are not declared",
         )
     _anchor_moved(audit)
-    _check_enforced_by_paths(audit)
-    if charter.ratified_at and not charter.ratified_canonical:
+    audit.review_state = _review_state(audit)
+    if (charter.review_required or require_review) and audit.review_state["status"] != "fresh":
+        declared = "the charter declares it" if charter.review_required else "--require-review"
         audit.add(
-            "format",
-            "Ratified at:",
-            f"the pointer is spelled `{charter.ratified_line}`, not the canonical plain line "
-            "`Ratified at: <sha>`; it is parsed so the anchor is not lost, and reported "
-            "because R1 says the format is fixed (D12)",
+            "review",
+            "clean-context",
+            f"a clean-context review is required ({declared}) and the current state is "
+            f"{audit.review_state['status']}: a review that did not happen is a missing record, "
+            "not a wrong one (R4, D15)",
         )
+    _check_enforced_by_paths(audit)
+    for subject, message in charter.format_issues:
+        audit.add("format", subject, message)
 
     reference_gates = audit.reference.gates if audit.reference is not None else []
     if audit.reference is not None:
@@ -620,14 +720,14 @@ def run_audit(
             )
         _gate_table_changes(audit)
 
-    if not reference_gates:
+    if not [g for g in reference_gates if g.kind == "gate"]:
         audit.add(
             "vacuity",
             "gates",
             (
-                "no gate in the working charter is ratified, so the hash half of this audit "
-                "verified nothing"
-                if charter.gates
+                "no executable gate in the working charter is ratified, so the hash half of this "
+                "audit verified nothing"
+                if [g for g in charter.gates if g.kind == "gate"]
                 else "no gate is declared or ratified, so the hash half of this audit verified nothing"
             )
             + ", and an audit that verifies nothing is not a clean run (D8)",
@@ -648,6 +748,8 @@ def run_audit(
 
     audit.exit_code = audit.compute_exit()
 
+    if not write:
+        return audit
     try:
         record.ensure_header(runs)
         record.append(
@@ -697,6 +799,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument(
+        "--require-review",
+        action="store_true",
+        help=(
+            "a missing or stale clean-context review is divergence; the charter can also declare "
+            "`Review: required` (D15)"
+        ),
+    )
+    parser.add_argument(
         "--fail-on-wish",
         action="store_true",
         help="exit 2 when the charter contains a wish (opt-in; wishes are reported, not fatal)",
@@ -705,7 +815,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # A directory is turned into <dir>/runs.jsonl inside record.record_paths, so `keel audit`
     # and `keel gate run` read the same argument the same way.
-    audit = run_audit(args.repo, record_path=args.record, fail_on_wish=args.fail_on_wish)
+    audit = run_audit(
+        args.repo,
+        record_path=args.record,
+        fail_on_wish=args.fail_on_wish,
+        require_review=args.require_review,
+    )
 
     if args.json:
         emit(json.dumps(audit.as_dict(), indent=2, ensure_ascii=False))

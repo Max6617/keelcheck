@@ -229,13 +229,20 @@ cannot miss them:
    fresh. Deliberate — the reviewer judges the state — and recorded as a caveat rather than
    presented as a property of freshness.
 
-## Open questions for Gilbert (rulings, not guesses)
+## 8. Ruled, and built (Gilbert, 2026-10-14; the contract is D15)
 
-1. **Is the review prompt a hashed artefact like a gate?** If its hash is in the charter's living state
-   and compared at the ratified revision, a model cannot weaken the reviewer's instructions — R2's rule
-   applied to one more artefact. A1's gate table is for executable scripts, so this needs a shape
-   rather than a reuse.
-2. **Is `--require-review` the default for the R7 demonstration, or opt-in?** Default makes R4 a
-   mechanism; opt-in keeps the mechanical half usable alone, which the tool should be.
-3. **One record file or two?** I propose the `review` line in the same `runs.jsonl`, so a bypass and a
-   missing review are the same shape of absence. A separate file is easier to read and easier to drop.
+All three questions this document left open are answered, and the shapes above moved to match:
+
+- **The prompt is a hashed artefact in the gate table with `kind: prompt`.** One table, one anchor, no
+  second registry: the reviewer's instructions are locked exactly like a gate, and a weakened prompt is
+  refused before a review runs.
+- **The missing-review line is always reported and fails only when required** — when the charter declares
+  `Review: required` or the caller passes `--require-review`. Section 4's "record it" was the weak version
+  of this; the strong one keeps R4's honesty claim where it belongs: what is mechanical is the *presence*
+  of a review for the current state, never its verdict.
+- **The review line shares `runs.jsonl`**, so a bypass and a missing review are the same shape of absence,
+  and `[anchor-moved]` compares the previous entry of any kind that carries an anchor.
+
+Two constraints restated, because they are what makes the half buildable without a model in the loop: the
+reviewer is a command the caller names, and the tool never decides exit 0 from a model. The residual in
+section 5 stands unchanged, and the failure mode named there is still the one no local mechanism closes.

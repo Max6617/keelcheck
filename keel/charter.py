@@ -61,6 +61,11 @@ CANONICAL_RATIFIED = re.compile(
     r"^\s*Ratified at:\s*`?(?=[0-9a-f]*\d)([0-9a-f]{7,40})", re.IGNORECASE
 )
 
+#: ``Review: required`` in the living state: the charter's own declaration that a clean-context
+#: review must exist for the current state. Absent means reported but not fatal (D15).
+REVIEW_LINE = re.compile(r"review\s*:\s*`?\s*`?required\b", re.IGNORECASE)
+CANONICAL_REVIEW = re.compile(r"^\s*Review:\s*required\s*$", re.IGNORECASE)
+
 #: Extensions that make a bare token a repo path in an ``enforced-by`` cell (D13). Deliberately
 #: an allow-list and not "anything with a dot": rentguard's R5 cell holds ``$0.0264``, and a
 #: currency amount is not a path.
@@ -184,17 +189,26 @@ def _names_an_artefact(cell: str) -> bool:
 
 @dataclass(frozen=True)
 class Gate:
-    """One row of the gates table: a script, and the content hash that locks it (R2)."""
+    """One row of the gates table: a script, and the content hash that locks it (R2).
+
+    ``kind`` is ``gate`` by default. ``prompt`` marks the review prompt, a hashed artefact in the
+    same table so there is one table and one anchor and no second registry (D15).
+    """
 
     name: str
     path: str
     hash: str
     line: int
+    kind: str = "gate"
 
     @property
     def malformed_hash(self) -> bool:
         """A1: the recorded hash is ``sha256:<64 hex>`` or it is a divergence."""
         return not HASH_FORMAT.match(self.hash.strip())
+
+    @property
+    def known_kind(self) -> bool:
+        return self.kind in ("gate", "prompt")
 
     def as_dict(self) -> dict:
         return {
@@ -202,6 +216,7 @@ class Gate:
             "path": self.path,
             "hash": self.hash,
             "line": self.line,
+            "kind": self.kind,
             "malformed_hash": self.malformed_hash,
         }
 
@@ -261,6 +276,9 @@ class Charter:
     ratified_at: str | None = None
     ratified_line: str | None = None
     ratified_canonical: bool = False
+    review_required: bool = False
+    review_line: str | None = None
+    review_canonical: bool = False
     unknown_sections: list[str] = field(default_factory=list)
 
     @property
@@ -279,6 +297,42 @@ class Charter:
     @property
     def frozen_original_sha256(self) -> str:
         return "sha256:" + hashlib.sha256(self.frozen_original.encode("utf-8")).hexdigest()
+
+    @property
+    def gate_rows(self) -> list[Gate]:
+        """Rows that are executable gates: what `keel gate run` runs and what defeats vacuity."""
+        return [g for g in self.gates if g.kind == "gate"]
+
+    @property
+    def prompts(self) -> list[Gate]:
+        """Rows that are hashed prompts: the locked instruction the reviewer is handed (D15)."""
+        return [g for g in self.gates if g.kind == "prompt"]
+
+    @property
+    def format_issues(self) -> list[tuple[str, str]]:
+        """Non-canonical spellings of the fixed lines, as (subject, message) for `[format]` (D12).
+
+        Other spellings are parsed so a miss is never silent; they are reported because R1 says the
+        format is fixed.
+        """
+        issues: list[tuple[str, str]] = []
+        if self.ratified_at and not self.ratified_canonical:
+            issues.append(
+                (
+                    "Ratified at:",
+                    f"the pointer is spelled `{self.ratified_line}`, not the canonical plain line "
+                    "`Ratified at: <sha>` (D12)",
+                )
+            )
+        if self.review_required and not self.review_canonical:
+            issues.append(
+                (
+                    "Review:",
+                    f"the declaration is spelled `{self.review_line}`, not the canonical plain "
+                    "line `Review: required` (D15)",
+                )
+            )
+        return issues
 
     @property
     def wishes(self) -> list[Requirement]:
@@ -329,6 +383,8 @@ class Charter:
             "ratified_at": self.ratified_at,
             "ratified_canonical": self.ratified_canonical,
             "ratified_line": self.ratified_line,
+            "review_required": self.review_required,
+            "review_canonical": self.review_canonical,
             "wishes": [r.id for r in self.wishes],
             "human_checks": [r.id for r in self.human_checks],
             "asserted_enforcement": [r.id for r in self.asserted_enforcement],
@@ -461,6 +517,8 @@ def _parse_gates_table(lines: list[str], start: int) -> list[Gate]:
             index["path"] = i
         elif key in ("hash", "sha256", "content hash", "contenthash", "digest"):
             index["hash"] = i
+        elif key in ("kind", "type"):
+            index["kind"] = i
 
     def cell(cells: list[str], key: str) -> str:
         i = index.get(key)
@@ -489,6 +547,7 @@ def _parse_gates_table(lines: list[str], start: int) -> list[Gate]:
                     path=path,
                     hash=_cell_key(cell(cells, "hash")),
                     line=i + 1,
+                    kind=(_cell_key(cell(cells, "kind")).lower() or "gate"),
                 )
             )
         i += 1
@@ -594,6 +653,15 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
             charter.ratified_canonical = bool(CANONICAL_RATIFIED.match(line))
             break
 
+    # The review declaration: `Review: required` in the living state (D15). Absent means the
+    # missing-review line is still reported and is not fatal.
+    for line in lines:
+        if REVIEW_LINE.search(line):
+            charter.review_required = True
+            charter.review_line = line.strip()
+            charter.review_canonical = bool(CANONICAL_REVIEW.match(line))
+            break
+
     # Gates table: the first table under a "Gates" heading, if there is one.
     for n, line in enumerate(lines):
         found = _section_of(line)
@@ -634,6 +702,7 @@ def render(charter: Charter) -> str:
     out.append(f"requirements: {len(charter.requirements)}")
     out.append(f"gates: {len(charter.gates)} declared")
     out.append(f"ratified at: {charter.ratified_at or '(not named)'}")
+    out.append(f"review: {'required' if charter.review_required else 'reported, not required'}")
     out.append(
         f"frozen original: {charter.frozen_original_bytes} bytes, {charter.frozen_original_sha256}"
     )

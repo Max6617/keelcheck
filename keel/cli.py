@@ -18,16 +18,18 @@ from .audit import main as audit_main
 from .charter import main as charter_main
 from .gate import main as gate_main
 from .output import emit, emit_err
+from .review import main as review_main
 
 USAGE = """keel -- charter and audit
 
 usage: keel <command> [options]
 
 commands:
-  charter <path>     parse a charter, report the requirements that name no mechanism (R1)
-  audit <repo>       audit a repository against its ratified charter (R2, R3)
-  gate run <repo>    run the ratified gates and record the run (R2)
-  gate hash <path>   the content hash a gate row records (R2, D9)
+  charter <path>      parse a charter, report the requirements that name no mechanism (R1)
+  audit <repo>        audit a repository against its ratified charter (R2, R3)
+  gate run <repo>     run the ratified gates and record the run (R2)
+  gate hash <path>    the content hash a gate row records (R2, D9)
+  review <repo>       start a reviewer with no history and record what it was handed (R4)
 
   keel <command> --help   for that command's options
 """
@@ -49,6 +51,8 @@ def main(argv: list[str] | None = None) -> int:
         return audit_main(rest)
     if command == "gate":
         return gate_main(rest)
+    if command == "review":
+        return review_main(rest)
 
     emit_err(f"keel: unknown command: {command}\n")
     emit_err(USAGE)

@@ -379,6 +379,60 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   part that does not (the runner) both named in the state column. That is the truthful row until the runner is
   built, and it keeps a not-yet-built mechanism out of `enforced-by` the same way rentguard's R5 is kept out.
 
+- **D15 — the review half's contract (2026-10-14, Mason; Gilbert's three rulings, the shapes recorded here
+  before the code so Proctor's red tests are written against a contract and not a guess).** The rulings are:
+  the review prompt is a **hashed artefact in the gate table with `kind: prompt`** (one table, one anchor, no
+  second registry); the **missing-review line is always reported and fails only** when the charter declares
+  `Review: required` or `--require-review` is passed; and the review line **shares `runs.jsonl`**. The shapes
+  that follow are mine to propose and Gilbert's to overrule.
+
+  - **Entry points.** `keel review <repo> --reviewer "<command>" [--prompt PATH] [--record PATH]
+    [--export DIR] [--timeout S] [--json]`, and `keel audit <repo> [--require-review]` alongside the existing
+    options. The reviewer is a **command the caller names** and keel never sees a shell: it is split with
+    `shlex` and run with `cwd` = the export root and the prompt on its stdin. A stub command is a complete
+    test double, so none of this needs a model.
+  - **The prompt.** A `## Gates` row with `kind: prompt` is the reviewer's whole instruction. Its content
+    hash is verified exactly like a gate's: a mismatch is exit 1 and no review runs, because a weakened
+    instruction is not a review. `kind` is optional and defaults to `gate`; a `kind` outside `gate`/`prompt`
+    is a `[gate]` divergence, never a skip. `keel gate run` runs `kind: gate` rows only, and only they can
+    defeat vacuity. With no ratified prompt row, `--prompt PATH` runs the review recorded as
+    `prompt_ratified: false` (an unlocked instruction, visible as such); with neither, exit 2.
+  - **The export and its manifest.** The reviewer is pointed at `<export>/tree`, built by copy: the current
+    state with no `.git`, plus `REVIEW-PROMPT.md`, `FROZEN-ORIGINAL.md`, `MECHANICAL-FINDINGS.txt` and
+    `KEEL-MANIFEST.json`. `--export` defaults to `<record root>/review/review-<utc>/`. Tracked files plus
+    untracked-and-not-ignored ones, never a filesystem walk; the record root is excluded; `.env*`, `*.pem`,
+    `*.key`, `*.pfx`, `*.p12`, `*.keystore`, `id_rsa`, `id_ed25519`, `.netrc`, `credentials`, `.ssh/`,
+    `.aws/`, `.gnupg/` are denied and listed as skipped; symlinks are never followed; the cap (2000 files /
+    20 MB) may not omit a path a requirement, a row or the charter names. **One function, `export.build_manifest`,
+    is called by both sides** — the review copies what it lists and the audit recomputes it for staleness —
+    because two code paths over the deny-list, the cap or the symlink policy would make every review
+    permanently stale.
+  - **The reviewer's return.** Exactly one JSON object, at most 1 MB: `verdict`, `items[{class, subject,
+    evidence, why, confidence}]`, `unreviewed`, `coverage{files_seen, files_total}`, `reviewer`. A class
+    outside `missing`/`unrequested`/`shifted`, an item without evidence, non-JSON output, a non-zero exit, a
+    timeout or a command that cannot start is recorded as `malformed`/`error`/`timeout` with the reason, and
+    exits 2 — the review line is written in every case. Evidence is canonicalized against the export root;
+    anything absolute or escaping it leaves the item **unverified**, counted separately from verified ones. A
+    clean verdict with entries in `unreviewed` or with `files_seen < files_total` is recorded **partial**; a
+    divergence with no verified item is recorded **unverified**.
+  - **The record line.** `{"kind": "review", "at", "commit", "ratified", "manifest", "context", "prompt",
+    "prompt_path", "prompt_ratified", "command", "exit", "result", "verdict", "items", "unreviewed",
+    "coverage", "claims", "history_reachable", "export", "files", "bytes", "truncated"}` — one JSON object
+    per line in `runs.jsonl`, appended after the reviewer returns. It carries the anchor it used, so
+    `[anchor-moved]` compares the previous entry **of any kind that carries an anchor** (D12 amended):
+    D10's `[gate-table]` still compares the last `audit` entry, because only audits carry a gate array.
+    `history_reachable` is `none` here by construction: the reviewer is always pointed at an export.
+  - **Exit codes.** `keel review`: 0 when a review was recorded with verdict `clean`; 1 when the recorded
+    verdict is `divergence`, `partial` or `unverified`, and 1 when the ratified prompt no longer matches its
+    hash; 2 when it could not run honestly (no charter, no anchor, no prompt, unwritable export or record, or
+    the reviewer failed). `keel audit`: the review state is **always printed** (`fresh` / `stale` / `failed` /
+    `missing`) and is a divergence only when required; freshness requires `result: pass` **and** a manifest
+    equal to the current state's, so a failed or stale review never satisfies it. The reviewer's verdict never
+    changes the mechanical exit code — a model never decides exit 0.
+  - **Recommendation, not a change:** `.keel/review/` belongs in `.gitignore`. The export is per run, is
+    never part of the manifest (the record root is excluded), and would otherwise show as untracked clutter
+    in a repository whose record lives in its own tree.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

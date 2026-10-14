@@ -34,13 +34,18 @@ def test_the_audit_command_exists_and_help_succeeds():
 
 
 def test_a_charter_missing_a_required_section_is_divergence(scratch):
-    """R1's format names six sections. A charter missing one is divergence, not a warning."""
-    _support.write_charter(
-        scratch,
-        requirements=[("R1", "the parser exists", "code: the charter parser", "—", "**met**")],
-        omit_sections=("Permissions",),
-    )
-    _support.init_repo(scratch)
+    """R1's format names six sections. A charter missing one is divergence, not a warning.
+
+    Anchored deliberately: an *unratified* charter with a missing section is exit 2, because a run
+    that cannot establish a reference must not exit with the code that means it audited
+    (`test_a_run_that_cannot_audit_honestly_exits_2_even_with_findings` holds that side).
+    """
+    requirements = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    _support.write_charter(scratch, requirements=requirements, omit_sections=("Permissions",))
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=requirements, omit_sections=("Permissions",),
+                           ratified=sha)
+    _support.commit_all(scratch, "ratified")
 
     proc = _support.audit(scratch)
 
@@ -313,6 +318,87 @@ def test_a_file_that_is_not_a_charter_cannot_run_honestly(scratch):
     proc = _support.audit(scratch)
 
     assert proc.returncode == 2, f"exit {proc.returncode}, wanted 2\n{_support.combined(proc)}"
+
+
+def test_a_run_that_cannot_audit_honestly_exits_2_even_with_findings(scratch):
+    """Gilbert's ruling (2026-10-14): **2 dominates 1.** A run that could not audit honestly must not
+    exit with the code that means it did, even when it also has something to report. Findings stay
+    printed; only the number is demoted.
+
+    Measured at `218c444`: a charter with no `Ratified at:` line *and* a missing section exits 1,
+    because `compute_exit` ranks findings above `cannot_run`. The anchored control is in the same
+    test so the two codes cannot quietly collapse into each other.
+    """
+    requirements = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    _support.write_charter(scratch, requirements=requirements, omit_sections=("Permissions",))
+    _support.init_repo(scratch)
+
+    no_anchor = _support.audit(scratch)
+
+    assert no_anchor.returncode == 2, (
+        f"a run that could not establish a reference exited {no_anchor.returncode}; D12 says 2, and 2 "
+        f"dominates the 1 that a finding would give\n{_support.combined(no_anchor)}")
+    assert "not auditable" in _support.combined(no_anchor).lower()
+
+    anchored = scratch.parent / f"{scratch.name}-anchored"
+    _support.write_charter(anchored, requirements=requirements, omit_sections=("Permissions",))
+    sha = _support.init_repo(anchored)
+    _support.write_charter(anchored, requirements=requirements, omit_sections=("Permissions",),
+                           ratified=sha)
+    _support.commit_all(anchored, "ratified")
+
+    proc = _support.audit(anchored)
+
+    assert proc.returncode == 1, (
+        f"the anchored control exited {proc.returncode}, so the two codes could be the same number "
+        f"for different reasons\n{_support.combined(proc)}")
+
+
+def test_the_header_counts_executable_gates_not_prompt_rows(scratch):
+    """`gates ratified: 1` in the header while the divergence says no *executable* gate is ratified —
+    the one row is `kind: prompt`. The header has to say what it counted, or the report contradicts
+    itself two lines apart."""
+    requirements = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    _support.write(scratch / "review-prompt.md", "instruction\n")
+    prompt_row = ("review-prompt", "review-prompt.md",
+                  _support.hash_file(scratch / "review-prompt.md"), "prompt")
+    _support.write_charter(scratch, requirements=requirements, gates=[prompt_row])
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=requirements, gates=[prompt_row], ratified=sha)
+    _support.commit_all(scratch, "a prompt row is not an executable gate")
+
+    out = _support.combined(_support.audit(scratch))
+    total, executable = _gate_counts(out)
+
+    assert executable == 0, (
+        f"the header claims {executable} executable ratified gate(s) while the only row is a prompt "
+        f"({total} ratified rows in total): the count must distinguish them\n{out}")
+
+    gated = scratch.parent / f"{scratch.name}-gated"
+    _support.write(gated / "tools" / "gate.py", "print('ok')\n")
+    gate_row = ("coverage", "tools/gate.py", _support.hash_file(gated / "tools" / "gate.py"))
+    _support.write_charter(gated, requirements=requirements, gates=[gate_row])
+    sha = _support.init_repo(gated)
+    _support.write_charter(gated, requirements=requirements, gates=[gate_row], ratified=sha)
+    _support.commit_all(gated, "a real gate")
+
+    out = _support.combined(_support.audit(gated))
+    total, executable = _gate_counts(out)
+
+    assert executable == 1, f"a real ratified gate is not counted as executable: {total} rows\n{out}"
+
+
+def _gate_counts(out: str) -> tuple[int, int]:
+    """(rows ratified, executable rows) from the header.
+
+    The ruling (Folio's F13): the count must not read as *satisfied*, so the header reports both —
+    `gates ratified: 1 (0 executable)`. A header that gives only the total is read as if every row
+    were executable, which is the defect the red above pins.
+    """
+    match = re.search(r"gates ratified:\s*(\d+)(?:\s*\((\d+)\s+executable\))?", out)
+    assert match, f"the header does not report a gate count:\n{out}"
+    rows = int(match.group(1))
+    return rows, int(match.group(2)) if match.group(2) is not None else rows
 
 
 # --- property 4: clean context ------------------------------------------------

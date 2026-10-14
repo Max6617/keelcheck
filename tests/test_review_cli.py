@@ -595,7 +595,11 @@ def test_a_path_a_gate_row_names_is_never_silently_absent_from_the_export(scratc
 
     assert named in manifest.get("always", []), (
         f"the manifest does not list the path a gate row names at all: {sorted(manifest)}")
-    assert named in manifest.get("files", []) or named in manifest.get("skipped", []), (
+
+    def paths(entries):
+        return {e if isinstance(e, str) else e.get("path") for e in entries}
+
+    assert named in paths(manifest.get("files", [])) or named in paths(manifest.get("skipped", [])), (
         f"{named} is named by a gate row and is in neither the exported files nor the skipped list: "
         f"files={manifest.get('files')} skipped={manifest.get('skipped')}")
 
@@ -629,8 +633,12 @@ def test_the_manifest_is_the_same_for_one_commit_in_two_checkouts(scratch):
     Measured at `218c444`: `build_manifest` hashes raw worktree bytes, so one commit checked out with
     `core.autocrlf=true` and again with `false` yields two manifest hashes — a review made in one
     checkout is reported **stale** in the other, the failure item 9 exists to prevent.
+
+    The fixture is branch **(a)** of D15/D19: no ratified prompt row and an explicit `--prompt`, so
+    the review runs and records `prompt_ratified: false`. Branch (b) — a ratified row whose file
+    disagrees — is refused, and is tested by the weakened-prompt tests instead.
     """
-    _repo(scratch)
+    _repo(scratch, prompt=False)
     _support.git(scratch, "config", "core.autocrlf", "false")
     prompt = _support.write(scratch.parent / f"{scratch.name}-instruction.md", "instruction\n")
     assert _review(scratch, _stub(scratch, "clean", CLEAN), "--prompt", str(prompt)).returncode == 0

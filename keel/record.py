@@ -56,16 +56,18 @@ def now() -> str:
 def record_paths(repo: Path | str, record: Path | str | None = None) -> tuple[Path, Path]:
     """(runs.jsonl, review-context.json). ``--record`` moves both (D4 keeps rentguard read-only).
 
-    ``--record`` accepts a file or an existing directory, and both commands read it the same
-    way: a directory means ``<dir>/runs.jsonl`` beside ``<dir>/review-context.json``. Two
-    commands disagreeing about one argument cost a gate run its record once, so the rule
-    lives here and nowhere else.
+    ``--record`` accepts a file or a directory, and both commands read it the same way: a directory
+    means ``<dir>/runs.jsonl`` beside ``<dir>/review-context.json``. A path with no suffix that does
+    not exist yet is a directory too -- a mistyped record path must not silently become a file whose
+    parent (possibly the whole workspace) is then excluded from the reviewer's export. Two commands
+    disagreeing about one argument cost a gate run its record once, so the rule lives here and
+    nowhere else.
     """
     if record is None:
         base = Path(repo) / DEFAULT_DIR
         return base / RECORD_NAME, base / REVIEW_CONTEXT_NAME
     target = Path(record)
-    if target.is_dir():
+    if target.is_dir() or (not target.exists() and not target.suffix):
         return target / RECORD_NAME, target / REVIEW_CONTEXT_NAME
     return target, target.with_name(REVIEW_CONTEXT_NAME)
 

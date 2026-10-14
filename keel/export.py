@@ -48,11 +48,20 @@ DENIED = {
     "dirs": {".ssh", ".aws", ".gnupg", ".git"},
 }
 
+#: The record directory, denied **by role** and not only by where this run put it. A repository
+#: whose record is committed under `.keel/` and audited with `--record` elsewhere would otherwise
+#: hand the reviewer prior audits, prior review verdicts and the history it exists to be denied
+#: (Gilbert's finding, 2026-10-14). The active record root is excluded as well, because a record may
+#: legitimately live somewhere else.
+RECORD_SEGMENTS = {".keel"}
+
 
 def deny_reason(rel: str) -> str | None:
     """Why this path must not be exported, or None when it may be."""
     name = rel.rsplit("/", 1)[-1]
     parts = rel.split("/")
+    if RECORD_SEGMENTS.intersection(parts):
+        return "denied: record directory (the reviewer is not given prior runs)"
     if name in DENIED["names"] or name.startswith(DENIED["prefixes"]):
         return "denied: credential name"
     if name.lower().endswith(DENIED["suffixes"]):
@@ -99,11 +108,18 @@ def select_paths(audit) -> dict:
     """The file set both sides agree on: under the record root excluded, deny-list applied, capped.
 
     Tracked files plus untracked-and-not-ignored ones -- the current state -- never a filesystem
-    walk, never `.git`, never the record root (which is where the export itself is written), and
-    never a denied name. The cap may not hide a file an artefact names (design item 8).
+    walk, never `.git`, never `.keel` (the record directory, denied by role), never the active
+    record root (which is where the export itself is written), and never a denied name. The cap may
+    not hide a file an artefact names (design item 8).
     """
     repo = audit.repo
-    excluded_root = audit.record_path.parent.resolve()
+    # The active record root is excluded only when it is *inside* the repository. A record path that
+    # resolves above the repo must not exclude the whole repo -- that produced an empty manifest and a
+    # "clean" review of nothing (found by Mason's own probe, 2026-10-14). `.keel` is denied by role
+    # anyway, so a committed record is never exported whatever --record says.
+    chosen_root = audit.record_path.parent.resolve()
+    repo_root = repo.resolve()
+    excluded_root = chosen_root if (chosen_root != repo_root and repo_root in chosen_root.parents) else None
     tracked, untracked = _repo_paths(repo)
     always = set(always_paths(audit))
     skipped: list[dict] = []
@@ -111,7 +127,7 @@ def select_paths(audit) -> dict:
     for rel, is_tracked in [(p, True) for p in tracked] + [(p, False) for p in untracked]:
         rel = rel.replace("\\", "/")
         target = (repo / rel).resolve()
-        if excluded_root in target.parents or target == excluded_root:
+        if excluded_root is not None and (excluded_root in target.parents or target == excluded_root):
             continue
         reason = deny_reason(rel)
         if reason:

@@ -72,35 +72,64 @@ def _hash_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _resolve_prompt(repo: Path, charter: Charter, explicit: str | None) -> dict:
-    """The prompt text, its repo-relative path, its hash, and whether it is the ratified one."""
+def _verified_prompt(owner_repo: Path, owner_charter: Charter, row: Gate) -> dict:
+    """A prompt row from a ratified table, its content verified in the repository that ratified it."""
+    if not row.path or not (owner_repo / row.path).is_file():
+        return {"error": f"the ratified prompt {row.path or '(no path)'} does not exist in {owner_repo}"}
+    try:
+        current, _ = normalize.content_hash(owner_repo, row.path)
+    except (FileNotFoundError, normalize.NormalizationError) as exc:
+        return {"error": f"the ratified prompt cannot be hashed: {exc}"}
+    if row.malformed_hash or current != row.hash:
+        return {
+            "exit": 1,
+            "error": (
+                f"the prompt {row.path} changed since ratification in {owner_repo} "
+                f"({row.hash or '(no hash)'} -> {current}); keel does not review against a weakened "
+                "prompt (R2, D15)"
+            ),
+        }
+    return {
+        "text": (owner_repo / row.path).read_text(encoding="utf-8", errors="replace"),
+        "path": row.path,
+        "hash": current,
+        "ratified": True,
+        "ratified_in": f"{owner_repo.name}@{owner_charter.ratified_at or '?'}",
+    }
+
+
+def _resolve_prompt(
+    repo: Path, charter: Charter, explicit: str | None, prompt_repo: str | None = None
+) -> dict:
+    """The prompt text, its path, its hash, whether it is ratified, and where it was ratified.
+
+    The audited repository's own row wins. ``--prompt-repo`` is for an input whose charter cannot be
+    edited -- rentguard is read-only evidence (D4) -- so the review can still name a **ratified**
+    instruction instead of an unlocked one: keel's own prompt, recorded as ratified in keel at the
+    anchor that locked it. ``--prompt`` remains the last resort and is recorded unratified.
+    """
     row = prompt_row(charter)
     if row is not None:
-        if not row.path or not (repo / row.path).is_file():
-            return {"error": f"the ratified prompt {row.path or '(no path)'} does not exist"}
+        return _verified_prompt(repo, charter, row)
+    if prompt_repo:
+        owner = Path(prompt_repo).resolve()
         try:
-            current, _ = normalize.content_hash(repo, row.path)
-        except (FileNotFoundError, normalize.NormalizationError) as exc:
-            return {"error": f"the ratified prompt cannot be hashed: {exc}"}
-        if row.malformed_hash or current != row.hash:
+            _, owner_charter = load_charter(owner)
+        except AuditError as exc:
+            return {"exit": 2, "error": f"--prompt-repo {owner}: {exc}"}
+        owner_row = prompt_row(owner_charter)
+        if owner_row is None:
             return {
-                "error": (
-                    f"the prompt {row.path} changed since ratification ({row.hash or '(no hash)'} "
-                    f"-> {current}); keel does not review against a weakened prompt (R2, D15)"
-                ),
-                "exit": 1,
+                "exit": 2,
+                "error": f"--prompt-repo {owner} ratifies no prompt row (a `kind: prompt` row)",
             }
-        return {
-            "text": (repo / row.path).read_text(encoding="utf-8", errors="replace"),
-            "path": row.path,
-            "hash": current,
-            "ratified": True,
-        }
+        return _verified_prompt(owner, owner_charter, owner_row)
     if not explicit:
         return {
             "error": (
-                "no review prompt is ratified in the charter's gate table (a `kind: prompt` row) "
-                "and no --prompt was given; a review cannot run honestly without one (D15)"
+                "no review prompt is ratified in the charter's gate table (a `kind: prompt` row), "
+                "no --prompt-repo was given either, and no --prompt was given; a review cannot run "
+                "honestly without one (D15)"
             )
         }
     path = Path(explicit)
@@ -111,7 +140,7 @@ def _resolve_prompt(repo: Path, charter: Charter, explicit: str | None) -> dict:
         rel = str(path.resolve().relative_to(repo)).replace("\\", "/")
     except ValueError:
         rel = str(path)
-    return {"text": text, "path": rel, "hash": _hash_text(text), "ratified": False}
+    return {"text": text, "path": rel, "hash": _hash_text(text), "ratified": False, "ratified_in": None}
 
 
 def _run_reviewer(command: list[str], cwd: Path, stdin_text: str, timeout: float) -> dict:
@@ -144,19 +173,29 @@ def _run_reviewer(command: list[str], cwd: Path, stdin_text: str, timeout: float
     return {"result": "pass", "exit": 0, "stdout": proc.stdout or "", "reason": (proc.stderr or "").strip()}
 
 
-def _inside_export(tree: Path, evidence: str) -> bool:
-    """D15: evidence resolves inside the export, or it is not evidence."""
-    if not evidence or Path(evidence).is_absolute():
+def _evidence_resolves(tree: Path, evidence: str, requirement_ids: set[str]) -> bool:
+    """D15: evidence resolves to a **file in the export** or to a **requirement id in the charter**.
+
+    A citation that resolves to nothing is not evidence: `Path.resolve()` does not require the target
+    to exist, so containment alone counted every relative string as verified (Proctor measured it).
+    """
+    if not evidence:
+        return False
+    if evidence in requirement_ids:
+        return True
+    if Path(evidence).is_absolute():
         return False
     try:
         target = (tree / evidence).resolve()
         root = tree.resolve()
     except OSError:  # pragma: no cover - unreadable path components
         return False
-    return target == root or root in target.parents
+    if target != root and root not in target.parents:
+        return False
+    return target.exists()
 
 
-def validate_output(stdout: str, tree: Path) -> dict:
+def validate_output(stdout: str, tree: Path, requirement_ids: set[str]) -> dict:
     """Validate the reviewer's one JSON object. Returns a record dict, or {'error': ...}."""
     if len(stdout) > MAX_STDOUT:
         return {"error": f"the reviewer's output is over {MAX_STDOUT} bytes"}
@@ -191,7 +230,7 @@ def validate_output(stdout: str, tree: Path) -> dict:
         evidence = str(item.get("evidence") or "")
         if not evidence:
             return {"error": f"item {item.get('subject')!r} has no evidence"}
-        verified = _inside_export(tree, evidence)
+        verified = _evidence_resolves(tree, evidence, requirement_ids)
         counts[kind] += 1
         counts["verified" if verified else "unverified"] += 1
         cleaned.append(
@@ -230,6 +269,7 @@ def run_review(
     *,
     reviewer: str,
     prompt: str | None = None,
+    prompt_repo: str | None = None,
     record_path: Path | str | None = None,
     export_root: Path | str | None = None,
     timeout: float = DEFAULT_TIMEOUT,
@@ -261,12 +301,20 @@ def run_review(
     except gitcmd.GitError as exc:
         return {"exit": 2, "error": f"git cannot name HEAD: {exc}"}
 
-    chosen = _resolve_prompt(repo, charter, prompt)
+    chosen = _resolve_prompt(repo, charter, prompt, prompt_repo)
     if "error" in chosen:
         return {"exit": chosen.get("exit", 2), "error": chosen["error"]}
     audit.reference = load_reference(repo, charter, audit)
 
     manifest = export.build_manifest(audit)
+    if not manifest["files"]:
+        return {
+            "exit": 2,
+            "error": (
+                "the export would contain no files, so the review would be a review of nothing; "
+                "refusing rather than recording a clean verdict over an empty tree (D15)"
+            ),
+        }
     mechanical = run_audit(repo, record_path=runs, write=False)
     findings = mechanical.render()
     root = Path(export_root) if export_root else runs.parent / _run_id()
@@ -285,8 +333,9 @@ def run_review(
     command = split_command(reviewer)
     run = _run_reviewer(command, tree, chosen["text"], timeout)
     review: dict | None = None
+    requirement_ids = {r.id for r in charter.requirements}
     if run["result"] == "pass":
-        review = validate_output(run["stdout"], tree)
+        review = validate_output(run["stdout"], tree, requirement_ids)
         if "error" in review:
             run["result"] = "malformed"
             run["reason"] = review["error"]
@@ -303,6 +352,7 @@ def run_review(
         "prompt": chosen["hash"],
         "prompt_path": chosen["path"],
         "prompt_ratified": chosen["ratified"],
+        "ratified_in": chosen.get("ratified_in"),
         "command": command,
         "exit": run["exit"],
         "result": run["result"],
@@ -367,6 +417,14 @@ def main(argv: list[str] | None = None) -> int:
             "unlocked instruction is not a locked one"
         ),
     )
+    parser.add_argument(
+        "--prompt-repo",
+        default=None,
+        help=(
+            "a repository whose ratified charter holds the prompt row, for an input whose own "
+            "charter cannot be edited (D4); the record then names where the prompt was ratified"
+        ),
+    )
     parser.add_argument("--record", default=None, help="where the run record lives (D4/A3)")
     parser.add_argument("--export", dest="export_root", default=None, help="where the export goes")
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="seconds for the reviewer")
@@ -377,6 +435,7 @@ def main(argv: list[str] | None = None) -> int:
         args.repo,
         reviewer=args.reviewer,
         prompt=args.prompt,
+        prompt_repo=args.prompt_repo,
         record_path=args.record,
         export_root=args.export_root,
         timeout=args.timeout,
@@ -390,7 +449,10 @@ def main(argv: list[str] | None = None) -> int:
     if line is not None:
         emit(f"review: {line.get('verdict') or line.get('result')}  ({line.get('result')})")
         emit(f"  command:  {' '.join(line['command'])}")
-        emit(f"  prompt:   {line['prompt_path']} ({'ratified' if line['prompt_ratified'] else 'UNRATIFIED'})")
+        origin = line["prompt_path"] + (
+            f" (ratified in {line['ratified_in']})" if line.get("prompt_ratified") else " (UNRATIFIED)"
+        )
+        emit(f"  prompt:   {origin}")
         emit(f"  manifest: {line['manifest']}")
         emit(f"  export:   {line['export']}  ({line['files']} files, {line['bytes']} bytes"
              + (", partial: over the cap" if line.get("truncated") else "") + ")")

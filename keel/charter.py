@@ -24,19 +24,35 @@ Two report classes come out of a parse:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .output import emit, emit_err
+
 __all__ = [
     "Charter",
     "CharterFormatError",
+    "Gate",
     "Requirement",
     "REQUIRED_SECTIONS",
     "parse_charter",
     "parse_file",
+    "render",
 ]
+
+#: The recorded form of a gate content hash (D8 A1). Anything else -- a bare digest, a
+#: prefix in another algorithm -- is a malformed hash, and a malformed hash is divergence,
+#: never a skip.
+HASH_FORMAT = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+#: ``Ratified at: `<sha>``` in the charter's living state. The label may itself be inside
+#: backticks, as it is in this project's own charter.
+RATIFIED_LINE = re.compile(
+    r"ratified\s+at\s*:?\s*`?\s*`?(?=[0-9a-f]*\d)([0-9a-f]{7,40})", re.IGNORECASE
+)
 
 
 class CharterFormatError(ValueError):
@@ -65,6 +81,13 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
 # which is why it cannot be treated as a mechanism.
 EMPTY_CELLS = frozenset({"", "-", "--", "---", "\u2013", "\u2014", "n/a", "na", "none", "?", "tbd"})
 
+# A cell can be empty to the eye and not empty to the parser. These survive a copy out of a
+# browser, a bad editor, or an agent producing emphasis, and each one turns an R1 wish into
+# a row that is not a wish, is not `asserted_enforcement` and is never printed (D8).
+INVISIBLE = str.maketrans("", "", "\u200b\u200c\u200d\u2060\ufeff")
+BLANK_ENTITIES = ("&nbsp;", "&#160;", "&#xa0;", "&ensp;", "&emsp;", "&thinsp;")
+BLANK_CHARS = "\u00a0"
+
 # A gate/mechanism reference the parser will accept as naming something runnable.
 _CODE_MARKER = re.compile(r"\bcode\b\s*[:\-\u2013\u2014+]", re.IGNORECASE)
 _BACKTICKED = re.compile(r"`([^`]*)`")
@@ -80,8 +103,16 @@ def _normalize(text: str) -> str:
 
 
 def _cell_key(text: str) -> str:
-    """The content of a table cell with markdown emphasis removed."""
-    return text.replace("*", "").replace("`", "").strip()
+    """The content of a table cell with markdown emphasis and invisible filler removed.
+
+    ``**met**`` -> ``met``, and ``\\u200b``, ``&nbsp;`` or a stray BOM -> nothing: a cell
+    that renders blank is not a mechanism and not a check (see ``EMPTY_CELLS``).
+    """
+    cleaned = text.replace("*", "").replace("`", "")
+    for entity in BLANK_ENTITIES:
+        cleaned = cleaned.replace(entity, " ")
+    cleaned = cleaned.translate(INVISIBLE).replace(BLANK_CHARS, " ")
+    return cleaned.strip()
 
 
 def _is_empty_cell(text: str) -> bool:
@@ -113,6 +144,30 @@ def _names_an_artefact(cell: str) -> bool:
 
 
 # --- the model --------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Gate:
+    """One row of the gates table: a script, and the content hash that locks it (R2)."""
+
+    name: str
+    path: str
+    hash: str
+    line: int
+
+    @property
+    def malformed_hash(self) -> bool:
+        """A1: the recorded hash is ``sha256:<64 hex>`` or it is a divergence."""
+        return not HASH_FORMAT.match(self.hash.strip())
+
+    def as_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "path": self.path,
+            "hash": self.hash,
+            "line": self.line,
+            "malformed_hash": self.malformed_hash,
+        }
 
 
 @dataclass(frozen=True)
@@ -166,6 +221,8 @@ class Charter:
     frozen_original: str
     sections: dict[str, int] = field(default_factory=dict)  # section -> heading line
     requirements: list[Requirement] = field(default_factory=list)
+    gates: list[Gate] = field(default_factory=list)
+    ratified_at: str | None = None
     unknown_sections: list[str] = field(default_factory=list)
 
     @property
@@ -173,9 +230,37 @@ class Charter:
         return [name for name in REQUIRED_SECTIONS if name not in self.sections]
 
     @property
+    def frozen_original_bytes(self) -> int:
+        """The block's byte length, recorded beside its hash (D11 F9).
+
+        A redefinition of what the anchor covers is then visible as a length change, rather
+        than as two hashes that are each defensible under a different definition.
+        """
+        return len(self.frozen_original.encode("utf-8"))
+
+    @property
+    def frozen_original_sha256(self) -> str:
+        return "sha256:" + hashlib.sha256(self.frozen_original.encode("utf-8")).hexdigest()
+
+    @property
     def wishes(self) -> list[Requirement]:
         """R1's output: requirements with neither mechanism nor check."""
         return [r for r in self.requirements if r.is_wish]
+
+    @property
+    def human_checks(self) -> list[Requirement]:
+        """Requirements backed only by a ``checked-by`` sentence.
+
+        Not wishes by the R1 rule, and not mechanical either: a human judged it. They must
+        be printed (D8), because a report that reads "0 wishes, 0 asserted" while a
+        sentence is the only thing between the project and an irreversible act is the
+        render lying about the charter.
+        """
+        return [
+            r
+            for r in self.requirements
+            if _is_empty_cell(r.enforced_by) and not _is_empty_cell(r.checked_by)
+        ]
 
     @property
     def asserted_enforcement(self) -> list[Requirement]:
@@ -197,10 +282,15 @@ class Charter:
             "path": str(self.path) if self.path else None,
             "title": self.title,
             "frozen_original": self.frozen_original,
+            "frozen_original_bytes": self.frozen_original_bytes,
+            "frozen_original_sha256": self.frozen_original_sha256,
             "sections": self.sections,
             "missing_sections": self.missing_sections,
             "requirements": [r.as_dict() for r in self.requirements],
+            "gates": [g.as_dict() for g in self.gates],
+            "ratified_at": self.ratified_at,
             "wishes": [r.id for r in self.wishes],
+            "human_checks": [r.id for r in self.human_checks],
             "asserted_enforcement": [r.id for r in self.asserted_enforcement],
             "declared_wish_not_wish": [r.id for r in self.declared_wish_not_wish],
             "wish_not_declared": [r.id for r in self.wish_not_declared],
@@ -263,6 +353,15 @@ def _parse_requirements_table(lines: list[str], start: int, path: Path | None) -
         elif key in ("state", "status"):
             index["state"] = i
 
+    if "id" not in index:
+        # An unfamiliar label in the first column ("Rule", "") is still the id column. A row
+        # must never vanish because the parser did not recognise a heading: the requirement
+        # in it may be exactly the wish this tool exists to surface.
+        for i in range(len(header)):
+            if i not in index.values():
+                index["id"] = i
+                break
+
     missing = [k for k in ("enforced_by", "checked_by") if k not in index]
     if missing:
         where = f"{path} (line {start + 1})" if path else f"line {start + 1}"
@@ -289,10 +388,7 @@ def _parse_requirements_table(lines: list[str], start: int, path: Path | None) -
         if _is_separator(cells):
             i += 1
             continue
-        rid = _cell_key(cell(cells, "id"))
-        if not rid:
-            i += 1
-            continue
+        rid = _cell_key(cell(cells, "id")) or f"#{i + 1}"
         requirements.append(
             Requirement(
                 id=rid,
@@ -307,20 +403,76 @@ def _parse_requirements_table(lines: list[str], start: int, path: Path | None) -
     return requirements, i
 
 
-def _parse_frozen_original(lines: list[str], start: int) -> str:
-    """Collect the blockquote block under the frozen-original heading."""
-    quoted: list[str] = []
-    started = False
-    for line in lines[start:]:
-        stripped = line.strip()
-        if stripped.startswith(">"):
-            started = True
-            quoted.append(stripped.lstrip(">").strip())
-        elif not stripped and started:
-            continue
-        elif started:
+def _parse_gates_table(lines: list[str], start: int) -> list[Gate]:
+    """Parse the table at ``lines[start]`` as ``| gate | path | hash |``.
+
+    Deliberately lenient where the requirements table is strict: a gates table with no
+    ``hash`` column, or a row with an empty hash, produces gates whose hash is malformed,
+    and the audit reports that as divergence (A1) instead of refusing to read the charter.
+    A malformed hash must be visible, not a skip and not a parse error.
+    """
+    header = [c.lower() for c in _split_row(lines[start])]
+    index: dict[str, int] = {}
+    for i, name in enumerate(header):
+        key = _normalize(name)
+        if key in ("gate", "name", "id", "#"):
+            index["name"] = i
+        elif key in ("path", "script", "file", "gate file"):
+            index["path"] = i
+        elif key in ("hash", "sha256", "content hash", "contenthash", "digest"):
+            index["hash"] = i
+
+    def cell(cells: list[str], key: str) -> str:
+        i = index.get(key)
+        if i is None or i >= len(cells):
+            return ""
+        return cells[i]
+
+    gates: list[Gate] = []
+    i = start + 1
+    if i < len(lines) and lines[i].strip().startswith("|") and _is_separator(_split_row(lines[i])):
+        i += 1
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip().startswith("|"):
             break
-    return "\n".join(quoted).strip()
+        cells = _split_row(line)
+        if _is_separator(cells):
+            i += 1
+            continue
+        name = _cell_key(cell(cells, "name"))
+        path = _cell_key(cell(cells, "path"))
+        if name or path:
+            gates.append(
+                Gate(
+                    name=name,
+                    path=path,
+                    hash=_cell_key(cell(cells, "hash")),
+                    line=i + 1,
+                )
+            )
+        i += 1
+    return gates
+
+
+def _frozen_block(lines: list[str], start: int, level: int) -> str:
+    """The frozen-original **section**: its heading line to the next heading of the same or a
+    higher level, heading included, joined with LF.
+
+    D11 (F9): the block is the section, not the first blockquote in it. The section carries
+    the accepted recommendation, and the recommendation is where the scope lives -- so
+    anchoring only the first quote anchors *less* than the record says the anchor covers,
+    which is the vacuity class on the tool's own anchor. The block's byte length is recorded
+    beside its hash so that a redefinition shows up as a length change rather than as a
+    second defensible hash.
+    """
+    end = len(lines)
+    for n in range(start + 1, len(lines)):
+        found = _section_of(lines[n])
+        if found and found[0] <= level:
+            end = n
+            break
+    return "\n".join(lines[start:end])
 
 
 def parse_charter(text: str, path: Path | None = None) -> Charter:
@@ -350,7 +502,14 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
         name = section_for_line[n]
         if level >= 2 and name:
             charter.sections.setdefault(name, n + 1)
-        elif level >= 2 and _normalize(heading) not in ("the wishes", "wishes", "the frozen original", "frozen original"):
+        elif level >= 2 and _normalize(heading) not in (
+            "the wishes",
+            "wishes",
+            "the frozen original",
+            "frozen original",
+            "gates",
+            "ratification",
+        ):
             charter.unknown_sections.append(heading)
 
     # Requirements table: the first table after the requirements heading.
@@ -366,18 +525,39 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
             where = f"{path}" if path else "input"
             raise CharterFormatError(f"no requirements table found after the requirements heading in {where}")
 
-    # Frozen original: the blockquote block under its heading, if the heading exists.
+    # Frozen original: the whole section under its heading, heading included (D11 F9).
     for n, line in enumerate(lines):
         found = _section_of(line)
         if found and _normalize(found[1]) in ("the frozen original", "frozen original"):
-            charter.frozen_original = _parse_frozen_original(lines, n + 1)
+            charter.frozen_original = _frozen_block(lines, n, found[0])
             frozen_seen = True
             break
     if not frozen_seen:
         for n, line in enumerate(lines):
-            if line.strip().lower().startswith("### ") and "original" in line.lower():
-                charter.frozen_original = _parse_frozen_original(lines, n + 1)
+            found = _section_of(line)
+            if found and "original" in _normalize(found[1]):
+                charter.frozen_original = _frozen_block(lines, n, found[0])
                 break
+
+    # The ratification commit: named in the living state, never in the frozen original (A2).
+    for line in lines:
+        found = RATIFIED_LINE.search(line)
+        if found:
+            charter.ratified_at = found.group(1).lower()
+            break
+
+    # Gates table: the first table under a "Gates" heading, if there is one.
+    for n, line in enumerate(lines):
+        found = _section_of(line)
+        if not found or _normalize(found[1]) not in ("gates", "the gates"):
+            continue
+        for m in range(n + 1, len(lines)):
+            if _section_of(lines[m]):
+                break
+            if lines[m].strip().startswith("|"):
+                charter.gates = _parse_gates_table(lines, m)
+                break
+        break
 
     return charter
 
@@ -389,7 +569,13 @@ def parse_file(path: str | Path) -> Charter:
 
 
 def render(charter: Charter) -> str:
-    """The two-minute report: findings first, then the table contents."""
+    """The two-minute report: every column, findings first.
+
+    D8: the report prints all four columns of the requirements table. A row whose only
+    mechanism is ``checked-by`` is a **human check**, never silence -- the silent row is the
+    loophole the R1 rule leaves, and hiding it is how a report reads "0 wishes" while a
+    sentence is the only guard on an irreversible act.
+    """
     out: list[str] = []
     where = str(charter.path) if charter.path else "<input>"
     out.append(f"charter: {where}")
@@ -398,6 +584,21 @@ def render(charter: Charter) -> str:
     if charter.missing_sections:
         out.append(f"  MISSING SECTIONS: {', '.join(charter.missing_sections)}")
     out.append(f"requirements: {len(charter.requirements)}")
+    out.append(f"gates: {len(charter.gates)} declared")
+    out.append(f"ratified at: {charter.ratified_at or '(not named)'}")
+    out.append(
+        f"frozen original: {charter.frozen_original_bytes} bytes, {charter.frozen_original_sha256}"
+    )
+    out.append("")
+
+    out.append(f"REQUIREMENTS ({len(charter.requirements)}) -- all four columns")
+    if not charter.requirements:
+        out.append("  (none)")
+    for r in charter.requirements:
+        out.append(f"  {r.id}  state: {_cell_key(r.state) or '-'}")
+        out.append(f"      requirement:  {r.text}")
+        out.append(f"      enforced-by:  {r.enforced_by or '-'}")
+        out.append(f"      checked-by:   {r.checked_by or '-'}")
     out.append("")
 
     out.append(f"WISHES (neither enforced-by nor checked-by): {len(charter.wishes)}")
@@ -406,10 +607,23 @@ def render(charter: Charter) -> str:
         out.append(f"      {r.text}")
     out.append("")
 
+    out.append(f"HUMAN CHECKS (checked-by only, no mechanism): {len(charter.human_checks)}")
+    for r in charter.human_checks:
+        out.append(f"  {r.id} (line {r.line}) checked-by: {r.checked_by}")
+        out.append(f"      {r.text}")
+    out.append("")
+
     out.append(f"ASSERTED ENFORCEMENT (enforced-by names no artefact): {len(charter.asserted_enforcement)}")
     for r in charter.asserted_enforcement:
         out.append(f"  {r.id} (line {r.line}) enforced-by: {r.enforced_by}")
     out.append("")
+
+    if charter.gates:
+        out.append(f"GATES ({len(charter.gates)})")
+        for g in charter.gates:
+            mark = "  MALFORMED HASH" if g.malformed_hash else ""
+            out.append(f"  {g.name or '(unnamed)'} -> {g.path or '(no path)'}  {g.hash or '(no hash)'}{mark}")
+        out.append("")
 
     if charter.declared_wish_not_wish:
         out.append("DECLARED WISH, NOT A WISH BY THE R1 RULE:")
@@ -445,16 +659,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         charter = parse_file(args.path)
     except FileNotFoundError:
-        print(f"keel: no such file: {args.path}")
+        emit_err(f"keel: no such file: {args.path}")
         return 1
     except CharterFormatError as exc:
-        print(f"keel: not a charter: {exc}")
+        emit_err(f"keel: not a charter: {exc}")
         return 1
 
     if args.json:
-        print(json.dumps(charter.as_dict(), indent=2, ensure_ascii=False))
+        emit(json.dumps(charter.as_dict(), indent=2, ensure_ascii=False))
     else:
-        print(render(charter))
+        emit(render(charter))
 
     if args.fail_on_wish and (charter.wishes or charter.asserted_enforcement):
         return 2

@@ -400,7 +400,10 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   - **The export and its manifest.** The reviewer is pointed at `<export>/tree`, built by copy: the current
     state with no `.git`, plus `REVIEW-PROMPT.md`, `FROZEN-ORIGINAL.md`, `MECHANICAL-FINDINGS.txt` and
     `KEEL-MANIFEST.json`. `--export` defaults to `<record root>/review/review-<utc>/`. Tracked files plus
-    untracked-and-not-ignored ones, never a filesystem walk; the record root is excluded; `.env*`, `*.pem`,
+    untracked-and-not-ignored ones, never a filesystem walk; the record root is excluded **by role**
+    (any `.keel` path segment) and not only where this run put it, because a committed record audited
+    with `--record` elsewhere would hand the reviewer its own history (Gilbert's finding, fixed in
+    `keel/export.py` after this entry); `.env*`, `*.pem`,
     `*.key`, `*.pfx`, `*.p12`, `*.keystore`, `id_rsa`, `id_ed25519`, `.netrc`, `credentials`, `.ssh/`,
     `.aws/`, `.gnupg/` are denied and listed as skipped; symlinks are never followed; the cap (2000 files /
     20 MB) may not omit a path a requirement, a row or the charter names. **One function, `export.build_manifest`,
@@ -432,6 +435,28 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   - **Recommendation, not a change:** `.keel/review/` belongs in `.gitignore`. The export is per run, is
     never part of the manifest (the record root is excluded), and would otherwise show as untracked clutter
     in a repository whose record lives in its own tree.
+
+- **D17 — the anchor moved, once, at the user's word: keel's first gate is ratified (2026-10-14).** The user
+  approved re-pointing `Ratified at:` from the freeze commit `ae375c6` to `117ac7c`, the commit that carries
+  the first gate row. Everything that made the anchor worth having was checked before the move: the
+  frozen-original block is byte-identical at both commits (553 bytes, sha256
+  `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`), so the move changes only which **gate
+  table** is the reference, and the anchor is named in exactly one place (D12) — the charter line and this
+  record agree, and `[anchor-moved]` reports the change once rather than letting it pass as a re-measurement.
+
+  Why it needed the user and not me: D12 defines moving the anchor as a *human* event, because the anchor is
+  where a person's approval sits. A Bot moving it to make its own audit green is the laundering path D1/D10
+  exist to catch — with the tool's own repository as the demonstration.
+
+  What the audit said before the move is the mechanism working unprompted on its own repository, first try:
+  `[gate-unratified] review-prompt: declared in the working charter but not ratified at ae375c6`, with
+  `gates ratified: 0` and the `[vacuity]` line. Declaring a gate *after* the anchor is declared, not ratified.
+
+  Two consequences for the demonstration: R7's drift half runs with **keel's own** prompt, named explicitly
+  and ratified here rather than in rentguard's read-only charter (D4), and the review line records which
+  repository and anchor ratified it. And the export must exclude the record directory **by role** — any
+  `.keel` path segment — not only the record root of the current invocation, or a repository that commits its
+  record hands the reviewer its own history (Mason's lane; `export.py:106`).
 
 ## The demonstration (why it is rentguard)
 

@@ -23,10 +23,15 @@ And the recommendation those words accept, as written in `ECC-ASSESSMENT.md` bef
 
 ## Ratification
 
-Ratified at: `ae375c6` — the freeze commit, and the reference side of every comparison (D1, D8).
+Ratified at: `117ac7c` — the ratification commit, and the reference side of every comparison (D1, D8). Moved
+from the freeze commit `ae375c6` at the user's word on 2026-10-14 so that keel's first gate counts as
+ratified (D17); the frozen-original block is byte-identical at both commits (553 bytes, sha256
+`376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`), so the move changes only which gate
+table is the reference.
 
-- **Gates ratified: none yet.** Until the first gate is declared and ratified the mechanical half of the
-  audit reports *vacuous*, which is a divergence — an audit that verified nothing is not a clean run.
+- **Gates ratified: one** — `review-prompt`, a `kind: prompt` row hashed over git-normalized bytes (D15). It is
+  a locked instruction, not an *executable* check, so the mechanical half's vacuity line still fires and says
+  so; the cure for that is keel's own coverage gate (R8), not this row.
 
 ## What it is for
 

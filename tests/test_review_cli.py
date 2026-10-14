@@ -264,15 +264,57 @@ def test_a_partial_review_still_satisfies_require_review(scratch):
 # --- the prompt is a hashed artefact ------------------------------------------
 
 
-def test_a_weakened_prompt_is_refused_before_a_review_runs(scratch):
+def test_a_working_tree_prompt_edit_cannot_weaken_the_review(scratch):
+    """Gilbert's ruling (2026-10-14): the instruction handed over is the **anchored blob**, so an
+    edit to the working copy cannot weaken a review — it cannot reach the reviewer at all. The edit
+    is `[gate]` drift the audit names, not a review fact.
+
+    The file *and its row* edited together is the other rule and is still refused
+    (`test_the_prompt_is_verified_against_the_ratified_table_not_the_working_tree`).
+    """
     _repo(scratch)
-    _support.write(scratch / "review-prompt.md", "weakened instruction\n")
-    before = len(_review_lines(scratch))
+    ratified_text = (scratch / "review-prompt.md").read_text(encoding="utf-8")
+    _support.write(scratch / "review-prompt.md", "a weakened instruction\n")
 
     proc = _review(scratch, _stub(scratch, "clean", CLEAN))
 
-    assert proc.returncode == 1, f"a weakened prompt ran a review:\n{_support.combined(proc)}"
-    assert len(_review_lines(scratch)) == before, "a review was recorded although the prompt is refused"
+    assert proc.returncode == 0, _support.combined(proc)
+    line = _review_lines(scratch)[-1]
+    assert line["prompt_ratified"] is True
+    tree = Path(line["export"])
+    assert (tree / "REVIEW-PROMPT.md").read_text(encoding="utf-8") == ratified_text, (
+        "the reviewer was handed the weakened working copy instead of the anchored instruction")
+
+    # D21(iii): the difference travels with the record instead of being silent
+    assert line.get("working_copy_differs") is True, (
+        f"the line does not disclose that the working copy differs: {sorted(line)}")
+    working_hash = _support.hash_file(scratch / "review-prompt.md")
+    assert working_hash in json.dumps(line), (
+        "the line does not carry the working file's hash, so the disclosure cannot be checked "
+        f"against the file it is about ({working_hash})")
+
+    _, doc = _audit_json(scratch)
+    assert any(f["kind"] == "gate" and "review-prompt" in f["subject"] for f in doc["findings"]), (
+        "the working-tree prompt edit is not named as drift by the audit")
+
+
+def test_a_self_inconsistent_anchor_is_refused(scratch):
+    """D21(iv): the refusal that stays. If the ratified row's hash does not match the prompt blob at
+    the ratified commit, the anchor contradicts itself and no review runs — exit 1, no line."""
+    _support.write(scratch / "tracked.txt", "hello\n")
+    _support.write(scratch / "review-prompt.md", "the ratified instruction\n")
+    bogus = "sha256:" + "0" * 64  # well-formed and wrong: the row and its own blob disagree
+    rows = [("review-prompt", "review-prompt.md", bogus, "prompt")]
+    _support.write_charter(scratch, requirements=REQUIREMENTS, gates=rows)
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=REQUIREMENTS, gates=rows, ratified=sha)
+    _support.commit_all(scratch, "ratified with a row that contradicts its own blob")
+
+    proc = _review(scratch, _stub(scratch, "clean", CLEAN))
+
+    assert proc.returncode == 1, (
+        f"a self-inconsistent anchor ran a review: exit {proc.returncode}\n{_support.combined(proc)}")
+    assert not _review_lines(scratch), "a review was recorded against a self-inconsistent anchor"
 
 
 def test_an_unratified_prompt_runs_and_is_recorded_as_such(scratch):
@@ -468,7 +510,9 @@ def test_a_prompt_can_be_taken_from_another_repositorys_ratified_table(scratch):
         f"the record names something else: {line['ratified_in']!r}")
 
 
-def test_a_weakened_prompt_in_the_other_repository_is_refused(scratch):
+def test_a_working_tree_edit_in_the_prompt_repository_cannot_weaken_the_review(scratch):
+    """Same rule across repositories: `--prompt-repo` hands over the anchored blob of the repository
+    the prompt was ratified in, so a working-tree edit there does not reach the reviewer either."""
     source = scratch.parent / f"{scratch.name}-prompt-source2"
     _support.write(source / "tracked.txt", "hello\n")
     _support.write(source / "review-prompt.md", "the ratified instruction\n")
@@ -480,12 +524,15 @@ def test_a_weakened_prompt_in_the_other_repository_is_refused(scratch):
     _support.commit_all(source, "ratified")
     _repo(scratch, gate=False, prompt=False)
     _support.write(source / "review-prompt.md", "weakened instruction\n")
-    before = len(_review_lines(scratch))
 
     proc = _review(scratch, _stub(scratch, "clean", CLEAN), "--prompt-repo", str(source))
 
-    assert proc.returncode == 1, f"a weakened prompt in the other repository ran:\n{_support.combined(proc)}"
-    assert len(_review_lines(scratch)) == before, "a review was recorded although the prompt is refused"
+    assert proc.returncode == 0, _support.combined(proc)
+    line = _review_lines(scratch)[-1]
+    assert line["prompt_ratified"] is True and source.name in line["ratified_in"]
+    exported = (Path(line["export"]) / "REVIEW-PROMPT.md").read_text(encoding="utf-8")
+    assert exported.strip() == "the ratified instruction", (
+        f"the reviewer was handed the weakened working copy: {exported!r}")
 
 
 # --- the export's limits, and where it goes ------------------------------------
@@ -626,36 +673,41 @@ def test_the_export_never_hands_the_reviewer_the_active_record_file(scratch):
         "be blind to")
 
 
-def test_the_manifest_is_the_same_for_one_commit_in_two_checkouts(scratch):
+def test_the_manifest_is_the_same_for_one_state_under_both_autocrlf_configs(scratch):
     """§7.9 and D9: every hash is over git-normalized content, and one function serves both sides, so
-    a legitimate difference must not produce a false red.
+    a legitimate difference in checkout form must not produce a false red.
 
-    Measured at `218c444`: `build_manifest` hashes raw worktree bytes, so one commit checked out with
-    `core.autocrlf=true` and again with `false` yields two manifest hashes — a review made in one
-    checkout is reported **stale** in the other, the failure item 9 exists to prevent.
+    **Substitute evidence, and why.** Two clones would be the natural shape, but `git clone` spawns
+    git's `sh`, which cannot start on this host. `core.autocrlf` is also repo-wide, so a linked
+    worktree is not a second checkout either — setting the config there rewrites the shared config.
+    So the property is measured on **one state under both configurations**: same commit, the config
+    flipped, the worktree re-checked out with `git checkout -f -- .` before each review, and one
+    manifest hash required from both.
 
-    The fixture is branch **(a)** of D15/D19: no ratified prompt row and an explicit `--prompt`, so
-    the review runs and records `prompt_ratified: false`. Branch (b) — a ratified row whose file
-    disagrees — is refused, and is tested by the weakened-prompt tests instead.
+    The fixture is written LF (`_support.write`), so the blobs are LF and `autocrlf=true` is what
+    materialises CRLF — the asymmetry this test exists to survive.
     """
     _repo(scratch, prompt=False)
-    _support.git(scratch, "config", "core.autocrlf", "false")
     prompt = _support.write(scratch.parent / f"{scratch.name}-instruction.md", "instruction\n")
-    assert _review(scratch, _stub(scratch, "clean", CLEAN), "--prompt", str(prompt)).returncode == 0
-    lf_manifest = _review_lines(scratch)[-1]["manifest"]
 
-    second = scratch.parent / f"{scratch.name}-crlf"
-    _support.git(scratch, "worktree", "add", "-q", str(second))
-    _support.git(second, "config", "core.autocrlf", "true")
-    (second / "tracked.txt").unlink()
-    _support.git(second, "checkout", "--", "tracked.txt")
-    assert (second / "tracked.txt").read_bytes().endswith(b"\r\n"), (
-        "precondition: the second checkout is not CRLF, so the attack is not being made")
-    assert _review(second, _stub(scratch, "clean2", CLEAN), "--prompt", str(prompt)).returncode == 0
-    crlf = [json.loads(l) for l in (second / ".keel" / "runs.jsonl").read_text(
-        encoding="utf-8").splitlines() if l.strip() and json.loads(l).get("kind") == "review"][-1]
+    observed = {}
+    for autocrlf in ("false", "true"):
+        _support.git(scratch, "config", "core.autocrlf", autocrlf)
+        # git skips rewriting files it believes unchanged, so force the smudge per configuration
+        (scratch / "tracked.txt").unlink()
+        _support.git(scratch, "checkout", "-f", "--", "tracked.txt")
+        bytes_now = (scratch / "tracked.txt").read_bytes()
+        observed[autocrlf] = bytes_now
+        assert _review(scratch, _stub(scratch, f"clean-{autocrlf}", CLEAN), "--prompt",
+                       str(prompt)).returncode == 0
 
-    assert lf_manifest == crlf["manifest"], (
-        f"one commit yields two manifest hashes ({lf_manifest[:16]} vs {crlf['manifest'][:16]}), so a "
-        "review recorded in one checkout is stale in the other — D9's class, and the false red that "
-        "re-running cannot clear")
+    assert observed["true"].endswith(b"\r\n") and not observed["false"].endswith(b"\r\n"), (
+        f"precondition: the two configurations did not produce different worktree bytes: {observed}")
+
+    lines = _review_lines(scratch)
+    manifests = [line["manifest"] for line in lines][-2:]
+
+    assert manifests[0] == manifests[1], (
+        f"one state yields two manifest hashes ({manifests[0][:16]} vs {manifests[1][:16]}), so a "
+        "review is stale on any checkout with the other line-ending configuration — D9's class, and "
+        "the false red that re-running cannot clear")

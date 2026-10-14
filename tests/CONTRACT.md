@@ -168,3 +168,15 @@ On a host where sh works, the five come back.
 - *The coverage gate* (	ools/coverage.py, R8/D13). Its red needs the script's interface stated
   first — above all **how the floor is forced low enough to test the failing side** without editing
   the script, since the red has to prove the gate fails below the floor, not only passes above it.
+## Corrections to this file's own findings
+
+- **The checkout-dependent manifest was my fixture, not the code** (withdrawn 2026-10-14, same night
+  it was filed). _support.write used Path.write_text, which translates to CRLF on Windows, so
+  every fixture was CRLF in the worktree while git stored whatever was committed — D9's class, and it
+  produced a false red against uild_manifest. With the fixture written LF and one state reviewed
+  under both core.autocrlf configurations, both reviews produce the same manifest hash. The helper
+  now writes LF, so a fixture carries the bytes a checkout of it would have. core.autocrlf is
+  repo-wide, so the linked worktree in that test was never a second checkout; the test says so.
+- **D21 (Gilbert).** A working-copy prompt edit is disclosed, not refused: the reviewer receives the
+  anchored bytes and the line must carry working_copy_differs: true plus the working file's hash.
+  A self-inconsistent anchor still refuses. Only the disclosure is missing at ee9fa6a.

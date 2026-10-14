@@ -38,9 +38,17 @@ ASSUMPTIONS = ("A1 gates table", "A2 ratification pointer, named twice", "A3 rec
 
 
 def write(path: Path, text: str) -> Path:
+    """Write fixture bytes as **LF**, whatever the host's text-mode default is.
+
+    `Path.write_text` translates `\\n` to `\\r\\n` on Windows, so every fixture file used to be CRLF in
+    the worktree while git stored whatever was committed — which is exactly the class D9 exists for,
+    and it produced a false red in the manifest test (a CRLF blob committed under `autocrlf=false`
+    genuinely differs from the LF a later checkout materialises). Fixtures write the bytes a checkout
+    of them would have.
+    """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    path.write_text(text, encoding="utf-8", newline="\n")
     return path
 
 

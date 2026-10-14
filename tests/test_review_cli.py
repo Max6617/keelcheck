@@ -398,7 +398,7 @@ def test_the_export_has_no_history_and_no_secrets(scratch):
     tree = Path(line["export"])
     names = {p.name for p in tree.iterdir()}
 
-    assert line["history_reachable"] == "none", "the record does not claim history-free reach"
+    assert line.get("history_reachable"), "the record states nothing about the reviewer's reach"
     assert not (tree / ".git").exists(), "the export ships .git"
     assert "CHARTER.md" in names, "the export does not ship the charter"
     assert ".env" not in names, "the export ships a secret file"
@@ -649,6 +649,25 @@ def test_a_path_a_gate_row_names_is_never_silently_absent_from_the_export(scratc
     assert named in paths(manifest.get("files", [])) or named in paths(manifest.get("skipped", [])), (
         f"{named} is named by a gate row and is in neither the exported files nor the skipped list: "
         f"files={manifest.get('files')} skipped={manifest.get('skipped')}")
+
+
+def test_the_record_does_not_claim_a_history_free_reviewer(scratch):
+    """Sift's finding 5 and Gilbert's ruling for the demonstration: §1 promised `none | git | unknown`
+    and the field was a literal `none`.
+
+    What keel can prove is that the **export** has no `.git`. It cannot observe what a command the
+    caller names loads from its own harness — the demonstration's reviewer is Claude Code, which reads
+    the user's configuration and may carry user-level memory or project files. So the record must say
+    `unknown`, or `none` reads as a measurement and is a constant.
+    """
+    _repo(scratch)
+
+    assert _review(scratch, _stub(scratch, "clean", CLEAN)).returncode == 0
+    line = _review_lines(scratch)[-1]
+
+    assert line["history_reachable"] == "unknown", (
+        f"the record claims {line['history_reachable']!r} for a caller-named command: the export's "
+        ".git-lessness is provable, the reviewer's own context is not")
 
 
 def test_the_export_never_hands_the_reviewer_the_active_record_file(scratch):

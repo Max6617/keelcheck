@@ -53,6 +53,13 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   a requirement id; `18023d9` — the vacuity line now names the table it actually tested). Suite at
   `08771ce`: **84 passed, 3 failed**, the three being R5's tests that need git's own `sh`, which cannot start
   under this sandbox (`0xC0000022`).
+- **The suite is green, verified from outside the work.** At `866912b`, in a clean worktree: **106 passed,
+  1 skipped, 0 failed in 4:34** (Gilbert's run; Mason's own count agrees at the same commit). `tools/coverage.py`
+  is in at that commit — 7,984 bytes, git-normalized `sha256:1f77ff07…`, and `.py` gates execute as
+  `[sys.executable, <abs path>]` — but its **`DEFAULT_FLOOR` is `0.0`**, so its row is deliberately **not** in
+  the charter yet: ratifying it now would print `gates ratified: 1 (1 executable)` for a gate that cannot fail
+  on coverage, which is the asserted-enforcement shape one level up. D19's rule stands — the floor's first value
+  comes from the first measurement, and the gate hash moves with the constant.
 - **The anchor and the first gate:** `Ratified at: 117ac7c`, moved from the freeze commit `ae375c6` at the
   user's word (D17). One ratified gate, `review-prompt`, `kind: prompt`. The mechanical half still reports
   **vacuity**, and correctly: a prompt is a locked instruction, not an executable gate. That clears when

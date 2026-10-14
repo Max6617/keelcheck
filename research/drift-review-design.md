@@ -241,6 +241,16 @@ cannot miss them:
    fresh. Deliberate — the reviewer judges the state — and recorded as a caveat rather than
    presented as a property of freshness.
 
+**Boundary, measured (Sift finding 3, after the fix).** The guarantee is scoped, and the scope is
+named rather than implied. The record this run knows is excluded **by identity** wherever it lives,
+and any file whose first line says it is a keel record is excluded wherever it lives — measured: a
+committed `history/runs.jsonl` outside `.keel`, with a default `.keel` record root, is absent from
+the export and appears in `skipped` as *denied: a keel run record, wherever it lives*. What is **not**
+closed is a file with a record-like *name* whose content cannot identify it — an empty or truncated
+record under another name. Measured: `empty-runs.jsonl` is exported. It is not excluded on a guess;
+the manifest's `warnings` names it and the review line carries it, so the residual is loud rather
+than silent, and this paragraph is the design saying so.
+
 ## 8. Ruled, and built (Gilbert, 2026-10-14; the contract is D15)
 
 All three questions this document left open are answered, and the shapes above moved to match:

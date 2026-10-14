@@ -458,6 +458,7 @@ def run_review(
         "files": manifest["count"],
         "bytes": manifest["bytes"],
         "truncated": manifest["truncated"],
+        "warnings": manifest.get("warnings", []),
     }
     if run["reason"]:
         line["reason"] = run["reason"]
@@ -561,6 +562,8 @@ def main(argv: list[str] | None = None) -> int:
             emit(f"    {item['class']:<12} {item['subject']}: {item['why']}{flag}")
         if line.get("unreviewed"):
             emit("  unreviewed: " + "; ".join(line["unreviewed"]))
+        for warning in line.get("warnings", []):
+            emit(f"  warning:  {warning['path']}: {warning['reason']}")
     if result.get("error"):
         emit_err(f"keel review: {result['error']}")
     return result.get("exit", 2)

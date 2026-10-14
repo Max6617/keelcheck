@@ -74,6 +74,10 @@ RECORD_SEGMENTS = {".keel"}
 #: record, and "the record is out of reach" has to be true for every location the tool supports.
 RECORD_MARKERS = ("keel/runs", "review-context/1")
 
+#: The names a record has by default. A file with one of these names that cannot be identified by
+#: content is exported and *named* in the manifest's `warnings` rather than excluded on a guess.
+RECORD_NAMES = ("runs.jsonl", "review-context.json")
+
 
 def deny_reason(rel: str) -> str | None:
     """Why this path must not be exported, or None when it may be."""
@@ -261,10 +265,21 @@ def build_manifest(audit) -> dict:
             skipped.append(
                 {"path": rel, "reason": "named by the charter but neither exported nor explained"}
             )
+    # The residual boundary, made loud rather than silent: a file *named* like a record that is not
+    # this run's record and whose first line does not say what it is (an empty or truncated record)
+    # cannot be identified by content, so it is exported and named here instead of being excluded on
+    # a guess. A record with a first line is excluded above, wherever it lives.
+    warnings = [
+        {"path": entry["path"], "reason": f"a file named like a keel record ({RECORD_NAMES}): check "
+                                          "whether the reviewer was handed prior runs"}
+        for entry in files
+        if entry["path"].rsplit("/", 1)[-1] in RECORD_NAMES
+    ]
     return {
         "keel": MANIFEST_KIND,
         "files": files,
         "skipped": skipped,
+        "warnings": warnings,
         "truncated": selection["truncated"],
         "always": selection["always"],
         "count": len(files),

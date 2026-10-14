@@ -88,26 +88,28 @@ charter — so the baseline can assert the absence of `[original]` and the moved
   not his file. Those backfilled tests say so; calling them red-first would be the laundering this
   project exists to catch.
 
-## Open reds at `55cd6d7` — three, all measured
+## The D12/D13 round: measured, filed, closed at `e8fb52e`
 
-Suite: **3 failed / 46 passed** at that commit (Mason's D12/D13 build, tree clean). Each is a
-contradiction between a D-numbered ruling and what the command does, not a guess:
+Suite: **49 passed** at that commit. The three reds Proctor filed at `92cfeec` are closed there:
 
-1. **A charter with no `Ratified at:` line exits 1, not 2.**
-   `test_a_charter_with_no_ratification_pointer_cannot_run_honestly` — D12 says "exit 2, never 0".
-   `compute_exit` returns divergence when a finding exists before it consults `cannot_run`, and the
-   vacuity finding fires because there is no reference. The number is wrong for the right reason.
-2. **D13's carve-out is by name, not by what the run wrote.**
-   `test_the_unbuilt_carve_out_covers_only_what_this_run_writes` — with `--record <elsewhere>`, a
-   requirement whose `enforced-by` is `.keel/runs.jsonl` counts as built while `.keel/` does not
-   exist. The carve-out is for "the two files the audit itself produces"; when the run produces them
-   elsewhere, the exception does not apply on its own terms. Deliberate on Mason's side (the defaults
-   count too) — the test is the question.
-3. **`keel charter` never acts on its own findings.**
-   `test_keel_charter_exit_codes_are_the_ones_d12_rules` — a charter missing a required section and a
-   file with 0/6 required sections both exit 0, while D12 rules 1 and 2.
+1. **A charter with no `Ratified at:` line is exit 2.** `compute_exit` now sorts findings into content
+   divergences and vacuity, and vacuity alone no longer overrides "not auditable"; a content
+   divergence without an anchor still wins, so a missing section in an unratified charter stays 1.
+   Test: `test_a_charter_with_no_ratification_pointer_cannot_run_honestly`.
+2. **D13's carve-out covers only the two paths *this run* writes**, at the `--record` location. With
+   the record elsewhere, `.keel/runs.jsonl` named in a cell is `[unbuilt]` — including keel's own R4
+   when audited with `--record` outside the repo, which is a cell fix for Gilbert, not a code fix.
+   Test: `test_the_unbuilt_carve_out_covers_only_what_this_run_writes`.
+3. **`keel charter` is exit 1 for a parsed charter with findings, 2 when the file is not a charter** —
+   no `## Requirements` section is a format failure, exactly like a heading with no table.
+   Test: `test_keel_charter_exit_codes_are_the_ones_d12_rules`.
 
-Fixed and now pinned at the same commit: a gate record counts only when its `result` is `pass`
+Fixed and pinned in the same round: a gate record counts only when its `result` is `pass`
 (fail/timeout/error each named with the recorded result); `keel gate run --record <dir>` and
 `keel audit --record <dir>` agree; the record header carries no anchor; `[anchor-moved]` names both
 SHAs and fires once; a non-canonical pointer is `[format]` and quotes the line.
+
+**One test changed because D12 moved the exit code, not the subject.** `test_cli_encoding.py` used to
+require `returncode == 0` on the rentguard snapshot; that asserted the charter's cleanliness, which is
+`test_charter_silent_wish`'s business. It now requires `!= 2`, no `UnicodeEncodeError`, and that the
+arrow round-trips through the JSON — the encoding property it exists for.

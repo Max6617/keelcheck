@@ -11,10 +11,16 @@ that breaks, and it breaks on the project's own demonstration input.
 
 `PYTHONIOENCODING=cp1252` is pinned inside the test rather than inherited, so the suite measures the
 code and not the console it happens to run on (team rule).
+
+**D12 moved the exit code, not the subject.** `keel charter` now exits 1 on a charter that parses with
+findings, and this snapshot is missing the `problems` section (pinned in `test_charter_silent_wish`).
+So the test asserts the data round-trips and the "could not do the job" code 2 is not returned —
+`== 0` was asserting the charter's cleanliness, which is a different test's business.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -29,8 +35,14 @@ def test_json_report_of_a_real_charter_survives_a_cp1252_console():
         env={**os.environ, "PYTHONIOENCODING": "cp1252"},
     )
 
-    assert proc.returncode == 0, (
-        "the JSON report of rentguard/CHARTER.md failed on a cp1252 console, so the "
+    assert proc.returncode != 2, (
+        "the JSON report of rentguard/CHARTER.md could not be produced on a cp1252 console, so the "
         f"machine-readable output is unusable on a default Windows shell:\n{proc.stderr[-500:]}"
     )
-    assert proc.stdout.strip().startswith("{"), "no JSON was printed"
+    assert "UnicodeEncodeError" not in proc.stderr, (
+        f"the arrow broke the write to a cp1252 stdout:\n{proc.stderr[-500:]}"
+    )
+    doc = json.loads(proc.stdout)  # one JSON object, whatever the console's codepage
+    assert "\u2192" in proc.stdout, "the non-cp1252 character did not survive to stdout"
+    assert "\u2192" in json.dumps(doc, ensure_ascii=False), (
+        "the arrow is missing from the parsed document (it lives in R5's state cell)")

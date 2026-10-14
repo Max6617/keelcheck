@@ -64,8 +64,17 @@ def split_command(command: str) -> list[str]:
     return shlex.split(command)
 
 
-def _run_id() -> str:
-    return "review-" + record.now().replace(":", "-")
+def _run_id(manifest: dict) -> str:
+    """The export directory's name: the manifest it holds, and the process that wrote it.
+
+    The manifest prefix makes the directory self-describing -- a record can never point at another
+    review's tree, because the name says which state it holds, and that is the part Proctor pins
+    inside a single review. The pid is what distinguishes two reviews of the same state started in
+    the same second: they are separate processes, so a clock or a counter would not (Proctor's
+    finding, landed as named hardening).
+    """
+    digest = str(manifest.get("manifest_sha256", "")).removeprefix("sha256:")[:12]
+    return f"review-{digest or 'unknown'}-{os.getpid()}"
 
 
 def _hash_text(text: str) -> str:
@@ -317,7 +326,7 @@ def run_review(
         }
     mechanical = run_audit(repo, record_path=runs, write=False)
     findings = mechanical.render()
-    root = Path(export_root) if export_root else runs.parent / _run_id()
+    root = Path(export_root) if export_root else runs.parent / _run_id(manifest)
     try:
         tree = export.write_export(
             audit,

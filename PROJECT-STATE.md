@@ -466,6 +466,37 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   anchor moves again. The test generalises and belongs with D16's: **if the value a cell names can change without the
   cell changing, the cell names the wrong thing.** The same test found R4's record path (D16) and this one.
 
+- **D19 — the coverage gate's interface, stated before its red (2026-10-14, Mason).** Gilbert's order after
+  R5 is `tools/coverage.py` plus a suite-and-coverage gate declared and ratified; that is what clears vacuity on
+  keel, closes D13's `[unbuilt]` on R8 and gives keel the self-audit W1 needs. Proctor will not guess an
+  interface, so this is the contract, in the shape D15 used.
+
+  - **Surface:** `python tools/coverage.py [--min FLOAT] [--target FLOAT] [pytest args …]`, following
+    rentguard's `tools/coverage.py` spelling rather than inventing a second one. `--min` is the floor.
+  - **The floor is an argument, never ambient state.** Not an environment variable: that is state a test
+    cannot pin, the team has already ruled against it, and `keel gate run` passes **no arguments** to a gate,
+    so the gate's floor has to be the script's own default anyway. Not a floor file either: that is a second
+    artefact whose honesty must be maintained alongside the charter's. The default is a constant in the
+    script, which puts the floor inside the gate hash: **raising it is a gate change and needs
+    re-ratification (R2)** — the ratchet is locked code, which is the point.
+  - **The failing side is forced with `--min`:** `python tools/coverage.py --min 0.99` fails while the suite is
+    green, so the gate cannot be confused with `exit 0`. Through `keel gate run` the gate always runs with its
+    ratified default floor; the failing-side red runs the script directly, the way the hook tests run the
+    installed hook's `exec` line directly while `sh` is unavailable here.
+  - **The measurement:** the standard library, not the `coverage` module (not installed here, and there is no
+    network): `sys.settrace` over the `keel/` package plus `trace._find_executable_linenos` for the executable
+    set, with the suite run through `pytest.main`. A per-module table and a TOTAL, as rentguard's does.
+  - **Exit codes:** 0 at or above the floor, 1 below it, 2 when it could not measure at all — no module body of
+    ours was reached, which is the checkout-placement trap and is *diagnosed* rather than reported as 0.0%,
+    because a hand-set floor would otherwise turn a broken measurement into a pass.
+  - **Counts name a commit (rule 2):** the last line is
+    `coverage X.X% (floor Y.Y% target Z.Z%) at <full sha> worktree clean|dirty`, so the number's provenance is
+    in the number.
+  - **The first floor value** is set from the first measurement, in the same commit that builds the script,
+    rounded down; R8's 94% stays the *target*, and the charter's state column says whether it is met. The row
+    is `| suite | tools/coverage.py | sha256:<64 hex> | gate |`, ratified like any gate — a fixture can carry
+    its own row, so the red does not wait on keel's charter, which is Gilbert's.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

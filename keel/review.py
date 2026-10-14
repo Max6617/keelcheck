@@ -140,19 +140,24 @@ def _anchored_prompt(
                 "and the artefact at the anchor disagree (fix the row at the anchor)"
             ),
         }
-    # Deliberately **not** checked here: whether the working-tree *file* still hashes to the ratified
-    # row. The instruction handed over is the anchored blob, so a worktree edit cannot weaken it, and
-    # the audit already reports that drift as `[gate]`. Gilbert's split: rule 1 is "no ratified row
-    # anywhere plus --prompt", which runs and is recorded `prompt_ratified: false`; rule 2 is "a
-    # ratified row exists and the artefact at the anchor disagrees", which refuses. Checking the
-    # worktree file here made a fixture's checkout-configured line endings look like a weakened
-    # instruction and blocked the manifest red behind a refusal.
+    # D21(iii): the substitution is disclosed rather than silent. The instruction handed over is the
+    # anchored blob; when the working copy's stored content differs from it, the record says so and
+    # carries the file's own hash, so the difference can be checked against the file it is about.
+    working_hash: str | None
+    try:
+        working_hash, _ = normalize.content_hash(owner_repo, ratified_row.path)
+    except FileNotFoundError:
+        working_hash = None
+    except normalize.NormalizationError as exc:
+        return {"exit": 1, "error": f"the working copy cannot be hashed: {exc}"}
     return {
         "text": blob.decode("utf-8", errors="replace"),
         "path": ratified_row.path,
         "hash": ratified_row.hash,
         "ratified": True,
         "ratified_in": label,
+        "working_hash": working_hash,
+        "working_copy_differs": working_hash != ratified_row.hash,
     }
 
 
@@ -450,6 +455,8 @@ def run_review(
         "prompt_path": chosen["path"],
         "prompt_ratified": chosen["ratified"],
         "ratified_in": chosen.get("ratified_in"),
+        "working_copy_hash": chosen.get("working_hash"),
+        "working_copy_differs": chosen.get("working_copy_differs", False),
         "command": command,
         "exit": run["exit"],
         "result": run["result"],

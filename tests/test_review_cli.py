@@ -64,7 +64,7 @@ def _repo(scratch, *, gate: bool = True, prompt: bool = True, review_required: b
                            review_required=review_required)
     _support.commit_all(scratch, "ratified")
     if gate:
-        _support.keel("gate", "run", str(scratch))  # so the audit is clean apart from the review
+        _support.keel("gate", "run", str(scratch), "--timeout", "10")  # so the audit is clean apart from the review
     return scratch
 
 
@@ -77,6 +77,15 @@ def _review_lines(scratch, record=None) -> list[dict]:
 
 
 def _review(scratch, command: str, *extra):
+    """Every reviewer runs under an explicit short timeout.
+
+    `DEFAULT_TIMEOUT` in `review.py` is 600 s, so an environmental hang would hold the whole suite for
+    ten minutes before reporting `timeout`. A test must never wait on a default it does not need
+    (Gilbert, 2026-10-14), so the bound is added here unless the caller sets one deliberately.
+    """
+    extra = tuple(extra)
+    if "--timeout" not in extra:
+        extra = (*extra, "--timeout", "20")
     return _support.keel("review", str(scratch), "--reviewer", command, "--json", *extra)
 
 
@@ -532,3 +541,113 @@ def test_output_over_one_megabyte_is_malformed(scratch):
     assert line["result"] == "malformed", f"over-cap output was read as {line['result']!r}"
     assert "byte" in (line.get("reason") or "").lower(), (
         f"the reason does not name the cap: {line.get('reason')!r}")
+
+
+# --- Sift's outside attack, independently reproduced (218c444) ------------------
+
+
+def test_the_prompt_is_verified_against_the_ratified_table_not_the_working_tree(scratch):
+    """D15: the prompt's hash is "verified exactly like a gate's" — and a gate's is verified against
+    the table **at the ratification commit** (D1), never against the working tree.
+
+    Measured at `218c444`: edit the prompt *and* its working-tree row hash together, commit nothing,
+    and the review exits 0 recording `prompt_ratified: true` with `ratified_in: <repo>@<anchor>` —
+    provenance the anchor never gave. The control (prompt edited, row untouched) does exit 1, which
+    is why the gap reads as covered: the check that exists is self-consistency.
+    """
+    _repo(scratch)
+    _support.write(scratch / "review-prompt.md", "a weakened instruction\n")
+    weakened = _support.hash_file(scratch / "review-prompt.md")
+    text = (scratch / "CHARTER.md").read_text(encoding="utf-8")
+    ratified = re.search(r"review-prompt\.md\s*\|\s*(sha256:[0-9a-f]{64})", text).group(1)
+    _support.write(scratch / "CHARTER.md", text.replace(ratified, weakened))
+
+    proc = _review(scratch, _stub(scratch, "clean", CLEAN))
+    lines = _review_lines(scratch)
+
+    assert proc.returncode == 1, (
+        "a prompt re-ratified in the working tree ran, and the reviewer was handed the weakened "
+        f"instruction:\n{_support.combined(proc)}")
+    assert not lines or lines[-1].get("prompt_ratified") is not True, (
+        "the review line carries provenance the anchor never gave")
+
+
+def test_a_path_a_gate_row_names_is_never_silently_absent_from_the_export(scratch):
+    """§7.8 / D15: the cap may not omit a path a requirement, a row or the charter names, and every
+    omission is listed with a reason. Measured at `218c444`: a gitignored gate path sits in the
+    manifest's `always`, in neither `files` nor `skipped`, and `skipped: []` reports a clean export
+    while the mechanism the charter rests on is gone — the vacuity class, inside the export."""
+    _support.write(scratch / ".gitignore", "gates/\n")
+    _support.write(scratch / "gates" / "check.sh", "#!/bin/sh\nexit 0\n")
+    _support.write(scratch / "tracked.txt", "hello\n")
+    rows = [("check", "gates/check.sh", _support.hash_file(scratch / "gates" / "check.sh"))]
+    _support.write_charter(scratch, requirements=REQUIREMENTS, gates=rows)
+    sha = _support.init_repo(scratch)  # .gitignore keeps gates/ out of the commit
+    _support.write_charter(scratch, requirements=REQUIREMENTS, gates=rows, ratified=sha)
+    _support.commit_all(scratch, "ratified")
+    outside = _support.write(scratch.parent / f"{scratch.name}-instruction.md", "instruction\n")
+
+    proc = _review(scratch, _stub(scratch, "clean", CLEAN), "--prompt", str(outside))
+    assert proc.returncode == 0, _support.combined(proc)
+    tree = Path(_review_lines(scratch)[-1]["export"])
+    manifest = json.loads((tree / "KEEL-MANIFEST.json").read_text(encoding="utf-8"))
+    named = "gates/check.sh"
+
+    assert named in manifest.get("always", []), (
+        f"the manifest does not list the path a gate row names at all: {sorted(manifest)}")
+    assert named in manifest.get("files", []) or named in manifest.get("skipped", []), (
+        f"{named} is named by a gate row and is in neither the exported files nor the skipped list: "
+        f"files={manifest.get('files')} skipped={manifest.get('skipped')}")
+
+
+def test_the_export_never_hands_the_reviewer_the_active_record_file(scratch):
+    """D17/D15: the record is out of the reviewer's reach *by role*. Measured at `218c444`:
+    `--record <repo>/prior-runs.jsonl` is exported, because the active-root exclusion fires only when
+    the record root is a strict ancestor of the repository — and `record_paths` deliberately accepts
+    any file or directory, so the tool cannot assume it lives under `.keel`."""
+    _repo(scratch)
+    record = scratch / "prior-runs.jsonl"
+    record.write_text("", encoding="utf-8")
+    _support.git(scratch, "add", "-A")
+    _support.commit_all(scratch, "commit a prior record at the root")
+
+    proc = _review(scratch, _stub(scratch, "clean", CLEAN), "--record", str(record))
+
+    assert proc.returncode == 0, _support.combined(proc)
+    line = _review_lines(scratch, record=record)[-1]
+    tree = Path(line["export"])
+
+    assert not (tree / "prior-runs.jsonl").exists(), (
+        "the active record file was handed to the reviewer: it can read the prior runs it exists to "
+        "be blind to")
+
+
+def test_the_manifest_is_the_same_for_one_commit_in_two_checkouts(scratch):
+    """§7.9 and D9: every hash is over git-normalized content, and one function serves both sides, so
+    a legitimate difference must not produce a false red.
+
+    Measured at `218c444`: `build_manifest` hashes raw worktree bytes, so one commit checked out with
+    `core.autocrlf=true` and again with `false` yields two manifest hashes — a review made in one
+    checkout is reported **stale** in the other, the failure item 9 exists to prevent.
+    """
+    _repo(scratch)
+    _support.git(scratch, "config", "core.autocrlf", "false")
+    prompt = _support.write(scratch.parent / f"{scratch.name}-instruction.md", "instruction\n")
+    assert _review(scratch, _stub(scratch, "clean", CLEAN), "--prompt", str(prompt)).returncode == 0
+    lf_manifest = _review_lines(scratch)[-1]["manifest"]
+
+    second = scratch.parent / f"{scratch.name}-crlf"
+    _support.git(scratch, "worktree", "add", "-q", str(second))
+    _support.git(second, "config", "core.autocrlf", "true")
+    (second / "tracked.txt").unlink()
+    _support.git(second, "checkout", "--", "tracked.txt")
+    assert (second / "tracked.txt").read_bytes().endswith(b"\r\n"), (
+        "precondition: the second checkout is not CRLF, so the attack is not being made")
+    assert _review(second, _stub(scratch, "clean2", CLEAN), "--prompt", str(prompt)).returncode == 0
+    crlf = [json.loads(l) for l in (second / ".keel" / "runs.jsonl").read_text(
+        encoding="utf-8").splitlines() if l.strip() and json.loads(l).get("kind") == "review"][-1]
+
+    assert lf_manifest == crlf["manifest"], (
+        f"one commit yields two manifest hashes ({lf_manifest[:16]} vs {crlf['manifest'][:16]}), so a "
+        "review recorded in one checkout is stale in the other — D9's class, and the false red that "
+        "re-running cannot clear")

@@ -188,6 +188,19 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
     the drift review is part of the audit by R3's own wording; what is refused is the claim that the
     mechanical half found them.
 
+- **D9 — every hash and every block comparison is over git-normalized content (2026-10-14, measured; hand it
+  to Proctor).** The host's system gitconfig sets `core.autocrlf=true`, so a fresh clone checked CRLF into the
+  worktree: before the fix `CHARTER.md` in a clone had **127 CRLF lines** and the frozen-original block hashed
+  `4bb314d0…` instead of `376f11a4…`. Any comparison of raw worktree bytes against `git show` bytes — D5's
+  block diff, R2's gate hash, Proctor's `_support.hash_file` — would therefore report a false divergence on
+  every Windows checkout, in exactly the rule the tool exists for. Fixed and verified: `.gitattributes`
+  `* text=auto eol=lf` (committed at `7f73812`) and `core.autocrlf=false` in this repo; a fresh clone now
+  reports `w/lf` and 0 CRLF. Second lesson from the same fix: the first `.gitattributes` (`98fea4f`) was
+  written with a UTF-8 BOM, which silently stopped its first rule from matching — the clone still came out
+  CRLF while the rule looked present. Rules are hashed artefacts too; a BOM is enough to make one decorative.
+  Implementation note: prefer `git hash-object`/`git cat-file` over `hashlib` on worktree bytes, and pin the
+  finding with a test that checks out with `core.autocrlf=true` forced.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

@@ -359,6 +359,26 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   `git -c user.name=<Bot> -c user.email=<bot>@keel.local`**, and a numbered decision names its author in its
   body. The one-writer-per-file rule is unenforceable while the log cannot say who the writer was.
 
+- **D16 — a mechanism cell names code that resolves in the *audited* repo; a file that only a run writes is
+  evidence, not a mechanism (2026-10-14, Proctor's finding; `keel/CHARTER.md` R4 corrected).** (D15 stays
+  reserved for the contract entry Mason was asked to append.) R4's `enforced-by` named
+  `.keel/review-context.json`, which D13 resolves inside the audited repo — but that file is written under the
+  **record root**, so whenever the record goes elsewhere (exactly what the rentguard demonstration forces, D4)
+  keel's own R4 reported `[unbuilt]`, and was silent when the record defaulted. A divergence that depends on
+  where the record was written trains a reader to ignore the finding, which is a gate already off.
+
+  Ruled, and it generalises: an `enforced-by` names **code that resolves in the audited repo**; a file that
+  exists only after a run is **evidence** and belongs in `checked-by` (rentguard's R5 lesson, D13); and a path
+  whose location is a function of the invocation — anything under the record root — is not a mechanism at all.
+  **Rejected:** naming the record path relative to the `--record` root inside the cell (that writes the
+  invocation into the claim, and a claim true only sometimes is what `[unbuilt]` exists to catch), and accepting
+  the conditional `[unbuilt]` as honest.
+
+  The row now reads `enforced-by: —`, `checked-by: the drift report names `.keel/review-context.json`, written
+  under the record root`, state **checked, not enforced**, with the part that exists (`keel/audit.py`) and the
+  part that does not (the runner) both named in the state column. That is the truthful row until the runner is
+  built, and it keeps a not-yet-built mechanism out of `enforced-by` the same way rentguard's R5 is kept out.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

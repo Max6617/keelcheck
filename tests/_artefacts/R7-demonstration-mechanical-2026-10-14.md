@@ -151,3 +151,29 @@ review produced are routed to Scribe and to Gilbert, not softened here.
 Also unrun at the time of writing: D7's **pre-fix** revisions (d63920, ce69cea, c512125) — the
 five were still present there, which is where a clean-context reviewer can see the defect as the
 state. One call each, queued.
+## Pre-fix drift: bd63920 measured, two revisions pending (2026-10-14)
+
+The first attempt ran all three pre-fix revisions in a background job and **all three failed at the
+reviewer** (exit 2, "no JSON object in the reviewer's output (exit 1)"). Keel recorded an error with
+no verdict and no fabricated findings, so the drift column read *not measured* at those revisions —
+a failed call is not a small number. Cause, diagnosed rather than guessed: the identical command run
+in the **foreground** at d63920 succeeded (exit 1, 187 s), so it was the background context, not a
+rate or session limit. The wrapper's own defect — it discarded claude's stderr, so a failure gave no
+reason — is fixed; it now prints the reviewer's stderr tail and its stdout tail.
+
+**d63920, foreground, one call (assay at 	ests/_artefacts/; run over a detached worktree, record
+outside the read-only tree, prompt via --prompt-repo keel):** exit 1, verdict divergence, **12
+verified, 0 unverified**, 2 missing / 2 unrequested / 8 shifted, prompt_ratified: true,
+atified: null — the null-anchor ruling working against the real input, no copy.
+
+**Two of the five by-hand defects are named here that the current-state run at 310f449 did not
+name:**
+
+| # | by-hand defect | at 310f449 (current state) | at d63920 (pre-fix) |
+|---|---|---|---|
+| 1 | no way to arm the guard over MCP (R2) | not named; a *different* MCP defect was named (un's command.split()) | **named**: [missing] MCP surface: watch and init tools |
+| 2 | the guard could stop a healthy pod (W4) | partly: the R4 gap as unproven | **named**: [shifted] guard idle rule (idle_since_start_minutes) |
+
+That is D7's pair doing its work: the current state presents the five as history, the pre-fix state
+presents them as the state. **ce69cea and c512125 are still unmeasured** and will be run in the
+foreground, one call each, before this table is called complete.

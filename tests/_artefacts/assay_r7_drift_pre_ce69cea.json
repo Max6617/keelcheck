@@ -1,0 +1,32 @@
+{
+  "exit": 2,
+  "error": "the reviewer exited 1: claude-reviewer: no JSON object in the reviewer's output (exit 1)",
+  "line": {
+    "kind": "review",
+    "at": "2026-10-14T21:29:13Z",
+    "commit": "ce69cea731511f02ea3005c133f232ad81400fbe",
+    "ratified": null,
+    "manifest": "sha256:8360b6bdceed335226eda0845d6c4f9fe7d936c0ab5665791f7e000e90bd74e7",
+    "context": "sha256:e494d3aa6f7bc5de09449b9ca76cff2ed10bdd07e1f99ef76abd565ef08a188a",
+    "prompt": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "prompt_path": "review-prompt.md",
+    "prompt_ratified": true,
+    "ratified_in": "keel@117ac7c",
+    "working_copy_hash": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "working_copy_differs": false,
+    "command": [
+      "C:\\Python312\\python.exe",
+      "C:\\Users\\besen\\.dsh\\bot\\workspace\\keel\\tests\\_artefacts\\claude-reviewer.py"
+    ],
+    "exit": 1,
+    "result": "error",
+    "history_reachable": "unknown",
+    "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-8360b6bdceed-6708\\tree",
+    "files": 47,
+    "bytes": 381110,
+    "truncated": false,
+    "warnings": [],
+    "reason": "the reviewer exited 1: claude-reviewer: no JSON object in the reviewer's output (exit 1)"
+  },
+  "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-8360b6bdceed-6708\\tree"
+}

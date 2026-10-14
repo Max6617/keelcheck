@@ -66,6 +66,13 @@ def main(argv: list[str] | None = None) -> int:
     if found is None:
         print(f"claude-reviewer: no JSON object in the reviewer's output (exit {proc.returncode})",
               file=sys.stderr)
+        # The reviewer's own error is usually on stderr. Without it a failed call records only this
+        # wrapper's line, which is why three pre-fix runs failed at the reviewer with no reason named.
+        error = (proc.stderr or "").strip()
+        if error:
+            print("--- claude stderr (tail) ---", file=sys.stderr)
+            print(error[-2000:], file=sys.stderr)
+        print("--- claude stdout (tail) ---", file=sys.stderr)
         print(text[-4000:], file=sys.stderr)
         return 1
 

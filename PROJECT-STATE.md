@@ -521,6 +521,18 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   gate |` is mine to put in the charter once the hash is over the git-normalized blob — hand it to me rather
   than editing the charter, and the anchor move that follows is the user's by D12.
 
+- **D21 — the review runs on the anchored instruction; a working-copy difference is disclosed, never silent
+  (2026-10-14, Sift's question; amends D15's letter).** D15 said "a mismatch is exit 1 and no review runs".
+  Measured at `dbb70b5`: weaken the prompt *file* in the working tree with the row and the anchor untouched, and
+  `keel review` exits 0 while the reviewer receives the **anchored** text — the weakened text never reaches it,
+  but the record said nothing about the difference. Ruled **(a), not (b)**: the anchored artefact *is* the
+  instruction, so refusal buys no security and would block every review until the worktree is clean — the
+  "impossible" tier INTENT-LOOP warns against. The unacceptable part was the silence, so the review line carries
+  the **working file's hash** and a `working_copy_differs` flag, `prompt_ratified` stays `true` because the
+  ratified instruction is what ran, and the audit's `[gate]` line still names both hashes. One refusal case
+  remains: the anchor is **self-inconsistent** (the row's hash at the anchor does not match the blob at the
+  anchor, or the path is missing there) — exit 1, no review.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

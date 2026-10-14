@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keel"
+version = "0.0.1"
+description = "One frozen human-approved original; requirements that name their mechanism or are marked wishes; hashed gates; an audit that reports divergence."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Max Reischl" }]
+keywords = ["charter", "audit", "agents", "gates", "intent"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.scripts]
+keel = "keel.cli:main"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["keel"]

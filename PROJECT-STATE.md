@@ -8,9 +8,13 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
 ## Rule set (binding, same as rentguard's)
 
 1. **One writer per file.** `keel/` package + `pyproject.toml` + the CLI → Mason. `tests/` → Proctor.
-   `docs/`, `README.md` → Folio. `research/`, design notes → Sift. `CHARTER.md`, this file, and
-   packaging commits → Gilbert. A finding goes to the owner as a message; it is not patched into someone
-   else's file.
+   `docs/`, `README.md` → Folio. `research/`, design notes → Sift. `CHARTER.md` and packaging commits →
+   Gilbert. **This file is the shared decision record:** anyone may append a numbered decision with their
+   name on it, nobody edits another's entry, and Gilbert ratifies or overrules. The rule as first written
+   made this file Gilbert's alone; D1–D9 were appended to it by others, so the rule was bent rather than
+   followed. Rather than freeze the record behind one writer, the convention is now explicit — the bending
+   is recorded here instead of hidden. A finding goes to the owner as a message; it is not patched into
+   someone else's file.
 2. **A count only counts when it names a commit.** A working-tree count is a measurement of a moving
    target; say so when you report one.
 3. **Red first.** A test for a named failure exists before the fix lands.
@@ -40,7 +44,9 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
 - Charter edits after the finding, 2026-10-14, in the **living** part only: the "agreed problems" section
   added (6/6 sections now) and R4's mechanism named as an artefact. The frozen original is untouched.
 - The first audit is the demonstration: **rentguard**, whose charter is `rentguard/CHARTER.md` and whose
-  by-hand audit found five real defects (R2, R4, W1, W3, W4 there). Reproducing that finding is R7.
+  by-hand audit found five real defects there. The catalogue of record is **D11**: R2, **R4+W4 as one**
+  finding, W1, W2, W3 — all six names, because this line first listed R2, R4, W1, W3, W4 and dropped W2.
+  Reproducing that finding is R7.
 
 ## Lanes and the first assignment for each
 
@@ -200,6 +206,85 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   CRLF while the rule looked present. Rules are hashed artefacts too; a BOM is enough to make one decorative.
   Implementation note: prefer `git hash-object`/`git cat-file` over `hashlib` on worktree bytes, and pin the
   finding with a test that checks out with `core.autocrlf=true` forced.
+
+- **D10 — D1–D9 ratified, with one addition and one process note (2026-10-14, Gilbert).** D1 answers Sift's R2
+  question, and better than the shape I had drafted: the ratified gate table lives in the charter's *living*
+  state, and the **reference** is that file at the ratification commit (`git show <sha>:CHARTER.md`). **I
+  withdraw the separate registry file I was about to rule.** It would have added a second artefact whose
+  honesty has to be maintained alongside the charter's, and it forfeits D5's block rule, which the charter
+  already provides. One source, and rule 2 ("every comparison names a commit") falls out of it.
+
+  **One addition, because both copies agreeing is not proof of approval.** A2 makes a single silent edit to
+  either copy visible. What it does not catch is an edit to the gate table that keeps both copies consistent —
+  a re-ratified-looking hash that no human approved. So the audit must also report, as a first-class line,
+  **every change to the gate table since the last run record**: which gate, both hashes, and the commit that
+  made the change. The tier stays honest and unchanged — the tool makes a weakened gate *loud*, never
+  impossible — and that line is what "loud" means in practice.
+
+  The rest are ratified as recorded: D2 (hooks are reach, not enforcement), D3 (red-first ordering with the
+  contract fixed here first), D4 (rentguard is read-only evidence while it is R7's input), D5 (the anchor is
+  the frozen-original *block*), D6 (the record lives inside the repository it governs), D7 (R7 is a
+  two-revision pair), D8 (A1–A3, vacuity is a finding, the report prints all four columns), D9 (every
+  comparison is over git-normalized content). Sift's two unverified flags stay labelled: whether a pull
+  request can edit the workflow that grades it, and that the CI section covers GitHub only.
+
+- **D11 — the by-hand catalogue pinned, the anchor measured, and one live defect found doing it (2026-10-14,
+  from Folio's artefact map).** The map's real finding was a contradiction inside the record; four hygiene
+  items came with it. Ruled here so the demo's claim is checkable before more is built on it.
+
+  **F6 — "the five by-hand defects" is one catalogue, printed with all six names.** rentguard's own charter is
+  the authority, and its W4 says in terms that it "is what R4's wish looked like once it was tested": **R4 and
+  W4 are one finding in two stages, not two findings.** The five, as my by-hand reading of 2026-10-14 recorded
+  them: (1) the MCP surface could not arm the guard — **R2**; (2) the guard was unproven and, tested, wrong —
+  **R4 and W4**; (3) the cap exists only while `watch` runs — **W1** (R9); (4) publishing has no lock —
+  **W2** (R8); (5) the volume path is unexercised — **W3**. Both existing lists each dropped a name: this
+  file's (R2, R4, W1, W3, W4) lost **W2**, the R7 artefact's lost **R4**. Same count, different membership —
+  which is why both read as fine. **Every listing prints all six names with the merge stated.** The artefact's
+  measurements stand; its owner adds the catalogue as a dated note, because I will not put a second writer into
+  a file that is being written.
+
+  **F3 — the input moves; D4 binds the audit, not the dependency.** rentguard is at `ad2e880`, 75 commits, one
+  modified file (`tests/_artefacts/missing_lines_2026-10-14.txt`, an evidence note, not product). D1 and D9
+  already require reading revisions rather than the worktree, so a dirty checkout cannot reach a run. Explicit
+  now: **an input that is not a commit exits 1 and is named.**
+
+  **The artefact's own drift note, ruled the same way.** D7's "at rentguard HEAD `310f449`" names a moving
+  thing. rentguard's code is now at `ad2e880` while its charter is unchanged, so the demonstration input is
+  intact — the wording is not. **No input is ever named by a moving reference**: the demo names the four
+  revisions in R7's cell (`bd63920`, `ce69cea`, `c512125`, `310f449`), and later rentguard commits change
+  nothing about it.
+
+  **F8 — a citation in a charter resolves inside the repository that holds it.** `keel/CHARTER.md` cited
+  `keel-project-state.md`, which resolves only one directory above the repo: D6's own corollary, broken. The
+  line sits in an appended decision note, living state, so it now reads `PROJECT-STATE.md`; the frozen block is
+  byte-identical before and after.
+
+  **F9 — found here while verifying F8, and it is live: the block the code anchors is not the block the record
+  defines.** This file defines the frozen original as the user's verbatim words **plus the recommendation they
+  accepted** — the sentence that carries the scope. `keel/charter.py`'s `_parse_frozen_original` collects only
+  the first blockquote block, so `frozen_original` is **82 bytes** (the words alone, sha256
+  `3c5b8b6a44e75d2eaa0e507c6f3ced57b486678f43271a2b8f580f30c0fb9e43`) where the definition of record is
+  **553 bytes** (everything under the heading to the next `## `, heading included; sha256
+  `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`). The recommendation is where the scope
+  lives — "narrow to the join … keep using rentguard as the demonstration" — so an edit there would leave the
+  audit reporting the frozen original intact: **the anchor covers less than the record says it covers, which is
+  the vacuity class, on the tool's own anchor.** Ruled: the block is everything under the heading to the next
+  `## `, heading included, **recorded beside its byte length** so a redefinition shows up as a length change
+  rather than as a second defensible hash. Fixed by **Mason** in the parser, red test by **Proctor** (edit the
+  recommendation line; the audit must report the frozen original moved). Folio's 530 bytes / `093a271b…` for
+  the same block excluded the 23-byte heading line — a third definition, and the reason the length is recorded.
+
+  **F4 — the repo could not be collected from its root.** Two mode-0700 `pytest-cache-files-*` directories sat
+  at keel's root, invisible to `git status`. They are pytest's own transient cache directories and were gone
+  after the first `pytest` run this turn, so Folio's exact combination — directories present, cache plugin on —
+  can no longer be reproduced: plain `pytest --collect-only` at the root collects **34 tests, exit 0**.
+  Recorded as **unreproduced**, not as fixed by me. The structural half was real and is closed —
+  `pytest-cache-files-*/` is in `.gitignore`, because a 0700 directory under the root breaks a run on this
+  host while `git status` says nothing.
+
+  **F7 recorded as a counting caution:** `Measure-Object -Line` counted `README.md` as 141 lines and the map as
+  128; the files are **176** and **152** — it drops blank lines silently. Counts a stranger will check are
+  taken with `[IO.File]::ReadAllLines().Count`.
 
 ## The demonstration (why it is rentguard)
 

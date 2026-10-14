@@ -98,18 +98,16 @@ class Audit:
     def compute_exit(self) -> int:
         """Divergence classes drive the code; wishes never do (D12).
 
-        A charter with no ``Ratified at:`` line is exit 2, never 0: the audit could not establish
-        the reference at all, and vacuity -- which is a *consequence* of having no reference --
-        must not turn that into exit 1. A content divergence (a missing section, a moved block, a
-        gate whose hash or table changed) still wins, because that is a finding about the charter.
+        **Exit 2 dominates exit 1** (Gilbert's ruling, 2026-10-14): a run that could not establish its
+        anchor did not do the job, so it must not be reported with the code that means it did. The
+        findings are still printed -- `keel audit ../rentguard`, a charter with no `Ratified at:`
+        line, printed its divergences and exited 1, which D12 forbids. Vacuity is not special-cased
+        here any more: without an anchor there is no reference to be vacuous about.
         """
         if self.fatal:
             return EXIT_CANNOT_RUN
         if self.fail_on_wish and self.charter is not None and self.charter.wishes:
             return EXIT_CANNOT_RUN
-        blocking = [f for f in self.findings if f.kind != "vacuity"]
-        if blocking:
-            return EXIT_DIVERGENCE
         if self.cannot_run:
             return EXIT_CANNOT_RUN
         if self.findings:
@@ -128,10 +126,12 @@ class Audit:
             out.append(f"exit: {self.exit_code}")
             return "\n".join(out)
         assert self.charter is not None
+        ratified_rows = self.reference.gates if self.reference else []
+        executable = [g for g in ratified_rows if g.kind == "gate"]
         out.append(
             f"sections: {len(self.charter.sections)}/6  requirements: "
             f"{len(self.charter.requirements)}  gates ratified: "
-            f"{len(self.reference.gates) if self.reference else 0}  wishes: {len(self.charter.wishes)}"
+            f"{len(ratified_rows)} ({len(executable)} executable)  wishes: {len(self.charter.wishes)}"
         )
         out.append("")
         if self.findings:

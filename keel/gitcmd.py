@@ -31,10 +31,13 @@ class GitError(RuntimeError):
     """A git command the audit cannot do without returned non-zero."""
 
 
-def run(repo: Path | str, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+def run(
+    repo: Path | str, *args: str, check: bool = True, stdin: str | None = None
+) -> subprocess.CompletedProcess:
     """Run ``git -C <repo> <args>``, capturing both streams as UTF-8."""
     proc = subprocess.run(
         ["git", "-C", str(repo), *args],
+        input=stdin,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -94,3 +97,31 @@ def hash_object(repo: Path | str, relpath: str) -> str:
     would store, computed by git rather than by our reading of its rules.
     """
     return run(repo, "hash-object", "--", relpath).stdout.strip()
+
+
+def hash_object_many(repo: Path | str, relpaths: list[str]) -> list[str]:
+    """``git hash-object --stdin-paths``: git's own answer for a whole list, in one process.
+
+    Measured on this host: the filters are applied exactly as for a single path (a CRLF file and
+    its LF twin hash alike), so a manifest of any size can be verified in bulk instead of one
+    subprocess per file.
+    """
+    if not relpaths:
+        return []
+    listing = run(repo, "hash-object", "--stdin-paths", stdin="\n".join(relpaths) + "\n")
+    return [line.strip() for line in listing.stdout.splitlines() if line.strip()]
+
+
+def blob_bytes(repo: Path | str, rev: str, path: str) -> bytes | None:
+    """The bytes of ``path`` at ``rev``, or None when that revision has no such blob.
+
+    The prompt is hashed from its blob at the anchor, not from the worktree: a working-tree edit of
+    both the file and its row cannot re-ratify itself (Gilbert's ruling on Sift's finding 1).
+    """
+    proc = subprocess.run(
+        ["git", "-C", str(repo), "cat-file", "blob", f"{rev}:{path}"],
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        return None
+    return proc.stdout

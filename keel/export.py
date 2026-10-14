@@ -5,10 +5,24 @@ pointed at a `.git`-less copy of the current state, with the frozen original, th
 findings and one fixed prompt beside it. That makes clean context a property of the reviewer's
 *reach* rather than a promise about its input (W2).
 
-One function builds the manifest -- :func:`build_manifest` -- and **both sides call it**: the review
-copies the files it lists, and the audit recomputes it to decide whether a recorded review still
-covers the current state. Two code paths over the deny-list, the cap or the symlink policy would make
-every review permanently stale, a false red that re-running cannot clear (Proctor, design item 9).
+Four things this module has to get right, each of them a finding from an outside attack:
+
+- **One manifest, one function, two sides.** :func:`build_manifest` is called by the review (to copy
+  what it lists) *and* by the audit (to decide whether a recorded review still covers the current
+  state). Two code paths over the deny-list, the cap or the symlink policy would make every review
+  permanently stale.
+- **The hashes are over git-normalized content** (D9). A manifest over raw worktree bytes gives one
+  commit two identities across two checkouts, so a review recorded on one is reported stale on the
+  other -- a false red that re-running cannot clear. `bytes` and `sha256` are both the *stored* size
+  and hash, because both go into the manifest hash and a checkout-dependent field would move it.
+  The whole manifest is then checked against ``git hash-object`` in one process.
+- **The record is out of reach by identity, not by name.** The active record and context files are
+  excluded wherever they live, a record-shaped file is excluded wherever it lives (its first line
+  says what it is, which is what catches a *prior* record under another name or in another
+  directory), and `.keel` stays denied by role as the base case.
+- **A path an artefact names is never silently absent.** Nothing may be dropped without a reason in
+  `skipped`: not by the cap, not by `.gitignore`, not by being missing. The manifest's job is to say
+  what the reviewer did *not* get.
 """
 
 from __future__ import annotations
@@ -18,7 +32,7 @@ import json
 import shutil
 from pathlib import Path
 
-from . import gitcmd
+from . import gitcmd, normalize
 
 __all__ = [
     "DENIED",
@@ -26,9 +40,12 @@ __all__ = [
     "MAX_FILES",
     "MANIFEST_NAME",
     "MANIFEST_KIND",
+    "always_paths",
     "build_manifest",
     "deny_reason",
+    "is_keel_record",
     "manifest_sha256",
+    "select_paths",
     "write_export",
 ]
 
@@ -48,12 +65,14 @@ DENIED = {
     "dirs": {".ssh", ".aws", ".gnupg", ".git"},
 }
 
-#: The record directory, denied **by role** and not only by where this run put it. A repository
-#: whose record is committed under `.keel/` and audited with `--record` elsewhere would otherwise
-#: hand the reviewer prior audits, prior review verdicts and the history it exists to be denied
-#: (Gilbert's finding, 2026-10-14). The active record root is excluded as well, because a record may
-#: legitimately live somewhere else.
+#: The record directory denied **by role**: a repository whose record is committed under `.keel/`
+#: and audited with `--record` elsewhere would otherwise hand the reviewer prior audits and prior
+#: review verdicts -- the history it exists to be denied.
 RECORD_SEGMENTS = {".keel"}
+
+#: What a keel record's first line says it is. A record under any other name or directory is still a
+#: record, and "the record is out of reach" has to be true for every location the tool supports.
+RECORD_MARKERS = ("keel/runs", "review-context/1")
 
 
 def deny_reason(rel: str) -> str | None:
@@ -69,6 +88,20 @@ def deny_reason(rel: str) -> str | None:
     if DENIED["dirs"].intersection(parts[:-1]) or name in DENIED["dirs"]:
         return "denied: secret directory"
     return None
+
+
+def is_keel_record(data: bytes) -> bool:
+    """True when these bytes are a keel run record or a reviewer's context file, wherever they live."""
+    first = data.split(b"\n", 1)[0].strip()
+    if not first.startswith(b"{"):
+        return False
+    try:
+        obj = json.loads(first.decode("utf-8", "replace"))
+    except ValueError:
+        return False
+    if not isinstance(obj, dict):
+        return False
+    return obj.get("record") in RECORD_MARKERS or obj.get("keel") in RECORD_MARKERS
 
 
 def _repo_paths(repo: Path) -> tuple[list[str], list[str]]:
@@ -87,47 +120,61 @@ def _repo_paths(repo: Path) -> tuple[list[str], list[str]]:
 
 
 def always_paths(audit) -> list[str]:
-    """Paths the reviewer must always get: the anchor, the locked artefacts, named mechanisms.
-
-    Nothing here depends on a finding, so the set is the same on both sides of the comparison and
-    the manifest cannot disagree with itself (R4, design item 8).
-    """
+    """Paths the reviewer must always get, or be told about: the anchor, the locked artefacts, and
+    every path a requirement, a row or a **finding** names (design item 8)."""
     assert audit.charter is not None
+    from .charter import named_repo_paths  # local: charter imports nothing from here
+
     found: list[str] = [audit.charter_path.name if audit.charter_path else "CHARTER.md"]
     for row in audit.charter.gates:
         if row.path:
             found.append(row.path)
-    from .charter import named_repo_paths  # local: charter imports nothing from here
-
     for requirement in audit.charter.requirements:
         found.extend(named_repo_paths(requirement.enforced_by))
+    for finding in audit.findings:
+        found.extend(named_repo_paths(f"{finding.subject} {finding.message}"))
     return [p for p in dict.fromkeys(found) if p]
 
 
 def select_paths(audit) -> dict:
-    """The file set both sides agree on: under the record root excluded, deny-list applied, capped.
-
-    Tracked files plus untracked-and-not-ignored ones -- the current state -- never a filesystem
-    walk, never `.git`, never `.keel` (the record directory, denied by role), never the active
-    record root (which is where the export itself is written), and never a denied name. The cap may
-    not hide a file an artefact names (design item 8).
+    """The file set both sides agree on: what git lists, what the charter names, minus what must not
+    leave, capped -- and every exclusion carries a reason.
     """
     repo = audit.repo
-    # The active record root is excluded only when it is *inside* the repository. A record path that
-    # resolves above the repo must not exclude the whole repo -- that produced an empty manifest and a
-    # "clean" review of nothing (found by Mason's own probe, 2026-10-14). `.keel` is denied by role
-    # anyway, so a committed record is never exported whatever --record says.
-    chosen_root = audit.record_path.parent.resolve()
     repo_root = repo.resolve()
-    excluded_root = chosen_root if (chosen_root != repo_root and repo_root in chosen_root.parents) else None
     tracked, untracked = _repo_paths(repo)
-    always = set(always_paths(audit))
+    known: dict[str, bool] = {p.replace("\\", "/"): True for p in tracked}
+    known.update({p.replace("\\", "/"): False for p in untracked})
+    always = always_paths(audit)
     skipped: list[dict] = []
+
+    # Paths the charter names that git does not list at all: ignored, or absent. Neither may vanish
+    # silently -- a gitignored gate path used to be in `always` and in neither `files` nor `skipped`.
+    for rel in always:
+        if rel in known:
+            continue
+        if (repo / rel).exists():
+            skipped.append({"path": rel, "reason": "ignored by .gitignore (named by the charter)"})
+        else:
+            skipped.append({"path": rel, "reason": "named by the charter but not present"})
+
+    # The record this run writes, and its context file, are excluded by identity wherever they are:
+    # `--record <repo>/runs.jsonl` puts them in the tree, and an earlier version exported them.
+    by_identity = set()
+    for path in (audit.record_path, audit.review_context_path):
+        try:
+            by_identity.add(path.resolve())
+        except OSError:  # pragma: no cover - unreadable path components
+            continue
+
     candidates: list[tuple[str, bool]] = []
-    for rel, is_tracked in [(p, True) for p in tracked] + [(p, False) for p in untracked]:
-        rel = rel.replace("\\", "/")
-        target = (repo / rel).resolve()
-        if excluded_root is not None and (excluded_root in target.parents or target == excluded_root):
+    for rel, is_tracked in known.items():
+        try:
+            target = (repo / rel).resolve()
+        except OSError:  # pragma: no cover - unreadable path components
+            continue
+        if target in by_identity:
+            skipped.append({"path": rel, "reason": "denied: the record this run writes"})
             continue
         reason = deny_reason(rel)
         if reason:
@@ -140,7 +187,6 @@ def select_paths(audit) -> dict:
     total = 0
     truncated = False
     for rel, is_tracked in ordered:
-        size = 0
         try:
             size = (repo / rel).stat().st_size
         except OSError:
@@ -152,11 +198,16 @@ def select_paths(audit) -> dict:
             continue
         chosen.append((rel, is_tracked))
         total += size
-    return {"paths": chosen, "skipped": skipped, "truncated": truncated, "always": sorted(always)}
+    _ = repo_root
+    return {"paths": chosen, "skipped": skipped, "truncated": truncated, "always": always}
 
 
 def manifest_sha256(files: list[dict]) -> str:
-    """The state's identity: canonical JSON of the file list, sorted, hashes and sizes only."""
+    """The state's identity: canonical JSON of the file list, sorted, hashes and sizes only.
+
+    Every field in it is checkout-independent -- the sizes and hashes are the *stored* ones -- because
+    a field that moves between checkouts moves the identity with it.
+    """
     canonical = json.dumps(
         sorted(files, key=lambda f: f["path"]),
         sort_keys=True,
@@ -169,10 +220,14 @@ def manifest_sha256(files: list[dict]) -> str:
 def build_manifest(audit) -> dict:
     """The manifest of the current state. Called by the review *and* by the audit (item 9)."""
     selection = select_paths(audit)
+    repo = audit.repo
+    autocrlf = gitcmd.autocrlf(repo)
+    algorithm = gitcmd.object_format(repo)
     files: list[dict] = []
     skipped = list(selection["skipped"])
+    normalized: dict[str, bytes] = {}
     for rel, is_tracked in selection["paths"]:
-        source = audit.repo / rel
+        source = repo / rel
         if source.is_symlink():
             skipped.append({"path": rel, "reason": "symlink: never followed out of the export"})
             continue
@@ -181,15 +236,31 @@ def build_manifest(audit) -> dict:
         except OSError as exc:
             skipped.append({"path": rel, "reason": f"unreadable: {exc}"})
             continue
+        if is_keel_record(data):
+            skipped.append({"path": rel, "reason": "denied: a keel run record, wherever it lives"})
+            continue
+        stored = normalize.normalize_path(repo, rel, data, autocrlf=autocrlf)
+        normalized[rel] = stored
         files.append(
             {
                 "path": rel,
-                "bytes": len(data),
-                "sha256": hashlib.sha256(data).hexdigest(),
+                "bytes": len(stored),
+                "sha256": hashlib.sha256(stored).hexdigest(),
                 "tracked": is_tracked,
             }
         )
+    mismatch = normalize.verify_bulk(repo, normalized, autocrlf=autocrlf, algorithm=algorithm)
+    if mismatch is not None:
+        raise normalize.NormalizationError(mismatch)
+
     files.sort(key=lambda f: f["path"])
+    exported = {f["path"] for f in files}
+    explained = {entry["path"] for entry in skipped}
+    for rel in selection["always"]:
+        if rel not in exported and rel not in explained:
+            skipped.append(
+                {"path": rel, "reason": "named by the charter but neither exported nor explained"}
+            )
     return {
         "keel": MANIFEST_KIND,
         "files": files,

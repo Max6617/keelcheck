@@ -39,6 +39,8 @@ __all__ = [
     "content_hash",
     "hash_of",
     "normalize_bytes",
+    "normalize_path",
+    "verify_bulk",
 ]
 
 BINARY_SNIFF_BYTES = 8000
@@ -205,6 +207,47 @@ def hash_of(data: bytes, algorithm: str = "sha256") -> str:
 def _git_blob_id(data: bytes, algorithm: str) -> str:
     header = b"blob " + str(len(data)).encode("ascii") + b"\0"
     return hashlib.new(algorithm, header + data).hexdigest()
+
+
+def normalize_path(
+    repo: Path | str, relpath: str, data: bytes, *, autocrlf: str | None = None
+) -> bytes:
+    """``data`` as git would store it for that path. ``autocrlf`` may be resolved once by a caller."""
+    attributes = attributes_for(repo, relpath)
+    if autocrlf is None:
+        autocrlf = gitcmd.autocrlf(repo)
+    return normalize_bytes(data, text=attributes.text, autocrlf=autocrlf)
+
+
+def verify_bulk(
+    repo: Path | str,
+    normalized: dict[str, bytes],
+    *,
+    autocrlf: str | None,
+    algorithm: str,
+) -> str | None:
+    """Check a whole manifest against git in one process. Returns the first disagreement.
+
+    The manifest is hashed over normalized content as well, and this is what keeps that claim
+    honest at scale: git's own ``hash-object`` for every path, against the blob id of the bytes this
+    module normalized. ``None`` means git agrees about every file.
+    """
+    paths = list(normalized)
+    try:
+        oids = gitcmd.hash_object_many(repo, paths)
+    except gitcmd.GitError as exc:
+        return f"git hash-object could not verify the manifest: {exc}"
+    if len(oids) != len(paths):
+        return f"git returned {len(oids)} object ids for {len(paths)} paths"
+    for rel, oid in zip(paths, oids):
+        expected = _git_blob_id(normalized[rel], algorithm)
+        if oid != expected:
+            return (
+                f"{rel}: this module reads the file as {expected[:12]}..., git stores it as "
+                f"{oid[:12]}... (attributes, a clean filter, or a line ending git handles "
+                "differently); refusing to hash content it cannot vouch for"
+            )
+    return None
 
 
 def content_hash(repo: Path | str, relpath: str) -> tuple[str, list[str]]:

@@ -38,9 +38,17 @@ files plus the working tree, minus `.git` and minus the record directory), plus 
 (the anchor block, with its byte length and hash) and `MECHANICAL-FINDINGS.txt`. The reviewer is
 started with that directory as its cwd. Clean context then stops being a promise about the model's
 *input* and becomes a property of its *reach*: there is no git log, no commit message, no reflog, no
-stash and no previous audit report in the directory it is pointed at, even if it tries to look. A
-reviewer that runs shell commands cannot escape the export accidentally; it can only leave it
-deliberately, which is visible in what it returns.
+stash and no previous audit report in the directory it is pointed at, even if it tries to look.
+
+**Correction (Sift's finding 6).** An earlier draft ended that paragraph with "a reviewer that runs
+shell commands cannot escape the export accidentally; it can only leave it deliberately, which is
+visible in what it returns". That was false: nothing instruments the reviewer's reads — `_run_reviewer`
+keeps stdout and stderr and nothing else — so a reviewer that runs `git -C <repo> log` and then cites
+paths inside the export produces items that are all verified and a record indistinguishable from a
+clean-context review. **Deliberate escape is not detected.** What the tool guarantees is what the
+reviewer was *handed*; what it *read* is outside any local mechanism, which is the residual section 5
+names. Any future detection would have to come from outside the runner (a sandbox, a container, a
+separate machine — T3), not from a promise in this document.
 
 **T3 — another machine or credential (strongest, optional).** Nothing is required of the tool: the T2
 export is a directory, so it can be shipped to a clean container, a different vendor, or another
@@ -50,10 +58,14 @@ person. The interface stays at T2 so that T3 is a deployment choice, not a secon
 transcript — that is T1 with a guaranteed-fresh conversation, which is the strongest freshness
 available to us. It is *not* T2 by itself: a subagent can run shell commands, so unless it is pointed
 at the export it can `git log` in the audited repository. T1 + T2 together is what we can actually run
-here: fresh conversation, history-free directory. What the runner records either way is
-`history_reachable: none | git | unknown` — `none` when it built the export and `.git` was absent,
-`git` when it fell back to running in the repository, `unknown` when the user pointed it somewhere the
-tool did not build.
+here: fresh conversation, history-free directory. What the runner records is
+`history_reachable: none` — and **that is not a three-valued measurement, it is a constant by
+construction** (Sift's finding 5; D15 ruled it this way): the runner always builds the export and
+always starts the reviewer there, so there is no code path that could record `git` or `unknown`. The
+field is kept because it says *why* the reviewer cannot reach the history — the tool never runs a
+reviewer in the repository — and the honest reading is that a constant is not evidence. If a future
+version ever runs a reviewer in the repository, the field becomes a measurement again, and until then
+it should not be read as one.
 
 ## 2. What the runner hands over
 

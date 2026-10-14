@@ -81,58 +81,133 @@ def _hash_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _verified_prompt(owner_repo: Path, owner_charter: Charter, row: Gate) -> dict:
-    """A prompt row from a ratified table, its content verified in the repository that ratified it."""
-    if not row.path or not (owner_repo / row.path).is_file():
-        return {"error": f"the ratified prompt {row.path or '(no path)'} does not exist in {owner_repo}"}
-    try:
-        current, _ = normalize.content_hash(owner_repo, row.path)
-    except (FileNotFoundError, normalize.NormalizationError) as exc:
-        return {"error": f"the ratified prompt cannot be hashed: {exc}"}
-    if row.malformed_hash or current != row.hash:
+def _anchored_prompt(
+    owner_repo: Path, working: Charter, reference: Charter | None, label: str
+) -> dict | None:
+    """The prompt as **ratified at the anchor**, or None when that repository has no ratified prompt.
+
+    Sift's finding, and Gilbert's ruling on it: reading the row from the working charter is a
+    *self-consistency* check, so editing the prompt and its row together re-ratified the instruction
+    in the working tree. Ratification is a property of the anchored revision, exactly like the gate
+    table (D1, D12): the row comes from ``git show <anchor>:CHARTER.md`` and the instruction itself is
+    the prompt's **blob at that commit**. The working tree must still agree; when it does not, the
+    review refuses rather than handing over a weakened instruction.
+    """
+    if reference is None:
+        return None
+    ratified_row = prompt_row(reference)
+    if ratified_row is None:
+        return None
+    if not ratified_row.path:
+        return {"exit": 1, "error": "the ratified prompt row names no path"}
+    if ratified_row.malformed_hash:
+        return {
+            "exit": 1,
+            "error": f"the ratified prompt row's hash {ratified_row.hash!r} is not sha256:<64 hex>",
+        }
+    working_row = prompt_row(working)
+    if (
+        working_row is None
+        or working_row.path != ratified_row.path
+        or working_row.hash != ratified_row.hash
+    ):
         return {
             "exit": 1,
             "error": (
-                f"the prompt {row.path} changed since ratification in {owner_repo} "
-                f"({row.hash or '(no hash)'} -> {current}); keel does not review against a weakened "
-                "prompt (R2, D15)"
+                f"the working charter's prompt row is not the ratified one (working: "
+                f"{working_row.path + ' ' + working_row.hash if working_row else '(none)'}; ratified: "
+                f"{ratified_row.path} {ratified_row.hash}); a working-tree edit does not re-ratify an "
+                "instruction (D1, D12, D15)"
+            ),
+        }
+    anchor = working.ratified_at or ""
+    blob = gitcmd.blob_bytes(owner_repo, anchor, ratified_row.path)
+    if blob is None:
+        return {
+            "exit": 1,
+            "error": f"the prompt {ratified_row.path} does not exist at the anchor {anchor}",
+        }
+    digest = "sha256:" + hashlib.sha256(blob).hexdigest()
+    if digest != ratified_row.hash:
+        return {
+            "exit": 1,
+            "error": (
+                f"the prompt's blob at {anchor} hashes {digest}, but the ratified row records "
+                f"{ratified_row.hash}; the row and the artefact disagree (fix the row at the anchor)"
+            ),
+        }
+    try:
+        current, _ = normalize.content_hash(owner_repo, ratified_row.path)
+    except FileNotFoundError:
+        return {"exit": 1, "error": f"the prompt {ratified_row.path} is missing from the working tree"}
+    except normalize.NormalizationError as exc:
+        return {"exit": 1, "error": f"the prompt cannot be hashed: {exc}"}
+    if current != ratified_row.hash:
+        return {
+            "exit": 1,
+            "error": (
+                f"the prompt {ratified_row.path} has changed since ratification "
+                f"({ratified_row.hash} -> {current}); keel does not review against a weakened "
+                "instruction (R2, D15)"
             ),
         }
     return {
-        "text": (owner_repo / row.path).read_text(encoding="utf-8", errors="replace"),
-        "path": row.path,
-        "hash": current,
+        "text": blob.decode("utf-8", errors="replace"),
+        "path": ratified_row.path,
+        "hash": ratified_row.hash,
         "ratified": True,
-        "ratified_in": f"{owner_repo.name}@{owner_charter.ratified_at or '?'}",
+        "ratified_in": label,
     }
 
 
 def _resolve_prompt(
-    repo: Path, charter: Charter, explicit: str | None, prompt_repo: str | None = None
+    repo: Path,
+    working: Charter,
+    reference: Charter | None,
+    explicit: str | None,
+    prompt_repo: str | None = None,
 ) -> dict:
     """The prompt text, its path, its hash, whether it is ratified, and where it was ratified.
 
-    The audited repository's own row wins. ``--prompt-repo`` is for an input whose charter cannot be
-    edited -- rentguard is read-only evidence (D4) -- so the review can still name a **ratified**
-    instruction instead of an unlocked one: keel's own prompt, recorded as ratified in keel at the
-    anchor that locked it. ``--prompt`` remains the last resort and is recorded unratified.
+    The audited repository's own ratified row wins. ``--prompt-repo`` is for an input whose charter
+    cannot be edited -- rentguard is read-only evidence (D4) -- and its prompt is anchored in *that*
+    repository the same way. ``--prompt`` is the last resort and is recorded unratified.
     """
-    row = prompt_row(charter)
-    if row is not None:
-        return _verified_prompt(repo, charter, row)
+    owned = _anchored_prompt(
+        repo, working, reference, f"{repo.name}@{working.ratified_at or '?'}"
+    )
+    if owned is not None:
+        return owned
     if prompt_repo:
         owner = Path(prompt_repo).resolve()
         try:
-            _, owner_charter = load_charter(owner)
+            _, owner_working = load_charter(owner)
         except AuditError as exc:
             return {"exit": 2, "error": f"--prompt-repo {owner}: {exc}"}
-        owner_row = prompt_row(owner_charter)
-        if owner_row is None:
+        owner_audit = Audit(
+            repo=owner,
+            charter_path=owner / CHARTER_NAME,
+            record_path=owner / ".keel" / "runs.jsonl",
+            review_context_path=owner / ".keel" / "review-context.json",
+        )
+        owner_audit.charter = owner_working
+        try:
+            owner_audit.commit = gitcmd.head(owner)
+        except gitcmd.GitError as exc:
+            return {"exit": 2, "error": f"--prompt-repo {owner}: git cannot name HEAD: {exc}"}
+        owner_reference = load_reference(owner, owner_working, owner_audit)
+        anchored = _anchored_prompt(
+            owner,
+            owner_working,
+            owner_reference,
+            f"{owner.name}@{owner_working.ratified_at or '?'}",
+        )
+        if anchored is None:
             return {
                 "exit": 2,
                 "error": f"--prompt-repo {owner} ratifies no prompt row (a `kind: prompt` row)",
             }
-        return _verified_prompt(owner, owner_charter, owner_row)
+        return anchored
     if not explicit:
         return {
             "error": (
@@ -152,21 +227,38 @@ def _resolve_prompt(
     return {"text": text, "path": rel, "hash": _hash_text(text), "ratified": False, "ratified_in": None}
 
 
-def _run_reviewer(command: list[str], cwd: Path, stdin_text: str, timeout: float) -> dict:
-    """Start the reviewer once, with the export as cwd and the prompt on stdin."""
+def _run_reviewer(command: list[str], tree: Path, timeout: float) -> dict:
+    """Start the reviewer once, with the export as cwd and the prompt on stdin.
+
+    The prompt reaches the reviewer as a **file**, not through a pipe this process has to write:
+    ``stdin=open(REVIEW-PROMPT.md)`` gives the child a real handle it can read or ignore. Writing the
+    prompt through a pipe is the shape that hangs on Windows -- a child that never drains its stdin
+    leaves the parent blocked in the write past any timeout, and the run is then recorded as
+    `timeout` where `malformed` is the truth (Gilbert's report; measured: with the file, a reviewer
+    that prints and ignores stdin returns in about 0.2 s).
+
+    What is recorded is bounded: stdout is capped by `MAX_STDOUT` in validation, and the reason keeps
+    the first 500 characters of stderr. Both are still buffered in full by `capture_output`, which is
+    named in D15 as the one uncapped part of this path.
+    """
     if not command:
         return {"result": "error", "exit": None, "stdout": "", "reason": "empty reviewer command"}
     try:
-        proc = subprocess.run(
-            command,
-            cwd=str(cwd),
-            input=stdin_text,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-        )
+        handle = open(tree / "REVIEW-PROMPT.md", "r", encoding="utf-8", errors="replace")
+    except OSError as exc:  # pragma: no cover - write_export just wrote it
+        return {"result": "error", "exit": None, "stdout": "", "reason": f"no prompt in the export: {exc}"}
+    try:
+        with handle:
+            proc = subprocess.run(
+                command,
+                cwd=str(tree),
+                stdin=handle,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+            )
     except subprocess.TimeoutExpired:
         return {"result": "timeout", "exit": None, "stdout": "", "reason": f"timed out after {timeout:g}s"}
     except OSError as exc:
@@ -310,10 +402,10 @@ def run_review(
     except gitcmd.GitError as exc:
         return {"exit": 2, "error": f"git cannot name HEAD: {exc}"}
 
-    chosen = _resolve_prompt(repo, charter, prompt, prompt_repo)
+    audit.reference = load_reference(repo, charter, audit)
+    chosen = _resolve_prompt(repo, charter, audit.reference, prompt, prompt_repo)
     if "error" in chosen:
         return {"exit": chosen.get("exit", 2), "error": chosen["error"]}
-    audit.reference = load_reference(repo, charter, audit)
 
     manifest = export.build_manifest(audit)
     if not manifest["files"]:
@@ -340,7 +432,7 @@ def run_review(
         return {"exit": 2, "error": f"the reviewer's export could not be written: {exc}"}
 
     command = split_command(reviewer)
-    run = _run_reviewer(command, tree, chosen["text"], timeout)
+    run = _run_reviewer(command, tree, timeout)
     review: dict | None = None
     requirement_ids = {r.id for r in charter.requirements}
     if run["result"] == "pass":

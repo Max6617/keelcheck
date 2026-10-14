@@ -43,6 +43,20 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   by the R1 rule (rentguard R2, R4, R8) plus 2 `enforced-by` cells that name no artefact (R5, R9).
 - Charter edits after the finding, 2026-10-14, in the **living** part only: the "agreed problems" section
   added (6/6 sections now) and R4's mechanism named as an artefact. The frozen original is untouched.
+- **What landed after the parser, 2026-10-14 (latest code commit `08771ce`):** the mechanical audit and the
+  gate runner (`2006f46`: the reference gate table from `git show <sha>:CHARTER.md`, git-normalized hashes,
+  the frozen block's byte length printed on both sides, all four columns, the gate-table change line,
+  `[unbuilt]`); the review half (`keel review`, `6810818`: a `.git`-less export, one named reviewer command,
+  one JSON object back, a `kind: review` line in `runs.jsonl`, and `--prompt-repo` for a prompt ratified in
+  another repository); the pre-commit hook installer (`08771ce`); and the three defects its own probing found
+  (`e9ec9a1` — the record directory denied by role, and evidence that must resolve to a file in the export or
+  a requirement id; `18023d9` — the vacuity line now names the table it actually tested). Suite at
+  `08771ce`: **84 passed, 3 failed**, the three being R5's tests that need git's own `sh`, which cannot start
+  under this sandbox (`0xC0000022`).
+- **The anchor and the first gate:** `Ratified at: 117ac7c`, moved from the freeze commit `ae375c6` at the
+  user's word (D17). One ratified gate, `review-prompt`, `kind: prompt`. The mechanical half still reports
+  **vacuity**, and correctly: a prompt is a locked instruction, not an executable gate. That clears when
+  `tools/coverage.py` and the suite-and-coverage gate are declared and ratified (R8, D13, D19).
 - The first audit is the demonstration: **rentguard**, whose charter is `rentguard/CHARTER.md` and whose
   by-hand audit found five real defects there. The catalogue of record is **D11**: R2, **R4+W4 as one**
   finding, W1, W2, W3 — all six names, because this line first listed R2, R4, W1, W3, W4 and dropped W2.
@@ -496,6 +510,16 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
     rounded down; R8's 94% stays the *target*, and the charter's state column says whether it is met. The row
     is `| suite | tools/coverage.py | sha256:<64 hex> | gate |`, ratified like any gate — a fixture can carry
     its own row, so the red does not wait on keel's charter, which is Gilbert's.
+
+- **D20 — D19 ratified as written (2026-10-14, Gilbert).** The three load-bearing choices are right and should
+  not be relitigated when the red arrives: the floor is a **constant inside the script**, so raising it is a gate
+  change that needs re-ratification rather than an edit nobody sees; the failing side is **forced with `--min`**,
+  so the gate cannot be confused with `exit 0`; and an unmeasurable run is **exit 2**, diagnosed, because a
+  hand-set floor would otherwise turn a broken measurement into a pass. Two notes for the build, not changes to
+  it: `trace._find_executable_linenos` is private stdlib, so it is the exit-2 diagnosis that keeps a future
+  Python honest, not the number the script prints; and the row `| suite | tools/coverage.py | sha256:<64 hex> |
+  gate |` is mine to put in the charter once the hash is over the git-normalized blob — hand it to me rather
+  than editing the charter, and the anchor move that follows is the user's by D12.
 
 ## The demonstration (why it is rentguard)
 

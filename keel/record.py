@@ -32,6 +32,8 @@ __all__ = [
     "REVIEW_CONTEXT_NAME",
     "append",
     "ensure_header",
+    "first_header",
+    "last_of_kind",
     "now",
     "read",
     "record_paths",
@@ -52,12 +54,20 @@ def now() -> str:
 
 
 def record_paths(repo: Path | str, record: Path | str | None = None) -> tuple[Path, Path]:
-    """(runs.jsonl, review-context.json). ``--record`` moves both (D4 keeps rentguard read-only)."""
+    """(runs.jsonl, review-context.json). ``--record`` moves both (D4 keeps rentguard read-only).
+
+    ``--record`` accepts a file or an existing directory, and both commands read it the same
+    way: a directory means ``<dir>/runs.jsonl`` beside ``<dir>/review-context.json``. Two
+    commands disagreeing about one argument cost a gate run its record once, so the rule
+    lives here and nowhere else.
+    """
     if record is None:
         base = Path(repo) / DEFAULT_DIR
         return base / RECORD_NAME, base / REVIEW_CONTEXT_NAME
-    runs = Path(record)
-    return runs, runs.with_name(REVIEW_CONTEXT_NAME)
+    target = Path(record)
+    if target.is_dir():
+        return target / RECORD_NAME, target / REVIEW_CONTEXT_NAME
+    return target, target.with_name(REVIEW_CONTEXT_NAME)
 
 
 def read(path: Path | str) -> tuple[list[dict], list[str]]:
@@ -93,19 +103,29 @@ def first_header(objects: list[dict]) -> dict | None:
     return None
 
 
-def ensure_header(path: Path | str, ratified: str | None, *, when: str | None = None) -> bool:
+def last_of_kind(objects: list[dict], kind: str) -> dict | None:
+    """The newest entry of a kind. Used for `[anchor-moved]` and `[gate-table]` (D10, D12)."""
+    for obj in reversed(objects):
+        if obj.get("kind") == kind:
+            return obj
+    return None
+
+
+def ensure_header(path: Path | str, *, when: str | None = None) -> bool:
     """Write the header line if the record is new. Returns True when it was written.
 
-    An existing record is never amended: if the charter now names a different ratified
-    commit, the audit reports the disagreement and a human rotates the record deliberately.
+    D12: the header carries **no anchor**. The anchor value lives in exactly one place -- the
+    charter's ``Ratified at:`` line -- and each run entry records the anchor *it used*, which
+    is what the next run compares against for ``[anchor-moved]``. A second copy in the header
+    would go stale forever after a legitimate re-ratification and fail the audit for a right
+    reason. The header now only declares the record's format and version.
     """
     path = Path(path)
     if path.exists() and path.stat().st_size > 0:
         return False
     _write_line(
         path,
-        {"kind": HEADER_KIND, "record": RECORD_ID, "version": VERSION,
-         "ratified": ratified, "at": when or now()},
+        {"kind": HEADER_KIND, "record": RECORD_ID, "version": VERSION, "at": when or now()},
     )
     return True
 

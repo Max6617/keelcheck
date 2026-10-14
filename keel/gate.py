@@ -114,7 +114,7 @@ def run_gate_command(
 
     exit_code = 0 if results and all(r["result"] == PASS for r in results) else 1
     try:
-        record.ensure_header(runs, charter.ratified_at)
+        record.ensure_header(runs)
         for result in results:
             record.append(runs, result)
     except OSError as exc:

@@ -167,6 +167,54 @@ exit code.
 3. Harness adapters last, from primary sources (Sift's `research/gates-per-harness.md` is the input),
    documented as examples of a command string, never as a dependency.
 
+## 7. Attacks folded in (Proctor, 2026-10-14)
+
+Eight holes Proctor found in this document, and what each one changes. They are also the
+acceptance list for `keel review`, testable with a stub command.
+
+1. **Evidence could leave the export.** "Resolve to a path in the export" as written accepted
+   `../PROJECT-STATE.md`, an absolute path, or a symlink pointing out. Fixed: evidence is
+   canonicalized against the export root (`realpath`, then a check that it is under the root),
+   an absolute path or any `..` that escapes is `evidence-missing`, and the export itself never
+   follows a symlink whose target leaves it.
+2. **`verdict: clean` with a non-empty `unreviewed` read as clean.** Fixed: a clean verdict with
+   any unreviewed entry is recorded and printed as **`partial`**, and a partial review does not
+   satisfy `--require-review` for a requirement whose mechanism is a gate-class check.
+3. **A divergence whose every item is `evidence-missing` is a claim backed by nothing.** Fixed:
+   items are counted as `verified` and `unverified` separately in the record, and a divergence
+   with no verified item is recorded as `unverified` — a claim, never a confirmed finding. The
+   record therefore distinguishes a claim from a verified claim.
+4. **`--require-review` must make presence mechanical, never the verdict.** Written into the
+   design: no exit code ever depends on `verdict` or on item counts. The only exit effect of the
+   review is a **missing**, **stale** or **malformed** review line. Anything else would make a
+   model the sole enforcement, which INTENT-LOOP forbids.
+5. **"No review for commit X" needed a definition of X.** Keyed to HEAD it goes red on every
+   commit, including during the R7 demonstration. Fixed: the review line records the export
+   **manifest hash**, and `--require-review` demands a review whose manifest matches the manifest
+   of the current state. A review of a different state is reported as **stale** (naming both
+   manifest hashes), distinct from missing.
+6. **Nothing bounded the reviewer's output or runtime.** Fixed, mirroring the gate runner: a
+   `--timeout` (default 600 s); a stdout cap (1 MB) over which the output is `malformed`; a
+   non-zero exit, a command that cannot start, or a timeout is recorded as `error` with the
+   OS error or the stderr tail as the reason — written to the record even when the run fails.
+7. **The export is a leak surface.** Fixed by never shipping more than the judgement needs: only
+   files in the audited revision plus the working tree's changes to them; a deny-list for
+   `.env*`, `*.pem`, `*.key`, `id_*`, `.ssh/` and anything the charter's permissions name;
+   `.gitignore`d files are not exported. Symlinks are never followed — one whose target leaves
+   the export is listed in the manifest as `symlink-outside` and skipped. Every skipped path and
+   the reason goes in the manifest, so a leak is visible in the record rather than silent. And
+   the plain fact stays in the document: the export is handed to *whatever command the user
+   names*, so a third-party model means third-party data.
+8. **The cap is a place to hide.** Fixed: the omitted set may never contain a file that a
+   requirement, a gate or a finding names; the omitted count and the full omitted-path list go in
+   the manifest and are printed in the two-minute report. `unreviewed` gets a denominator: the
+   prompt requires `coverage: {files_seen, files_total}`, and a `clean` verdict with
+   `files_seen < files_total` is recorded as `partial`, like (2).
+
+Two of these (1 and 7) are the same property from both ends — the reviewer's citations and the
+runner's export must both be confined to one directory — and they are the reason the export root,
+not the repository root, is the reference point for everything the reviewer says.
+
 ## Open questions for Gilbert (rulings, not guesses)
 
 1. **Is the review prompt a hashed artefact like a gate?** If its hash is in the charter's living state

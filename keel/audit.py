@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import gitcmd, normalize, record
-from .charter import Charter, CharterFormatError, Gate, parse_charter, render
+from .charter import Charter, CharterFormatError, Gate, named_repo_paths, parse_charter, render
 from .output import emit, emit_err
 
 __all__ = [
@@ -309,6 +309,111 @@ def _change_detail(repo: Path, sha: str, gate: Gate, current: str) -> str:
     return detail
 
 
+def _gate_runs(audit: Audit, gate: Gate) -> list[dict]:
+    """Recorded executions of this gate with the ratified content, oldest first."""
+    name = gate.name or "(unnamed)"
+    return [
+        obj
+        for obj in audit.record_objects
+        if obj.get("kind") == "gate" and obj.get("gate") == name and obj.get("hash") == gate.hash
+    ]
+
+
+def _check_run_record(audit: Audit, gate: Gate, name: str) -> None:
+    """A record proves the gate *executed*; the audit needs it to have *passed*.
+
+    A failing, timed-out or errored run carries the ratified hash too, so accepting a line on
+    kind, name and hash alone reported a repository whose only mechanism is red as clean.
+    """
+    runs = _gate_runs(audit, gate)
+    if not runs:
+        audit.add(
+            "gate-record",
+            name,
+            f"no run record for this gate in {audit.record_path.name}: it has never been "
+            "executed by `keel gate run` (or the hook that calls it). A local hook is a "
+            "detector, not a lock, so a bypass shows up as a missing record rather than a "
+            "wrong one (D1, D3)",
+        )
+        return
+    if any(run.get("result") == "pass" for run in runs):
+        return
+    last = runs[-1]
+    seen = ", ".join(sorted({str(run.get("result")) for run in runs}))
+    exit_note = f", exit {last.get('exit')}" if last.get("exit") is not None else ""
+    audit.add(
+        "gate-record",
+        name,
+        f"the recorded run of this gate did not pass (result: {seen}{exit_note}) in "
+        f"{audit.record_path.name}; a record proves the gate executed, not that it passed",
+    )
+
+
+def _anchor_moved(audit: Audit) -> None:
+    """D12: the anchor moving is a human event, named once, not a re-measurement.
+
+    The anchor value lives in exactly one place -- the charter's ``Ratified at:`` line. Each
+    run entry records the anchor *it used*; when that differs from the previous entry's, the
+    audit says so and exits 1. It fires once, because the entry this run appends carries the
+    new value.
+    """
+    previous = record.last_of_kind(audit.record_objects, "audit")
+    if previous is None:
+        return
+    before = previous.get("ratified")
+    after = audit.ratified_at
+    if before != after:
+        audit.add(
+            "anchor-moved",
+            "ratified",
+            f"the anchor moved since the previous run: {before or '(none)'} -> "
+            f"{after or '(none)'}; moving the anchor is a human event and not a "
+            "re-measurement, so this is reported once and the entry this run appends carries "
+            "the new value (D12)",
+        )
+
+
+def _resolves(audit: Audit, path: str) -> bool:
+    """True when ``path`` names something that exists in the audited repository (D13).
+
+    Checked at the audited revision and in the working tree. The audit's own outputs count as
+    built wherever ``--record`` puts them, and at their default location under the repo: R4's
+    cell names ``.keel/review-context.json``, a file this tool writes, and D13 is about a
+    *borrowed* mechanism -- ``tools/coverage.py`` from another repository -- not about the
+    tool's own output. The carve-out is exactly two paths, not a prefix.
+    """
+    if (audit.repo / path).exists():
+        return True
+    if audit.commit and gitcmd.run(
+        audit.repo, "cat-file", "-e", f"{audit.commit}:{path}", check=False
+    ).returncode == 0:
+        return True
+    produced = (audit.record_path, audit.review_context_path)
+    produced += record.record_paths(audit.repo)
+    try:
+        target = (audit.repo / path).resolve()
+    except OSError:  # pragma: no cover - unreadable path components
+        return False
+    return any(written.resolve() == target for written in produced)
+
+
+def _check_enforced_by_paths(audit: Audit) -> None:
+    """D13: a mechanism that does not resolve in the audited repo is a wish wearing its name."""
+    assert audit.charter is not None
+    for requirement in audit.charter.requirements:
+        for path in named_repo_paths(requirement.enforced_by):
+            if _resolves(audit, path):
+                continue
+            audit.add(
+                "unbuilt",
+                requirement.id,
+                f"`enforced-by` names `{path}`, which does not resolve in the audited "
+                f"repository (checked at HEAD {audit.commit or '(unknown)'} and in the "
+                "working tree); a mechanism that does not exist is a wish wearing a "
+                "mechanism's name (D13)",
+            )
+
+
 def check_gate(audit: Audit, gate: Gate, working: Gate | None) -> None:
     """One ratified gate: malformed hash, file, content hash, declaration, run record."""
     assert audit.reference is not None
@@ -376,15 +481,7 @@ def check_gate(audit: Audit, gate: Gate, working: Gate | None) -> None:
             else:
                 entry["status"] = "locked"
 
-    if not _has_run_record(audit, gate):
-        audit.add(
-            "gate-record",
-            name,
-            f"no run record for this gate in {audit.record_path.name}: it has never been "
-            "executed by `keel gate run` (or the hook that calls it). A local hook is a "
-            "detector, not a lock, so a bypass shows up as a missing record rather than a "
-            "wrong one (D1, D3)",
-        )
+    _check_run_record(audit, gate, name)
 
 
 def _table_commit(audit: Audit) -> str:
@@ -431,17 +528,6 @@ def _gate_table_changes(audit: Audit) -> None:
             f"({previous.get('at') or 'unknown time'}): {old or '(not present)'} -> "
             f"{new or '(not present)'}; the table is read from {changed_at} (D10)",
         )
-
-
-def _has_run_record(audit: Audit, gate: Gate) -> bool:
-    for obj in audit.record_objects:
-        if obj.get("kind") != "gate":
-            continue
-        if obj.get("gate") != (gate.name or "(unnamed)"):
-            continue
-        if obj.get("hash") == gate.hash:
-            return True
-    return False
 
 
 # --- the run ------------------------------------------------------------------
@@ -497,17 +583,18 @@ def run_audit(
         audit.add(
             "record",
             runs.name,
-            "the record has no header line naming the ratified commit, so the pointer is "
-            "written once instead of twice (A2)",
+            "the record has no header line, so its format and version are not declared",
         )
-    elif header is not None and charter.ratified_at is not None:
-        if header.get("ratified") != charter.ratified_at:
-            audit.add(
-                "anchor",
-                "pointer",
-                f"the charter names {charter.ratified_at} and the record header names "
-                f"{header.get('ratified')}; the two copies of the pointer disagree (A2)",
-            )
+    _anchor_moved(audit)
+    _check_enforced_by_paths(audit)
+    if charter.ratified_at and not charter.ratified_canonical:
+        audit.add(
+            "format",
+            "Ratified at:",
+            f"the pointer is spelled `{charter.ratified_line}`, not the canonical plain line "
+            "`Ratified at: <sha>`; it is parsed so the anchor is not lost, and reported "
+            "because R1 says the format is fixed (D12)",
+        )
 
     reference_gates = audit.reference.gates if audit.reference is not None else []
     if audit.reference is not None:
@@ -550,7 +637,7 @@ def run_audit(
     audit.exit_code = audit.compute_exit()
 
     try:
-        record.ensure_header(runs, charter.ratified_at)
+        record.ensure_header(runs)
         record.append(
             runs,
             {
@@ -604,10 +691,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    record_path = args.record
-    if record_path is not None and Path(record_path).is_dir():
-        record_path = Path(record_path) / record.RECORD_NAME
-    audit = run_audit(args.repo, record_path=record_path, fail_on_wish=args.fail_on_wish)
+    # A directory is turned into <dir>/runs.jsonl inside record.record_paths, so `keel audit`
+    # and `keel gate run` read the same argument the same way.
+    audit = run_audit(args.repo, record_path=args.record, fail_on_wish=args.fail_on_wish)
 
     if args.json:
         emit(json.dumps(audit.as_dict(), indent=2, ensure_ascii=False))

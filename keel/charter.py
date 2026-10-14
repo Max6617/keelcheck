@@ -38,6 +38,7 @@ __all__ = [
     "Gate",
     "Requirement",
     "REQUIRED_SECTIONS",
+    "named_repo_paths",
     "parse_charter",
     "parse_file",
     "render",
@@ -52,6 +53,20 @@ HASH_FORMAT = re.compile(r"^sha256:[0-9a-f]{64}$")
 #: backticks, as it is in this project's own charter.
 RATIFIED_LINE = re.compile(
     r"ratified\s+at\s*:?\s*`?\s*`?(?=[0-9a-f]*\d)([0-9a-f]{7,40})", re.IGNORECASE
+)
+
+#: The canonical spelling (D12): a plain line, ``Ratified at: <sha>``, trailing prose allowed.
+#: Other spellings are still parsed so a miss is never silent, and reported as ``[format]``.
+CANONICAL_RATIFIED = re.compile(
+    r"^\s*Ratified at:\s*`?(?=[0-9a-f]*\d)([0-9a-f]{7,40})", re.IGNORECASE
+)
+
+#: Extensions that make a bare token a repo path in an ``enforced-by`` cell (D13). Deliberately
+#: an allow-list and not "anything with a dot": rentguard's R5 cell holds ``$0.0264``, and a
+#: currency amount is not a path.
+PATH_EXTENSIONS = (
+    ".py", ".md", ".json", ".jsonl", ".sh", ".toml", ".txt", ".yml", ".yaml", ".cfg", ".ini",
+    ".ps1", ".bat", ".js", ".ts", ".rs", ".go",
 )
 
 
@@ -117,6 +132,27 @@ def _cell_key(text: str) -> str:
 
 def _is_empty_cell(text: str) -> bool:
     return _cell_key(text).lower() in EMPTY_CELLS
+
+
+def named_repo_paths(cell: str) -> list[str]:
+    """The repo paths an ``enforced-by`` cell names, by the same text heuristics as above.
+
+    D13 needs this list so the audit can check that a named mechanism actually resolves in
+    the audited repository: an ``enforced-by`` naming ``tools/coverage.py`` passes any text
+    heuristic and enforces nothing when that path belongs to another repository.
+    """
+    found: list[str] = []
+    candidates = [*_BACKTICKED.findall(cell), *re.findall(r"\S+", cell)]
+    for token in candidates:
+        candidate = token.strip().strip(",;:()[]`*\"'")
+        if not candidate or _SHA.match(candidate):
+            continue
+        if candidate.lower().startswith(("http://", "https://", "www.")):
+            continue
+        looks_like_path = "/" in candidate or candidate.lower().endswith(PATH_EXTENSIONS)
+        if looks_like_path and candidate not in found:
+            found.append(candidate)
+    return found
 
 
 def _names_an_artefact(cell: str) -> bool:
@@ -223,6 +259,8 @@ class Charter:
     requirements: list[Requirement] = field(default_factory=list)
     gates: list[Gate] = field(default_factory=list)
     ratified_at: str | None = None
+    ratified_line: str | None = None
+    ratified_canonical: bool = False
     unknown_sections: list[str] = field(default_factory=list)
 
     @property
@@ -289,6 +327,8 @@ class Charter:
             "requirements": [r.as_dict() for r in self.requirements],
             "gates": [g.as_dict() for g in self.gates],
             "ratified_at": self.ratified_at,
+            "ratified_canonical": self.ratified_canonical,
+            "ratified_line": self.ratified_line,
             "wishes": [r.id for r in self.wishes],
             "human_checks": [r.id for r in self.human_checks],
             "asserted_enforcement": [r.id for r in self.asserted_enforcement],
@@ -540,10 +580,14 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
                 break
 
     # The ratification commit: named in the living state, never in the frozen original (A2).
+    # Any spelling is parsed, so a miss is never silent; only the canonical plain line is
+    # silent (D12), and the audit reports the others as `[format]`.
     for line in lines:
         found = RATIFIED_LINE.search(line)
         if found:
             charter.ratified_at = found.group(1).lower()
+            charter.ratified_line = line.strip()
+            charter.ratified_canonical = bool(CANONICAL_RATIFIED.match(line))
             break
 
     # Gates table: the first table under a "Gates" heading, if there is one.
@@ -616,6 +660,11 @@ def render(charter: Charter) -> str:
     out.append(f"ASSERTED ENFORCEMENT (enforced-by names no artefact): {len(charter.asserted_enforcement)}")
     for r in charter.asserted_enforcement:
         out.append(f"  {r.id} (line {r.line}) enforced-by: {r.enforced_by}")
+    out.append(
+        "  heuristic: 'names an artefact' means a `code:` marker, a backticked path or filename, "
+        "a commit sha, or a path-like token with an extension, read from the enforced-by cell "
+        "only. 0 here means no cell matched that reading, not that every mechanism exists (D13)."
+    )
     out.append("")
 
     if charter.gates:
@@ -642,7 +691,9 @@ def main(argv: list[str] | None = None) -> int:
     """``python -m keel.charter <path> [--json]``.
 
     Exit 0 whether or not wishes were found: a wish is the output, not an error.
-    Exit 1 when the file is not a charter at all.
+    Exit 2 when the file is not a charter at all -- unreadable or unparseable, the one meaning
+    exit 2 carries across every command (D12). Exit 1 is for a charter that parses and has
+    findings.
     """
     import argparse
 
@@ -660,10 +711,10 @@ def main(argv: list[str] | None = None) -> int:
         charter = parse_file(args.path)
     except FileNotFoundError:
         emit_err(f"keel: no such file: {args.path}")
-        return 1
+        return 2
     except CharterFormatError as exc:
         emit_err(f"keel: not a charter: {exc}")
-        return 1
+        return 2
 
     if args.json:
         emit(json.dumps(charter.as_dict(), indent=2, ensure_ascii=False))

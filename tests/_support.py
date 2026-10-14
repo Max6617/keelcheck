@@ -148,9 +148,14 @@ def commit_all(root, message: str) -> str:
 
 def audit(root, *extra, env_extra: dict | None = None) -> subprocess.CompletedProcess:
     """Run `python -m keel audit <root>` the way a user would, capturing both streams as UTF-8."""
+    return keel("audit", str(root), *extra, env_extra=env_extra)
+
+
+def keel(*args, env_extra: dict | None = None) -> subprocess.CompletedProcess:
+    """Run any `python -m keel ...` command the way a user would, with UTF-8 stdio pinned."""
     env = {**os.environ, "PYTHONIOENCODING": "utf-8", **(env_extra or {})}
     return subprocess.run(
-        [sys.executable, "-m", "keel", "audit", str(root), *extra],
+        [sys.executable, "-m", "keel", *args],
         cwd=REPO, capture_output=True, text=True, encoding="utf-8", env=env,
     )
 

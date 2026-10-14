@@ -378,3 +378,17 @@ def test_the_hook_body_carries_the_marker_and_absolute_paths(scratch):
         "the hook has no marker, so a second install cannot tell its own hook from a foreign one")
     assert argv and Path(argv[0]).is_absolute(), f"no absolute interpreter: {argv[:1]}"
     assert pythonpath and Path(pythonpath).is_absolute(), f"no absolute import root: {pythonpath!r}"
+
+
+def test_the_installer_honours_core_hookspath(scratch):
+    """The installer resolves the hooks directory through git, so a repository that moves it must get
+    the hook where git will look for it — and nowhere else."""
+    repo, _ = _hook_repo(scratch)
+    _support.git(repo, "config", "core.hooksPath", ".githooks")
+
+    proc = _support.keel("hook", "install", str(repo))
+
+    assert proc.returncode == 0, _support.combined(proc)
+    assert (repo / ".githooks" / "pre-commit").is_file(), (
+        "the hook did not go to core.hooksPath, so git would never run it")
+    assert not (repo / HOOK).exists(), "the hook was written to the default directory as well"

@@ -477,3 +477,58 @@ def test_a_weakened_prompt_in_the_other_repository_is_refused(scratch):
 
     assert proc.returncode == 1, f"a weakened prompt in the other repository ran:\n{_support.combined(proc)}"
     assert len(_review_lines(scratch)) == before, "a review was recorded although the prompt is refused"
+
+
+# --- the export's limits, and where it goes ------------------------------------
+
+
+def test_a_capped_export_still_carries_every_path_a_row_or_the_charter_names(scratch):
+    """Design item 8, the honesty property rather than a limit: the cap may omit files, never a path
+    a requirement, a gate row or the charter names. A capped review that reads clean is the cap used
+    as a hiding place.
+
+    `big.bin` sorts before `tools/gate.py`, so the byte cap trips on the big file — the gate script
+    is exactly the path a naive cap drops first, and it is a path a gate row names.
+    """
+    _repo(scratch)
+    _support.write(scratch / "big.bin", "x" * (21 * 1024 * 1024))
+    _support.git(scratch, "add", "-A")
+    _support.commit_all(scratch, "over the byte cap")
+
+    assert _review(scratch, _stub(scratch, "clean", CLEAN)).returncode in (0, 1)
+    line = _review_lines(scratch)[-1]
+    tree = Path(line["export"])
+
+    assert line["truncated"] is True, (
+        f"a 21 MB repository did not trip the cap ({line['bytes']} bytes recorded)")
+    assert (tree / "tools" / "gate.py").is_file(), (
+        "the cap omitted a path a gate row names: the reviewer was told the review was clean while "
+        "it was never shown the mechanism")
+    assert (tree / "CHARTER.md").is_file(), "the cap omitted the charter"
+
+
+def test_the_export_goes_where_the_caller_says(scratch):
+    """`--export DIR` is cheap surface nothing covered."""
+    _repo(scratch)
+    target = scratch.parent / f"{scratch.name}-export-dir"
+
+    proc = _review(scratch, _stub(scratch, "clean", CLEAN), "--export", str(target))
+
+    assert proc.returncode == 0, _support.combined(proc)
+    tree = Path(_review_lines(scratch)[-1]["export"])
+    assert target in tree.parents or tree == target, f"the export went to {tree}, not under {target}"
+    assert (tree / "CHARTER.md").is_file()
+
+
+def test_output_over_one_megabyte_is_malformed(scratch):
+    """D15 caps the reviewer's stdout at 1 MB; over it the output is `malformed`, never parsed."""
+    _repo(scratch)
+    command = _stub(scratch, "huge", code="print('x' * (1024 * 1024 + 100))\n")
+
+    proc = _review(scratch, command)
+    line = _review_lines(scratch)[-1]
+
+    assert proc.returncode == 2, f"exit {proc.returncode}, wanted 2"
+    assert line["result"] == "malformed", f"over-cap output was read as {line['result']!r}"
+    assert "byte" in (line.get("reason") or "").lower(), (
+        f"the reason does not name the cap: {line.get('reason')!r}")

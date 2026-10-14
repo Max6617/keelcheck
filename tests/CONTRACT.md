@@ -149,3 +149,22 @@ tests. The five git-level tests skip with that reason; four tests execute the in
 line directly (passing → exit 0 and a passing kind: gate record the audit accepts, failing → exit 1,
 python off PATH → still exit 0), and the body's marker and absolute paths are pinned on the text.
 On a host where sh works, the five come back.
+## Backlog properties, taken in order
+
+**Covered at 10f6e2 + these tests (45 passed, 5 skipped in the two files):**
+
+- **The cap and the never-omitted rule** (design item 8). A 21 MB tracked file trips the byte cap, the
+  line records 	runcated: true, and the gate script a row names is still in the export along with
+  the charter. ig.bin sorts before 	ools/gate.py, so a naive cap drops the named path first.
+- **--export DIR**: the tree lands under the caller's directory and the record points at it.
+- **The 1 MB stdout cap**: over it, esult: malformed and the reason names the cap.
+- **core.hooksPath**: the installer resolves the hooks directory through git, so the hook lands in
+  .githooks/pre-commit and not in the default directory.
+
+**Still open, named rather than claimed:**
+
+- *Symlinks that leave the export.* Needs a real symlink; os.symlink on this host is
+  privilege-dependent, so it lands behind a capability probe (skips here) unless it works.
+- *The coverage gate* (	ools/coverage.py, R8/D13). Its red needs the script's interface stated
+  first — above all **how the floor is forced low enough to test the failing side** without editing
+  the script, since the red has to prove the gate fails below the floor, not only passes above it.

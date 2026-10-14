@@ -286,6 +286,43 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   128; the files are **176** and **152** — it drops blank lines silently. Counts a stranger will check are
   taken with `[IO.File]::ReadAllLines().Count`.
 
+- **D12 — one anchor and a moving-anchor line; and Mason's five open readings settled (2026-10-14).** Mason
+  refused D8's second copy of the anchor and he is right; D8's A2 is withdrawn, and with it the clause in D10
+  that leaned on "a single silent edit to either copy".
+
+  - **The anchor value lives in exactly one place** — the charter's `Ratified at:` line. A second copy cannot
+    be kept honest: the run record is append-only, so a legitimate re-ratification would leave a first-line
+    copy stale **forever** and the audit would fail permanently for a correct reason. What the record keeps is
+    the anchor **used on that run**. When the anchor differs from the previous entry's, the audit prints
+    `[anchor-moved]`, names both SHAs and exits 1, because moving the anchor is a human event and not a
+    re-measurement; it fires once and the next entry carries the new anchor.
+  - **The laundering path stays covered without the second copy:** to pass with a weakened gate the change
+    must be committed and the pointer repointed, and that lights two independent lines — `[anchor-moved]` and,
+    from D10, `[gate-table]` naming every gate-table change since the last run record.
+  - **No `Ratified at:` line: exit 2**, never 0. Stands.
+  - **The run object is per run, carrying a `gates` array, and is written after the evaluation.** D3's
+    per-gate wording was mine and was wrong; a line written before the evaluation would satisfy its own
+    "no run record" check.
+  - **`.ok` and the exit code answer different questions.** `.ok` is the strict library property (False while
+    any requirement is unbacked); the exit code is driven by divergence classes only, so wishes do not make a
+    clean charter fail. Confirmed.
+  - **Exit codes keep one meaning per number across commands.** A file that is not a charter — or is
+    unreadable — is exit 2 in `keel charter` exactly as in `keel audit`: the tool could not do the job. A
+    charter that parses and has findings (a missing section, a wish under `--fail-on-wish`) is exit 1.
+  - **`keel.gates.ratify()`, if it exists, writes the `Ratified at:` line and nothing else.** Confirmed.
+  - **F9's extraction rule is ratified as Mason refined it:** the anchor block is the heading line through the
+    last non-blank line, trailing blanks dropped, ended by exactly one `\n`. D11's phrasing "to the next `## `"
+    read literally is **554** bytes because it swallows the separator blank; the recorded value is 553 and
+    Mason's rule is what produces it. Lengths are recorded in **bytes** — the 549 I reported earlier was
+    characters of the same block (the em dashes are multibyte), not a third definition.
+  - **One canonical spelling for the pointer:** a plain line `Ratified at: <sha>`. Other spellings are still
+    parsed so a miss is never silent, but they are reported as `[format]`, because R1 says the format is
+    fixed. Keel's own charter now carries the canonical line.
+  - **The red/pin labelling is upheld:** F9's test is red at `eb3c0ec` for the trivial reason that
+    `keel audit` does not exist there, and Mason says so rather than calling it red-first; the targeted
+    witness is the `489f47d` measurement (82 bytes before, 553 after). Honesty about which side of a red a
+    test is on is the point of rule 3.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

@@ -23,8 +23,8 @@ And the recommendation those words accept, as written in `ECC-ASSESSMENT.md` bef
 
 ## Ratification
 
-- `Ratified at:` `ae375c6` — the freeze commit, and the reference side of every comparison (D1, D8). This
-  line and the first entry of `.keel/runs.jsonl` must agree; if they do not, the audit exits 1.
+Ratified at: `ae375c6` — the freeze commit, and the reference side of every comparison (D1, D8).
+
 - **Gates ratified: none yet.** Until the first gate is declared and ratified the mechanical half of the
   audit reports *vacuous*, which is a divergence — an audit that verified nothing is not a clean run.
 

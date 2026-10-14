@@ -323,6 +323,25 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
     witness is the `489f47d` measurement (82 bytes before, 553 after). Honesty about which side of a red a
     test is on is the point of rule 3.
 
+- **D13 — "names an artefact" is a heuristic, and a mechanism that does not exist is a wish wearing its name
+  (2026-10-14, found by running the parser on keel's own charter).** Two live examples, both in my lane and
+  both now honest in `keel/CHARTER.md`:
+
+  - **R7 passed the `ASSERTED ENFORCEMENT` check with a demo run in its `enforced-by` cell.** Running the
+    audit at four revisions is what R1 calls a *check* — "a demo makes the state visible" — not a mechanism.
+    It is now `enforced-by: —`, `checked-by: the audit run at the four revisions`. This is the same class as
+    rentguard's R5 cell ("3 rentals, $0.0264"): evidence of a run is not a mechanism, and the parser only
+    caught that one because the cell happened to hold no path.
+  - **R8's cell named `tools/coverage.py` — rentguard's path, not keel's.** keel has no `tools/` directory at
+    all. A mechanism borrowed from another repository passes any text heuristic and enforces nothing.
+
+  Ruled, as an audit line beside D10's `[gate-table]`: **an `enforced-by` that names a repo path must resolve
+  in the audited repo at the audited revision**, and a mechanism that does not resolve is reported
+  `[unbuilt]` — the vacuity family, because a requirement whose mechanism does not exist is a wish wearing a
+  mechanism's name. And the report must say which heuristic produced "0 asserted enforcement", so the human
+  judges the claim instead of trusting the word. R1 catches a requirement with no mechanism; this catches a
+  mechanism with no code.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

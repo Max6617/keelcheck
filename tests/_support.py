@@ -27,13 +27,14 @@ RENTGUARD_CHARTER_LIVE = WORKSPACE / "rentguard" / "CHARTER.md"
 
 FROZEN_SENTINEL = "FROZEN-ORIGINAL-SENTINEL"
 
-#: Things D1/D3 leave open, assumed here and flagged to Gilbert. One edit to this file changes every
-#: test when they are ruled.
+#: The shapes D1/D3 left open; ruled by D8 and kept in one place so a change moves every test at once.
 #:   A1  a gate is declared in the charter as  | gate | path | hash |  under a `## Gates` heading.
 #:   A2  the ratification commit is named in the charter's living state as
-#:       "Ratified at: `<sha>`"; the reference hash is read with `git show <sha>:CHARTER.md` (D1).
-#:   A3  `keel audit <repo>` writes `.keel/runs.jsonl` (append-only) and `.keel/review-context.json`.
-ASSUMPTIONS = ("A1 gates table", "A2 ratification commit line", "A3 record paths")
+#:       "Ratified at: `<sha>`", and again as the record's first line; the audit exits 1 if the two
+#:       disagree. The reference block is read with `git show <sha>:CHARTER.md` (D1, D8).
+#:   A3  `keel audit <repo>` writes `.keel/runs.jsonl` (append-only) and `.keel/review-context.json`;
+#:       `--record <path>` moves the record (needed because D4 keeps rentguard/ read-only).
+ASSUMPTIONS = ("A1 gates table", "A2 ratification pointer, named twice", "A3 record paths")
 
 
 def write(path: Path, text: str) -> Path:
@@ -49,11 +50,16 @@ def charter_text(*, frozen: str = FROZEN_SENTINEL, requirements=(), gates=(),
 
     requirement tuples: (id, text, enforced_by, checked_by, state)
     gate tuples:        (name, path, hash)
+
+    **The ratification pointer goes in a `## Ratification` section at the end, never between the
+    frozen heading and the next heading.** D11 (F9) makes the anchor the whole frozen *section*
+    (heading to the next heading), so a pointer written inside that span would itself be anchored —
+    and because the pointer is added *after* the ratification commit, every fixture would carry a
+    spurious `[original]` divergence. That is the false signal this placement avoids; a real charter
+    (`keel/CHARTER.md`) has the same shape.
     """
     req_rows = "\n".join("| {} | {} | {} | {} | {} |".format(*r) for r in requirements)
     parts = ["# Charter — demo", "", "## The frozen original", "", f"> {frozen}", ""]
-    if ratified is not None:
-        parts += [f"Ratified at: `{ratified}`", ""]
     parts += [
         "## What it is for", "the demo purpose", "",
         "## What it is good at", "the demo strength", "",
@@ -70,6 +76,8 @@ def charter_text(*, frozen: str = FROZEN_SENTINEL, requirements=(), gates=(),
     if gates:
         gate_rows = "\n".join("| {} | {} | {} |".format(*g) for g in gates)
         parts += ["## Gates", "", "| gate | path | hash |", "|---|---|---|", gate_rows, ""]
+    if ratified is not None:
+        parts += ["## Ratification", "", f"- `Ratified at:` `{ratified}`", ""]
     text = "\n".join(parts) + "\n"
     for section in omit_sections:
         text = _drop_section(text, section)

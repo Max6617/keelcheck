@@ -39,6 +39,13 @@ Score at b81c374: **2 clear (W2/R8, W1/R9), 1 symptomatic (R2), 2 not mechanical
 The user's "five real defects" is not withdrawn: the audit is two halves by R3's own wording, and W4
 and W3 belong to the drift-review half.
 
+**Dated note, 2026-10-14 (D11/F6).** The table above carries five rows; the catalogue of record carries
+**six names**, because rentguard's own W4 says in terms that it "is what R4's wish looked like once it
+was tested". Row 2 is therefore one finding in two stages, and the six names are: **R2**; **R4 + W4**
+(the guard unproven, then tested and wrong); **W1** (R9); **W2** (R8); **W3**. This note adds **R4**,
+which this file's list had dropped; the record's list had dropped **W2** instead. Same count, different
+membership — which is why both read as fine. No listing in this file may print five names again.
+
 ## The honest boundary of the first version
 
 What the mechanical half can find — all of it **declarative**, i.e. written in the charter or in git:
@@ -89,7 +96,7 @@ reduces to reading back the charter's prose — the failure the project exists t
 ## The vacuous pass waiting on this input
 
 With **0** gates declared, a hash-checking audit on rentguard verifies nothing, and "a named gate has
-no run record" (D3, exit 1) never fires because no gate is named. An audit that exits 0 there would
+no run record" (D8, exit 1) never fires because no gate is named. An audit that exits 0 there would
 be reporting health it never measured. D8 now makes that vacuity itself a named divergence and an
 exit 1, which is why `test_a_charter_with_zero_ratified_gates_is_a_named_finding_not_a_clean_run`
 exists in the adversarial set: otherwise the demonstration input is the first place the tool lies.

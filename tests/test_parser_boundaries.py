@@ -12,7 +12,20 @@ checked, and not reported:
 2. a ``checked-by`` cell holding a zero-width character or ``&nbsp;`` renders as nothing but is read
    as content, so the row leaves the wishes list and the report never prints it;
 3. a requirement backed only by a sentence appears in ``--json`` but not in the two-minute report a
-   human reads (the same hole as `test_charter_silent_wish`'s red, asserted here on the CLI surface).
+   human reads (the same hole as `test_charter_silent_wish`'s red, asserted here on the CLI surface —
+   this one is green since Mason's D8 render fix, kept as the CLI-level control).
+
+**No test here may pass because the command crashed.** A non-zero exit is only an acceptable answer
+when it is a clean named refusal ("keel: ..."), never a traceback: otherwise a broken parser would
+turn every hole below into a pass. This is the guard `test_the_audit_command_exists_and_help_succeeds`
+plays for the audit.
+
+**Status.** All three holes were open at HEAD `ec18e0c` (`assay_parser_boundaries_b81c374.txt`,
+re-measured there) and were closed in Mason's uncommitted working tree the same evening
+(`assay_parser_boundaries_worktree-2026-10-14.txt`): a row with no id is now reported (id synthesised
+from the line, e.g. `#20`), and `\u200b`, `\u2060`, `\ufeff`, `&nbsp;` are now wishes. The tests stay
+as regressions, and the crash guard is why they did **not** go green while the parser was raising
+`NameError` mid-refactor — they would have passed on the traceback's exit code otherwise.
 """
 
 from __future__ import annotations
@@ -36,6 +49,15 @@ def _charter(rows: list[str], header: str = HEADER) -> str:
     )
 
 
+def _parsed(proc, label: str) -> dict:
+    """The JSON document, or a failure that says why the command did not produce one."""
+    out = _support.combined(proc)
+    assert "Traceback" not in out, f"{label}: the parser crashed instead of reporting:\n{out}"
+    assert proc.returncode == 0, (
+        f"{label}: a valid charter must parse (exit {proc.returncode})\n{out}")
+    return json.loads(proc.stdout)
+
+
 def _write(scratch, name: str, text: str):
     return _support.write(scratch / name, text)
 
@@ -44,10 +66,11 @@ def _write(scratch, name: str, text: str):
 
 
 def test_a_requirement_row_is_never_silently_dropped(scratch):
-    """A fixed-format parser may refuse a chart it cannot read; it may not read it as empty.
+    """A fixed-format parser may refuse a charter it cannot read; it may not read it as empty.
 
-    `wishes: []` with a non-zero exit is an honest "I could not read this". `wishes: []` with exit 0
-    on a file that contains an unenforced, unchecked requirement is the tool lying about itself.
+    ``wishes: []`` with a clean refusal is an honest "I could not read this". ``wishes: []`` with
+    exit 0 on a file that contains an unenforced, unchecked requirement is the tool lying about
+    itself. A crash is neither, and must not be accepted as a pass.
     """
     cases = [
         ("empty id cell", HEADER, ["|  | the pod must stop itself | \u2014 | \u2014 | draft |"]),
@@ -57,9 +80,15 @@ def test_a_requirement_row_is_never_silently_dropped(scratch):
     for i, (label, header, rows) in enumerate(cases):
         path = _write(scratch, f"dropped-{i}.md", _charter(rows, header))
         proc = _support.charter_cli(path)
+        out = _support.combined(proc)
+        assert "Traceback" not in out, f"{label}: the parser crashed instead of reporting:\n{out}"
+        if proc.returncode != 0:
+            # a refusal is acceptable, a crash is not: it must be named, not a stack trace
+            assert "keel:" in out, f"{label}: refused without naming the reason:\n{out}"
+            continue
         doc = json.loads(proc.stdout)
         parsed, present = len(doc["requirements"]), len(rows)
-        assert proc.returncode != 0 or parsed == present, (
+        assert parsed == present, (
             f"{label}: exit 0 with {parsed} of {present} rows parsed, so the unenforced, unchecked "
             f"requirement in the dropped row is invisible (wishes={doc['wishes']})\n{proc.stdout}"
         )
@@ -84,7 +113,7 @@ def test_a_cell_that_renders_blank_is_not_a_check(scratch):
     ]):
         path = _write(scratch, f"blank-{i}.md",
                       _charter([f"| R1 | the pod must stop itself | \u2014 | {cell} | met |"]))
-        doc = json.loads(_support.charter_cli(path).stdout)
+        doc = _parsed(_support.charter_cli(path), label)
         r = doc["requirements"][0]
         assert r["is_wish"], (
             f"checked-by={label} ({cell!r}) renders as nothing but was read as content: "
@@ -96,7 +125,7 @@ def test_the_literal_empty_checked_by_is_a_control(scratch):
     """A control, so the test above cannot pass by calling every `checked-by` a wish."""
     path = _write(scratch, "empty.md",
                   _charter(["| R1 | the pod must stop itself | \u2014 |  | met |"]))
-    doc = json.loads(_support.charter_cli(path).stdout)
+    doc = _parsed(_support.charter_cli(path), "literal empty cell")
     assert doc["requirements"][0]["is_wish"] is True
     assert doc["wishes"] == ["R1"]
 
@@ -107,8 +136,9 @@ def test_the_literal_empty_checked_by_is_a_control(scratch):
 def test_the_two_minute_report_does_not_hide_a_requirement_backed_only_by_a_sentence(scratch):
     """The machine-readable path carries the column; the report the human reads must too (D8).
 
-    keel's own R9 is exactly this shape: publishing is guarded by a sentence, and a report that says
-    "0 wishes, 0 asserted" is reporting health it did not measure.
+    A `checked-by` sentence is valid charter content, not an error: the CLI must exit 0 *and* print
+    it. keel's own R9 is exactly this shape, and a report that says "0 wishes, 0 asserted" is
+    reporting health it did not measure.
     """
     marker = "the user's word before any push"
     path = _write(scratch, "sentence.md",
@@ -117,7 +147,10 @@ def test_the_two_minute_report_does_not_hide_a_requirement_backed_only_by_a_sent
     report = _support.charter_cli(path, json_out=False)
 
     assert marker in json_proc.stdout, "precondition: the JSON output carries the cell"
-    assert marker in report.stdout or report.returncode != 0, (
+    out = _support.combined(report)
+    assert "Traceback" not in out, f"the report crashed:\n{out}"
+    assert report.returncode == 0, f"a checked-by sentence is valid content:\n{out}"
+    assert marker in report.stdout, (
         "the report hides a requirement whose only backing is a human check; it printed:\n"
         f"{report.stdout}"
     )

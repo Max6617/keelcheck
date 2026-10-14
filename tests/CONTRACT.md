@@ -49,8 +49,22 @@ test hashes raw worktree bytes.
 |---|---|
 | `test_charter_silent_wish.py` | **Pins** of the parser's answers at `489f47d` (green on landing) plus one red — a `checked-by`-only requirement, hidden by the report. Mason's D8 render fix turned the red green; the pin set is unchanged. |
 | `test_parser_boundaries.py` | **Red against landed code**: a requirement row silently dropped when its id cell is empty or its id column is labelled something unknown; a `checked-by` cell holding a zero-width character or `&nbsp;`, which renders blank but is read as content; the two-minute report as a third surface. Driven through `python -m keel.charter`, never imports. |
-| `test_audit_cli.py` | **Red**: the adversarial set — a missing section, a gate edited after ratification, a hash rewritten in the working-tree charter, a gate with no run record, a CRLF worktree that must **not** read as a hash divergence (D9), the append-only record, vacuity (D8), wishes non-fatal, `--fail-on-wish`, an unparseable charter, and the clean-context file. The first test asserts `keel audit --help` exists, so no other test can pass because the command is unknown. |
+| `test_audit_cli.py` | **Red against `HEAD`**: the adversarial set — a missing section, a gate edited after ratification, a hash rewritten in the working-tree charter, a gate with no run record, a CRLF worktree that must **not** read as a hash divergence (D9), the append-only record, vacuity (D8), wishes non-fatal, `--fail-on-wish`, an unparseable charter, **the frozen original moving when the accepted recommendation is edited (D11/F9)**, and the clean-context file. The first test asserts `keel audit --help` exists, so no other test can pass because the command is unknown. |
 | `test_cli_encoding.py` | `--json` on `rentguard/CHARTER.md` must survive a cp1252 stdout; the host's `PYTHONIOENCODING` is pinned inside the test, never inherited. |
+
+## The anchor test, and a fixture trap it exposed
+
+`test_editing_the_recommendation_moves_the_frozen_original` copies `keel/CHARTER.md`, points it at the
+scratch repo's own ratification commit, records the baseline, then edits one word **inside the
+accepted recommendation** and requires an `[original]` divergence. It is the red test D11/F9 asked for:
+before the fix the parser anchored only the first blockquote (82 bytes), so that edit left the anchor
+byte-identical.
+
+Writing it exposed a trap in this suite's own fixture: `charter_text` used to place `Ratified at:`
+between the frozen heading and the next heading, which is *inside* the anchored span. Since the pointer
+is written after the ratification commit, every fixture would have carried a spurious `[original]`
+divergence. The pointer now lives in a `## Ratification` section at the end — the same shape as the real
+charter — so the baseline can assert the absence of `[original]` and the moved run its presence.
 
 ## Reference hashes and counts name their source
 

@@ -1,20 +1,20 @@
-"""The adversarial set for the audit (R2, R3, R4), written against the contract Gilbert ruled in D3.
+"""The adversarial set for the audit (R2, R3, R4), written against the contract Gilbert ruled in D3
+and corrected in D8.
 
-**Red first.** Nothing here exists yet: at `489f47d` `keel audit` is an unknown command, so every
-test below fails. That is the point — these are the tests that would catch a charter tool lying about
-itself, and they land before the code that has to earn them.
+**Red against the landed code.** `keel audit` is not in `HEAD`; the set was written to land before
+the implementation and turn green on Mason's fix commit. The contract is the CLI only — exit 0 clean
+with at least one ratified gate, exit 1 divergence, exit 2 could not run honestly — plus
+`.keel/runs.jsonl` and `.keel/review-context.json`. Never `keel/` internals.
 
-The contract (D3) is the CLI only — exit 0 no divergence, exit 1 divergence, exit 2 could not run
-honestly — plus `.keel/runs.jsonl` and `.keel/review-context.json`. Never `keel/` internals.
-
-**Three things D1/D3 leave open are assumed in `_support.ASSUMPTIONS`, not here**: the gate table
-shape (A1), where the ratification commit is named (A2), and the record paths (A3). When Gilbert
-rules them, `_support.py` changes and these tests do not.
+A1–A3 were assumptions in `_support.py` when these tests were written; **D8 ruled them**, so the test
+shapes here are the ruled ones (vacuity is a divergence, the report prints all four columns, the
+pointer is named twice).
 """
 
 from __future__ import annotations
 
 import json
+import re
 
 import _support
 
@@ -138,9 +138,58 @@ def test_a_crlf_worktree_is_not_a_gate_hash_divergence(scratch):
 
     out = _support.combined(after).lower()
     assert after.returncode != 2, f"the audit could not run on a CRLF worktree:\n{_support.combined(after)}"
-    assert not ("coverage" in out and "hash" in out), (
-        "a CRLF worktree was reported as a gate hash divergence; the hash must be over git-normalized "
-        f"content (D9)\n{_support.combined(after)}"
+    assert "[gate]" not in out, (
+        "a CRLF worktree was reported as a gate content-hash change; the hash must be over "
+        f"git-normalized content (D9)\n{_support.combined(after)}"
+    )
+
+
+def test_editing_the_recommendation_moves_the_frozen_original(scratch):
+    """D11 (F9): the anchor is the whole frozen section, heading included — the user's words *and*
+    the recommendation they accepted, which is where the scope lives.
+
+    Gilbert's red test, verbatim: in a copy of `keel/CHARTER.md`, edit the recommendation line, and
+    require the audit to report the frozen original moved. Before the fix the parser collected only
+    the first blockquote (82 bytes), so an edit to the recommendation left the anchor byte-identical
+    and the audit reported *less* than the record defines — the vacuity class on the tool's own
+    anchor (D11/F9).
+
+    The observable is the report line, not the exit code: with zero ratified gates this repository is
+    divergent anyway (D8 vacuity), so `[original]` is what distinguishes a moved anchor.
+    """
+    source = _support.KEEL_CHARTER.read_text(encoding="utf-8")
+    assert "narrow to the join" in source, "precondition: the recommendation line is gone"
+
+    # A copy, per D11: keel/CHARTER.md itself is never the test's scratch. The copy must point at
+    # *this* repository's commit, so the other repo's SHA is replaced after the first commit.
+    _support.write(scratch / "CHARTER.md", source)
+    sha = _support.init_repo(scratch)
+    text = (scratch / "CHARTER.md").read_text(encoding="utf-8")
+    text = re.sub(r"`Ratified at:` `[0-9a-f]{7,40}`", f"`Ratified at:` `{sha}`", text, count=1)
+    assert sha in text, "the copy still names another repository's ratification commit"
+    _support.write(scratch / "CHARTER.md", text)
+    _support.commit_all(scratch, "name this repository's ratification commit")
+
+    baseline = _support.audit(scratch)
+    assert "[original]" not in _support.combined(baseline).lower(), (
+        "the untouched copy already reports a frozen-original divergence, so this test could not "
+        f"detect a moving anchor:\n{_support.combined(baseline)}"
+    )
+
+    # Move the anchor: one word, inside the recommendation, outside the user's own words.
+    moved_text = (scratch / "CHARTER.md").read_text(encoding="utf-8")
+    assert "narrow to the join and build it" in moved_text
+    _support.write(
+        scratch / "CHARTER.md",
+        moved_text.replace("narrow to the join and build it", "narrow to the join and rebuild it", 1),
+    )
+
+    moved = _support.audit(scratch)
+
+    assert moved.returncode == 1, f"exit {moved.returncode}, wanted 1\n{_support.combined(moved)}"
+    assert "[original]" in _support.combined(moved).lower(), (
+        "editing the recommendation line did not move the frozen original: the anchor covers less "
+        f"than the record defines (D11/F9)\n{_support.combined(moved)}"
     )
 
 
@@ -199,12 +248,15 @@ def test_a_charter_with_zero_ratified_gates_is_a_named_finding_not_a_clean_run(s
     D3 first said a complete charter with no gates audits clean. Proctor then measured rentguard —
     0 gate hashes — and D8 ruled that succeeded nothing must say so as a named divergence and must
     not exit 0. Exit 0 on this input would be the audit reporting health it never measured.
+
+    The charter must still name its ratification commit (A2): without that line it is *unratifiable*
+    and exits 2, which says "I could not run", not "I ran and found nothing".
     """
-    _support.write_charter(
-        scratch,
-        requirements=[("R1", "the parser exists", "code: the charter parser", "—", "**met**")],
-    )
-    _support.init_repo(scratch)
+    requirements = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    _support.write_charter(scratch, requirements=requirements)
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=requirements, ratified=sha)
+    _support.commit_all(scratch, "ratified")
 
     proc = _support.audit(scratch)
 
@@ -212,20 +264,21 @@ def test_a_charter_with_zero_ratified_gates_is_a_named_finding_not_a_clean_run(s
         f"a vacuous audit exited {proc.returncode}; zero ratified gates is a divergence, not clean\n"
         f"{_support.combined(proc)}"
     )
-    assert "gate" in _support.combined(proc).lower(), "the vacuity finding is not named"
+    assert "[vacuity]" in _support.combined(proc).lower(), "the vacuity finding is not named"
 
 
 def test_wishes_are_reported_but_do_not_change_the_exit_code(scratch):
     """D3: wishes may exist and are reported; they do not change the exit code.
 
-    D8 changed the baseline: with no ratified gate this charter is already divergent (exit 1). So
-    the wish must not add the *fatal* code — 2 — and must be named in the report.
+    D8 changed the baseline twice: a charter with no ratification pointer cannot run honestly (exit
+    2, A2), and one that runs with zero ratified gates is already divergent (exit 1, vacuity). So the
+    wish must add neither the fatal code nor silence — it is named in the report.
     """
-    _support.write_charter(
-        scratch,
-        requirements=[("R9", "nothing is published without the user's word", "—", "—", "**wish**")],
-    )
-    _support.init_repo(scratch)
+    requirements = [("R9", "nothing is published without the user's word", "—", "—", "**wish**")]
+    _support.write_charter(scratch, requirements=requirements)
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=requirements, ratified=sha)
+    _support.commit_all(scratch, "ratified")
 
     proc = _support.audit(scratch)
 

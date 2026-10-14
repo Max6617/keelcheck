@@ -1,0 +1,65 @@
+# AFTER-FIX probe -- WORKING TREE, not a commit
+# package commit under it: ec18e0c5d7646d29b2230a479a4400794eda4d55
+# measured: 2026-10-14T20:45:17.2349035+02:00
+# git diff --stat (keel/):
+ keel/charter.py | 270 ++++++++++++++++++++++++++++++++++++++++++++++++++------
+ keel/cli.py     |  31 +++++--
+ 2 files changed, 265 insertions(+), 36 deletions(-)
+# parser and hash boundaries - keel@ec18e0c
+# python 3.12.6; git version 2.45.1.windows.1
+# host core.autocrlf = false
+
+## A. a wish a naive parser swallows silently
+
+A1-empty-id-row            exit=0 reqs=1 wishes=['#20'] asserted=[] in-json=True in-report=True
+A2-unknown-id-header       exit=0 reqs=1 wishes=['R1'] asserted=[] in-json=True in-report=True
+A3-check-only-sentence     exit=0 reqs=1 wishes=[] asserted=[] in-json=True in-report=True
+A4-truncated-row           exit=0 reqs=1 wishes=['R1'] asserted=[] in-json=True in-report=True
+A5-negative-space          exit=0 reqs=1 wishes=['R1'] asserted=[] in-json=True in-report=True
+
+## B. checked-by cells that are not the empty string but carry nothing
+
+label                  cell repr        is_wish  enforcement  in-report
+empty string           ''               True     none         False
+single space           ' '              True     none         False
+tab                    '\t'             True     none         False
+em dash                '—'              True     none         True
+n/a                    'n/a'            True     none         True
+zero-width space       '\u200b'         True     none         True
+word joiner            '\u2060'         True     none         True
+BOM / ZWNBSP           '\ufeff'         True     none         True
+non-breaking space     '\xa0'           True     none         False
+&nbsp; entity          '&nbsp;'         True     none         True
+backticks only         '``'             True     none         True
+asterisks only         '**'             True     none         True
+quotes only            '""'             False    none         True
+empty parens           '()'             False    none         True
+
+## C. a gate hash over a file whose worktree line endings differ
+
+raw sha256(LF bytes)   = 61423f16d6b1cce88d9746979d5ceb34dab487efd0c6bede04d93c3080c21765
+raw sha256(CRLF bytes) = 550d83f26bfb03ac92ad185fa5ce6cbf78807339425ffaa3d3171b27be28ce3b
+raw hashes differ      = True
+
+### repo with eol=lf rule  (.gitattributes='* text=auto eol=lf\n', core.autocrlf=true)
+  worktree CRLF              = True
+  raw sha256(worktree)       = 550d83f26bfb03ac92ad185fa5ce6cbf78807339425ffaa3d3171b27be28ce3b
+  matches raw sha256(LF)     = False
+  committed blob oid         = 53c9c480135a92049e09aa1310de539c16830545
+  hash-object --path=...     = 53c9c480135a92049e09aa1310de539c16830545  (== blob: True)
+  hash-object (no --path)    = 53c9c480135a92049e09aa1310de539c16830545  (== blob: True)
+  git status --porcelain     = 'M tools/gate.py'
+  git diff --stat            = "warning: in the working copy of 'tools/gate.py', CRLF will be replaced by LF the next time Git touches it"
+  fresh checkout (autocrlf=true) CRLF = False  raw sha256 == LF sha: True  hash-object --path == blob: True
+
+### repo with no rule  (.gitattributes=None, core.autocrlf=true)
+  worktree CRLF              = True
+  raw sha256(worktree)       = 550d83f26bfb03ac92ad185fa5ce6cbf78807339425ffaa3d3171b27be28ce3b
+  matches raw sha256(LF)     = False
+  committed blob oid         = 53c9c480135a92049e09aa1310de539c16830545
+  hash-object --path=...     = 53c9c480135a92049e09aa1310de539c16830545  (== blob: True)
+  hash-object (no --path)    = 53c9c480135a92049e09aa1310de539c16830545  (== blob: True)
+  git status --porcelain     = 'M tools/gate.py'
+  git diff --stat            = ''
+  fresh checkout (autocrlf=true) CRLF = True  raw sha256 == LF sha: False  hash-object --path == blob: True
+

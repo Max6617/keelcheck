@@ -95,6 +95,16 @@ impossible, fatal or recoverable. `checked-by:` = a human judges it, or a demo m
 | R8 | 94% of the code and 100% of the surface exercised; one writer per file; every count names a commit; red tests before fixes | code: keel's coverage gate and the suite — **neither is built, so this is unbacked until they are** | the CI run | draft |
 | R9 | Nothing is published without the user's explicit word | — | the user's explicit word before any push | checked, not enforced |
 
+## Gates
+
+| gate | path | hash | kind |
+|---|---|---|---|
+| review-prompt | review-prompt.md | sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1 | prompt |
+
+The first ratified gate, and the one that is not a script: the review prompt is the reviewer's whole
+instruction, so weakening it is a gate change like any other (D15). The hash is over the file's
+git-normalized bytes (D9), verified against `git cat-file blob` rather than a working-tree read.
+
 ## The wishes
 
 **Decision appended before freezing the states, 2026-10-14 (not part of the frozen original):** R2's

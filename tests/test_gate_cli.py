@@ -108,6 +108,32 @@ def test_gate_run_accepts_a_record_directory_like_the_audit_does(scratch):
 # --- pins: properties stated and built ----------------------------------------
 
 
+def test_a_gate_that_could_not_be_executed_does_not_leave_the_audit_clean(scratch):
+    """The third route into the same hole: `_run_one` returns `error` with the ratified hash already
+    set, so an error record matches the gate exactly. A gate that cannot run is not a gate that
+    passed."""
+    _gated_repo(scratch, "print('not runnable')\n", path="tools/gate.txt")
+
+    run = _support.keel("gate", "run", str(scratch))
+    assert run.returncode == 1, f"precondition: the gate run reports the error\n{_support.combined(run)}"
+
+    proc = _support.audit(scratch)
+    out = _support.combined(proc)
+    assert proc.returncode != 0, f"the audit is clean while the gate never executed\n{out}"
+    assert "error" in out.lower(), f"the recorded result is not named:\n{out}"
+
+
+def test_a_passing_gate_run_is_what_makes_the_audit_clean(scratch):
+    """The control for the three tests above: the same fixture, a gate that exits 0, exit 0."""
+    _gated_repo(scratch, "print('ok')\n")
+
+    assert _support.keel("gate", "run", str(scratch)).returncode == 0
+    proc = _support.audit(scratch)
+
+    assert proc.returncode == 0, (
+        f"a recorded passing run still reads as no record:\n{_support.combined(proc)}")
+
+
 def test_an_audit_run_never_counts_as_a_gate_run(scratch):
     """The skipped-gate property. An audit writes a `kind: audit` line, never a `kind: gate` one, so
     a gate that was never executed stays divergence on every audit instead of healing after one."""

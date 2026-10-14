@@ -154,3 +154,26 @@ def test_the_two_minute_report_does_not_hide_a_requirement_backed_only_by_a_sent
         "the report hides a requirement whose only backing is a human check; it printed:\n"
         f"{report.stdout}"
     )
+
+
+# --- D12: the parser CLI's exit codes ----------------------------------------
+
+
+def test_keel_charter_exit_codes_are_the_ones_d12_rules(scratch):
+    """D12: "A file that is not a charter — or is unreadable — is exit 2 ... A charter that parses and
+    has findings (a missing section, ...) is exit 1."
+
+    Measured at `55cd6d7`: all three exit 0. `keel charter` prints `MISSING SECTIONS:` and then does
+    not act on it, so the command reads a file it cannot claim to have read as a charter.
+    """
+    req = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    _support.write(scratch / "complete.md", _support.charter_text(requirements=req))
+    _support.write(scratch / "missing.md",
+                   _support.charter_text(requirements=req, omit_sections=("Permissions",)))
+    _support.write(scratch / "empty.md", "# just a heading\n\nsome prose\n")
+
+    assert _support.charter_cli(scratch / "complete.md").returncode == 0, "control: a full charter is 0"
+    assert _support.charter_cli(scratch / "missing.md").returncode == 1, (
+        "a charter that parses with a missing required section must be exit 1 (D12)")
+    assert _support.charter_cli(scratch / "empty.md").returncode == 2, (
+        "a file with none of the six required sections is not a charter: exit 2 (D12)")

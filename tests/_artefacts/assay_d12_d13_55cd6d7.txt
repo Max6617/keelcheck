@@ -1,0 +1,65 @@
+# D12/D13 + gate-result probe - keel@55cd6d7
+# measured: 2026-10-14T21:17:01.1121277+02:00
+# git status --short: ' M docs/ARTEFACT-MAP.md  M tests/CONTRACT.md  M tests/test_audit_cli.py  M tests/test_gate_cli.py  M tests/test_parser_boundaries.py ?? tests/_artefacts/probe_d12_d13.py'
+# D12/D13 + gate-result probe - keel@55cd6d7
+
+## 1. a gate record only counts when it passed
+  pass                               exit 0  classes=[]
+  fail                               exit 1  classes=['gate-record']
+      [gate-record] coverage: the recorded run of this gate did not pass (result: fail, exit 1) in runs.jsonl; a record proves the gate executed, not that i
+  timeout                            exit 1  classes=['gate-record']
+      [gate-record] coverage: the recorded run of this gate did not pass (result: timeout) in runs.jsonl; a record proves the gate executed, not that it pas
+  error (non-.py gate)               exit 1  classes=['gate-record']
+      [gate-record] coverage: the recorded run of this gate did not pass (result: error) in runs.jsonl; a record proves the gate executed, not that it passe
+
+## 2. --record <directory>
+  gate run --record <dir>            exit 0  classes=[]
+      files=['review-context.json', 'runs.jsonl']
+  audit --record <dir>               exit 0  classes=[]
+
+## 3. D12: the header, the anchor, [format]
+  header keys: ['at', 'kind', 'record', 'version']  (no 'ratified': True)
+  after repointing (1st)             exit 1  classes=['anchor-moved', 'gate-record']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\anchor
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\anchor\CHARTER.md
+      [anchor-moved] ratified: the anchor moved since the previous run: ee2b398a501dc449731f0265c504013777b1ead2 -> 4f0fe6450b8f190b3eed6f004d5e1fc6a0ce236f
+  after repointing (2nd)             exit 1  classes=['gate-record']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\anchor
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\anchor\CHARTER.md
+      [gate-record] coverage: no run record for this gate in runs.jsonl: it has never been executed by `keel gate run` (or the hook that calls it). A local 
+  non-canonical pointer              exit 1  classes=['format', 'gate-record']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\format
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\format\CHARTER.md
+      [format] Ratified at:: the pointer is spelled `- `Ratified at:` `c1fcb5ae4d222108253ef24dea1b19d9b1bd5d7b``, not the canonical plain line `Ratified at
+  no pointer                         exit 1  classes=['vacuity']
+
+## 4. D13: [unbuilt] and the carve-out
+  borrowed path                      exit 1  classes=['unbuilt', 'vacuity']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-borrowed-path
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-borrowed-path\CHARTER.md
+      [unbuilt] R8: `enforced-by` names `tools/coverage.py`, which does not resolve in the audited repository (checked at HEAD e305f01b92bb0b1f1abd2953ce1f1
+  other .keel file                   exit 1  classes=['unbuilt', 'vacuity']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-other-.keel-file
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-other-.keel-file\CHARTER.md
+      [unbuilt] R8: `enforced-by` names `.keel/anything-else.json`, which does not resolve in the audited repository (checked at HEAD ec1eed64dbfbb6507e6d9a
+  review-context (default)           exit 1  classes=['vacuity']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-review-context-(default)
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-review-context-(default)\CHARTER.md
+      charter: C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-review-context-(default)\CHARTER.md
+  runs.jsonl (default)               exit 1  classes=['vacuity']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-runs.jsonl-(default)
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-runs.jsonl-(default)\CHARTER.md
+      charter: C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-runs.jsonl-(default)\CHARTER.md
+  a directory                        exit 1  classes=['unbuilt', 'vacuity']
+      keel audit -- C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-a-directory
+      charter:  C:\Users\besen\.dsh\bot\workspace\.assay-tmp\d12d13\run-6956\unbuilt-a-directory\CHARTER.md
+      [unbuilt] R8: `enforced-by` names `tools/`, which does not resolve in the audited repository (checked at HEAD 7a39f28d3597090bd445c855fd85af2e5a90494c
+
+## 4b. the carve-out when --record moves the record elsewhere
+  --record elsewhere                 exit 1  classes=['vacuity']
+      files elsewhere=['review-context.json', 'runs.jsonl']  .keel exists=False
+
+## 5. keel charter exit codes (D12)
+  clean charter        exit 0
+  wish (rentguard)     exit 0
+  not a charter        exit 0

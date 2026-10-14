@@ -341,3 +341,126 @@ def test_the_review_context_is_written_without_the_history(scratch):
     text = context.read_text(encoding="utf-8")
     assert _support.FROZEN_SENTINEL in text, "the frozen original is not in the reviewer's input"
     assert sentinel not in text, "history reached the reviewer's input"
+
+
+# --- D12: the anchor, its canonical spelling, and its one-copy rule ------------
+
+
+def test_a_charter_with_no_ratification_pointer_cannot_run_honestly(scratch):
+    """D12: "No `Ratified at:` line: exit 2, never 0."
+
+    Measured at `55cd6d7`: exit 1, because the vacuity finding is computed and `compute_exit` returns
+    divergence before it consults `cannot_run`. It is not 0, but it is the wrong number for the wrong
+    reason — the tool could not establish the reference at all.
+    """
+    _support.write_charter(
+        scratch,
+        requirements=[("R1", "the parser exists", "code: the charter parser", "—", "**met**")],
+    )
+    _support.init_repo(scratch)
+
+    proc = _support.audit(scratch)
+
+    assert proc.returncode == 2, (
+        f"a charter with no `Ratified at:` line exited {proc.returncode}; D12 says 2, never 0\n"
+        f"{_support.combined(proc)}"
+    )
+    assert "not auditable" in _support.combined(proc).lower()
+
+
+def test_the_record_header_no_longer_carries_the_anchor(scratch):
+    """D12 withdrew D8's second copy: the record is append-only, so a header copy would go stale
+    forever on a legitimate re-ratification. Each `kind: audit` entry carries the anchor it used."""
+    _support.write_charter(
+        scratch,
+        requirements=[("R1", "the parser exists", "code: the charter parser", "—", "**met**")],
+    )
+    sha = _support.init_repo(scratch)
+    _support.write_charter(
+        scratch,
+        requirements=[("R1", "the parser exists", "code: the charter parser", "—", "**met**")],
+        ratified=sha,
+    )
+    _support.commit_all(scratch, "ratified")
+    _support.audit(scratch)
+
+    lines = [json.loads(l) for l in (scratch / ".keel" / "runs.jsonl").read_text(
+        encoding="utf-8").splitlines() if l.strip()]
+    header = next(o for o in lines if o.get("kind") == "header")
+    audits = [o for o in lines if o.get("kind") == "audit"]
+
+    assert "ratified" not in header, f"the header still carries the anchor: {header}"
+    assert audits and audits[-1].get("ratified") == sha, "the audit entry does not carry the anchor"
+
+
+def test_an_anchor_that_moves_is_named_once(scratch):
+    """D12: moving the anchor is a human event, so it is named with both SHAs and fires exactly once —
+    the next entry carries the new value."""
+    req = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    _support.write_charter(scratch, requirements=req)
+    sha1 = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=req, ratified=sha1)
+    sha2 = _support.commit_all(scratch, "ratified")
+    _support.audit(scratch)
+
+    text = (scratch / "CHARTER.md").read_text(encoding="utf-8").replace(sha1, sha2)
+    _support.write(scratch / "CHARTER.md", text)
+    _support.commit_all(scratch, "repoint the anchor")
+
+    moved = _support.audit(scratch)
+    out = _support.combined(moved)
+    assert "[anchor-moved]" in out.lower(), f"the moved anchor is not named:\n{out}"
+    assert sha1 in out and sha2 in out, f"both SHAs are not named:\n{out}"
+
+    again = _support.audit(scratch)
+    assert "[anchor-moved]" not in _support.combined(again).lower(), (
+        "the anchor-moved finding fires on every run instead of once")
+
+
+def test_a_non_canonical_pointer_line_is_reported_as_format(scratch):
+    """D12: one canonical spelling, `Ratified at: <sha>`. Another spelling still parses — so a miss is
+    never silent — and is reported `[format]`, quoting the line."""
+    req = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    _support.write_charter(scratch, requirements=req)
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=req, ratified=sha)
+    _support.commit_all(scratch, "ratified")
+    text = (scratch / "CHARTER.md").read_text(encoding="utf-8")
+    text = re.sub(r"Ratified at: ([0-9a-f]{7,40})", r"- `Ratified at:` `\1`", text, count=1)
+    _support.write(scratch / "CHARTER.md", text)
+    _support.commit_all(scratch, "non-canonical pointer")
+
+    proc = _support.audit(scratch)
+    out = _support.combined(proc)
+
+    assert "[format]" in out.lower(), f"a non-canonical pointer passed unremarked:\n{out}"
+    assert "Ratified at" in out, "the finding does not quote the line it rejected"
+
+
+# --- D13: a mechanism that does not resolve ------------------------------------
+
+
+def test_the_unbuilt_carve_out_covers_only_what_this_run_writes(scratch):
+    """D13's carve-out is for the two files the audit itself produces. Measured at `55cd6d7`: the
+    check is by *name*, so with `--record <elsewhere>` a requirement naming `.keel/runs.jsonl` counts
+    as built while `.keel/` does not exist at all — the mechanism is a file that is not there.
+
+    The attack is narrow and deliberate: Mason's carve-out says the defaults count too. The test
+    asserts they count only when this run actually wrote them, which is the exception's own terms.
+    """
+    req = [("R8", "the record exists", "code: .keel/runs.jsonl", "—", "**met**")]
+    _support.write_charter(scratch, requirements=req)
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=req, ratified=sha)
+    _support.commit_all(scratch, "ratified")
+    elsewhere = scratch / "elsewhere"
+    elsewhere.mkdir()
+
+    proc = _support.audit(scratch, "--record", str(elsewhere))
+    out = _support.combined(proc)
+
+    assert not (scratch / ".keel").exists(), "precondition: nothing was written where the cell points"
+    assert "[unbuilt]" in out.lower(), (
+        f"`.keel/runs.jsonl` counts as a built mechanism although this run wrote the record to "
+        f"elsewhere and `.keel/` does not exist:\n{out}"
+    )

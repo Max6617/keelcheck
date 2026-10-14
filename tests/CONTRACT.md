@@ -87,3 +87,27 @@ charter — so the baseline can assert the absence of `[original]` and the moved
 - A pin is not a red test. D3: Mason landed R1 without a red test in front of it because `tests/` is
   not his file. Those backfilled tests say so; calling them red-first would be the laundering this
   project exists to catch.
+
+## Open reds at `55cd6d7` — three, all measured
+
+Suite: **3 failed / 46 passed** at that commit (Mason's D12/D13 build, tree clean). Each is a
+contradiction between a D-numbered ruling and what the command does, not a guess:
+
+1. **A charter with no `Ratified at:` line exits 1, not 2.**
+   `test_a_charter_with_no_ratification_pointer_cannot_run_honestly` — D12 says "exit 2, never 0".
+   `compute_exit` returns divergence when a finding exists before it consults `cannot_run`, and the
+   vacuity finding fires because there is no reference. The number is wrong for the right reason.
+2. **D13's carve-out is by name, not by what the run wrote.**
+   `test_the_unbuilt_carve_out_covers_only_what_this_run_writes` — with `--record <elsewhere>`, a
+   requirement whose `enforced-by` is `.keel/runs.jsonl` counts as built while `.keel/` does not
+   exist. The carve-out is for "the two files the audit itself produces"; when the run produces them
+   elsewhere, the exception does not apply on its own terms. Deliberate on Mason's side (the defaults
+   count too) — the test is the question.
+3. **`keel charter` never acts on its own findings.**
+   `test_keel_charter_exit_codes_are_the_ones_d12_rules` — a charter missing a required section and a
+   file with 0/6 required sections both exit 0, while D12 rules 1 and 2.
+
+Fixed and now pinned at the same commit: a gate record counts only when its `result` is `pass`
+(fail/timeout/error each named with the recorded result); `keel gate run --record <dir>` and
+`keel audit --record <dir>` agree; the record header carries no anchor; `[anchor-moved]` names both
+SHAs and fires once; a non-canonical pointer is `[format]` and quotes the line.

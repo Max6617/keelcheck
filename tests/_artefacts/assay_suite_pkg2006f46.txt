@@ -1,0 +1,7 @@
+# keel test suite - 35 passed, 0 failed
+# code under test: keel@2006f46 (Mason's audit), clean tree
+# test tree: the commit that adds this file (tests/ + eb3c0ec D11 test), 2026-10-14
+# measured: 2026-10-14T20:49:18.4038863+02:00
+# pytest:
+...................................                                      [100%]
+35 passed in 27.35s

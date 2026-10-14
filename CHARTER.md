@@ -41,6 +41,22 @@ Good at: one small project, one human, any agent, with every requirement either 
 upholds it or being marked a **wish**. Not for: a spec-authoring suite, a memory or learning layer, a
 harness of its own. Not a server, not a daemon, not a job runner.
 
+## The problems the human and the agent agreed on
+
+Added 2026-10-14, because R1's format names this section and the first parser run reported it missing from
+this file and from `rentguard/CHARTER.md` — both 5/6. The finding was on us, which is the honest version of
+the demo. What was agreed, in the opening conversation:
+
+- An instruction is not forgotten, it is **moved** — through sub-agents, summaries, compactions and rewrites
+  — and after a few hops nobody has it in the original words.
+- Nothing in the loop compares the current state against the **original**; the human notices at the end, if
+  at all.
+- **Prose is not enforcement.** A rule written in a document that no mechanism upholds is a wish, and the
+  difference must be visible in the file rather than in someone's judgement.
+- The neighbours solve the opposite problem — ECC accumulates and evolves memory, Spec Kit keeps specs
+  living — so the gap is the **join**: freeze once (human-approved), enforce by named mechanism, and audit
+  divergence against the frozen original with a clean-context reviewer.
+
 ## Why this is the gap (checked against the neighbours, 2026-10-14)
 
 - **ECC** (MIT, 17 harnesses) already ships enforcement — blocking hooks with exit codes, sandbox
@@ -64,15 +80,20 @@ impossible, fatal or recoverable. `checked-by:` = a human judges it, or a demo m
 |---|---|---|---|---|
 | R1 | The charter format is fixed: purpose, strengths, agreed problems, requirements, permissions, scopes; a requirement with neither `enforced-by` nor `checked-by` is a wish and the parser says so | code: the charter parser | — | draft |
 | R2 | Gates are locked code: a gate is a script recorded in the charter with a content hash, and the audit fails when a hash differs from the ratified one | code: hash comparison | — | draft |
-| R3 | The audit reports divergence from the frozen original in three classes — **missing / unrequested / shifted** — plus the wishes, readable in two minutes | code + the drift review | the human reads it | draft |
-| R4 | The drift review runs with **clean context**: a fresh agent holding only the frozen original and the current state, never the history that produced it | the runner starts a fresh context and records that it did | — | draft |
+| R3 | The audit reports divergence from the frozen original in three classes — **missing / unrequested / shifted** — plus the wishes, readable in two minutes | code: the frozen-original block is diffed against `ae375c6`; the drift review (clean context) classifies the rest | the human reads it | draft |
+| R4 | The drift review runs with **clean context**: a fresh agent holding only the frozen original and the current state, never the history that produced it | code: the runner writes the reviewer's inputs to `.keel/review-context.json` and the drift report names that file | — | draft |
 | R5 | Integration surfaces in this order: git hook first, CLI second, MCP third, harness hook adapter last | code: the hook installer | — | draft |
 | R6 | No daemon and no server: a bounded CLI run, and an MCP call that returns | code: no long-lived process, no listening socket | — | draft |
-| R7 | The tool proves itself on **rentguard**: running the audit there must reproduce the defects that were found by hand | the audit run against `rentguard/CHARTER.md` | the human reads the report | draft |
+| R7 | The tool proves itself on **rentguard**: at the revision immediately before each fix the audit reports that defect as divergence, and at HEAD it reports only what is still open (the conditional cap, the absent publish lock) | the audit run against `rentguard/CHARTER.md` at `bd63920`, `ce69cea`, `c512125` and `310f449` | the human reads the report | draft |
 | R8 | 94% of the code and 100% of the surface exercised; one writer per file; every count names a commit; red tests before fixes | `tools/coverage.py` and the suite | the CI run | draft |
 | R9 | Nothing is published without the user's explicit word | — | the user's explicit word before any push | checked, not enforced |
 
 ## The wishes
+
+**Decision appended before freezing the states, 2026-10-14 (not part of the frozen original):** R2's
+"ratified" hash is read from the **ratification commit**, not from the working-tree charter
+(`git show <sha>:CHARTER.md`), and the audit reports a gate with no run record as missing. Ruling recorded
+as D1 in `keel-project-state.md`.
 
 **W1 — "a stranger would find this useful" has no mechanism.** Adoption is the user's test of
 impressive, and nothing here makes a stranger install it; only the demonstration does, and the

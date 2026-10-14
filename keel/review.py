@@ -461,14 +461,12 @@ def run_review(
     except AuditError as exc:
         return {"exit": 2, "error": str(exc)}
     audit.charter = charter
-    if not charter.ratified_at:
-        return {
-            "exit": 2,
-            "error": (
-                "the charter names no ratification commit (`Ratified at:`), so a review has no "
-                "anchor to record against: not auditable (D12, D15)"
-            ),
-        }
+    # Gilbert's ruling (2026-10-14): a review of a charter that names no ratification commit runs and
+    # records ``ratified: null``. D12 forbids an unanchored *audit*; a review does not need an anchor
+    # to run -- freshness is the manifest, and the prompt's own ratification comes from its table
+    # (``--prompt-repo``), which is independent of the audited charter's anchor. Measured before this:
+    # `keel review ../rentguard` exited 2 in 0 s, so the R7 demonstration input could not be reviewed
+    # at all and had to be copied with an anchor added.
     try:
         audit.commit = gitcmd.head(repo)
     except gitcmd.GitError as exc:

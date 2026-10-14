@@ -720,17 +720,29 @@ def run_audit(
             )
         _gate_table_changes(audit)
 
-    if not [g for g in reference_gates if g.kind == "gate"]:
+    reference_gate_rows = [g for g in reference_gates if g.kind == "gate"]
+    if not reference_gate_rows:
+        working_gate_rows = [g for g in charter.gates if g.kind == "gate"]
+        ratified_prompts = [g for g in reference_gates if g.kind == "prompt"]
+        anchor = charter.ratified_at or "(no anchor)"
+        holds = (
+            f"the ratified table at {anchor} holds {len(ratified_prompts)} prompt row(s) and no "
+            "executable gate"
+            if ratified_prompts
+            else f"no gate is ratified at {anchor}"
+        )
+        declared = (
+            f"{len(working_gate_rows)} executable gate(s) are declared in the working charter and "
+            "not ratified"
+            if working_gate_rows
+            else "no executable gate is declared in the working charter either"
+        )
         audit.add(
             "vacuity",
             "gates",
-            (
-                "no executable gate in the working charter is ratified, so the hash half of this "
-                "audit verified nothing"
-                if [g for g in charter.gates if g.kind == "gate"]
-                else "no gate is declared or ratified, so the hash half of this audit verified nothing"
-            )
-            + ", and an audit that verifies nothing is not a clean run (D8)",
+            f"{holds}, and {declared}; R2's gate is an executable script with a content hash, so "
+            "the hash half of this audit verified nothing -- and an audit that verifies nothing is "
+            "not a clean run (D8)",
         )
 
     if audit.reference is not None:

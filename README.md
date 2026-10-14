@@ -1,176 +1,199 @@
 # keel
 
 > **Draft — nothing is published and nothing is installed anywhere.** Written by Folio on 2026-10-14.
-> Measured at keel `b81c374` (9 commits, branch `main`) and at the demonstration repository rentguard
-> `ad2e880`. Publication is the user's decision alone (`keel/CHARTER.md` line 121; R9 at line 96), and
-> nothing here has been pushed or packaged. Every number below names the file it came from, and the one
-> place the demo cannot run yet says so instead of implying that it did.
+> Measured at keel `fa6fb87` (40 commits, branch `main`) and at the demonstration repository rentguard
+> `eef6bdb` (82 commits). Publication is the user's decision alone (`keel/CHARTER.md` lines 134–136; R9
+> at line 101), and nothing here has been pushed or packaged. Every number below names the file it came
+> from; the two places that cannot be reproduced say so.
 
 ## What it is
 
 keel keeps one frozen, human-approved original for a project — the charter — and requires every
 requirement in it to name the mechanism that upholds it (`enforced-by:`) or the check that judges it
-(`checked-by:`); a requirement with neither is reported as a **wish** (`keel/CHARTER.md` lines 82–84).
-At each milestone the **audit** runs the enforced checks first, then a drift review with clean context,
-and reports divergence from the frozen original in three classes — **missing / unrequested / shifted** —
-plus the wishes (lines 38–39; R3 at line 90). It is meant to arrive in the order *git hook, CLI, MCP
-call, harness adapter* (R5 at line 92), and the core needs a git repository and nothing else.
+(`checked-by:`); a requirement with neither is reported as a **wish**, and a mechanism that does not
+resolve in the repository is reported as `[unbuilt]`, because that is a wish wearing a mechanism's name
+(`keel/CHARTER.md` lines 87–89; `PROJECT-STATE.md` D13). The **audit** runs the enforced checks first —
+every gate's content hash against the ratified table, the frozen original byte for byte, the run record —
+then a **clean-context review** in which a fresh reviewer, holding only the frozen original and a
+`.git`-less export of the current state, reports divergence as **missing / unrequested / shifted** (R3 at
+line 95, R4 at line 96, the gate table at lines 103–111). It arrives as a CLI, a git hook and a review
+runner (`keel --help`), in the order *git hook first, CLI second, MCP third, adapter last* (R5 at line 97),
+and the core needs a git repository and nothing else.
 
 ## Why a frozen original matters
 
-> An instruction does not get forgotten, it gets **moved**. (`keel/CHARTER.md` line 41)
+> An instruction does not get forgotten, it gets **moved**. (`keel/CHARTER.md` line 46)
 
 Through sub-agents, summaries, compactions and rewrites each hop nudges the instruction a little, and
 nothing ever compares the current state against the original; the human notices at the end, if at all
-(lines 41–43). The sharper version of the story is in the plan that started this:
-*"don't delete that folder"* was written down, and the folder was deleted anyway, with no backup
+(lines 46–48). The sharper version of the story is in the plan that started this: *"don't delete that
+folder"* was written down, and the folder was deleted anyway, with no backup
 (`external:INTENT-LOOP.md` lines 12–16). **Writing an instruction down does not honour it.**
 
-So the original is drafted by an agent, approved by a human, and then **frozen**: later clarifications
-are appended as new requirements, never merged back in — *"an anchor that quietly gets improved is not
-an anchor"* (`keel/CHARTER.md` lines 8–10). The freeze is not a formality in either direction:
+So the original is drafted by an agent, approved by a human, and then **frozen**: later clarifications are
+appended, never merged back in — *"an anchor that quietly gets improved is not an anchor"* (lines 8–10).
+The freeze is checkable, and tonight it was tested the hard way:
 
-- The one change the user asked for was made **before** it and kept as a trace. Their words were *"wish 2
-  you can throw away but the ret is good"* (line 6): the wish was struck, the rule moved to R9 as a human
-  check, and the strike left its trace in the file (lines 113–116).
-- And it is checkable. Measured on 2026-10-14: the frozen-original block (lines 12–22) is 530 bytes,
-  sha256 `093a271b4c150594dceeaf51ebbcb0a5c2329118ba16239c14481bf2fffc94c2`, and byte-identical at the
-  freeze commit `ae375c6`, at HEAD `b81c374`, and in the working tree — while the rest of the file grew
-  from 99 to 127 lines. That is ruling D5 (`keel/PROJECT-STATE.md` lines 122–129): the anchor is the
-  block, not the file, which is precisely why the living part may change without the original moving.
-
-Gates answer the same rule from the other side. A gate is code recorded in the charter with a content
-hash; an agent may propose one, but once a human ratifies it, changing it needs an approval recorded with
-a *new* hash and the audit fails on a mismatch (R2 at `keel/CHARTER.md` line 89). Where the ratified hash
-is read from — the ratification commit, `git show <sha>:CHARTER.md`, never the working tree — is ruling
-D1 (lines 100–103).
+- The frozen-original block (lines 12–22) is **553 bytes**, sha256
+  `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`, printed by `keel charter`.
+- The **anchor moved once**, at the user's word, from the freeze commit `ae375c6` to `117ac7c`, the commit
+  that carries keel's first gate (line 26). Everything that makes an anchor worth having was checked
+  first: the block is byte-identical at both commits, so the move changes only which *gate table* is the
+  reference — and moving the anchor is a **human** event, not a re-measurement, because that is where a
+  person's approval sits (D17, `PROJECT-STATE.md` lines 453–473). A bot moving it to make its own audit
+  green is exactly the laundering path the tool exists to catch, and the tool reported the change rather
+  than letting it pass.
+- The anchor lives in **exactly one place**, the charter's `Ratified at:` line; the run record keeps the
+  anchor *used on that run*, and a change is reported as `[anchor-moved]` with both SHAs (D12).
+- Gates answer the same rule from the other side: a gate is a row in the `## Gates` table with a content
+  hash. An agent may propose one; once a human ratifies it, changing it needs a new approval, and the
+  audit fails on a mismatch. The table's one row is currently a **prompt**, and the audit says plainly
+  that a prompt is not an executable check (below).
 
 ## The 60-second demo
 
-**Status: it cannot run yet. The command does not exist.** Measured at keel `b81c374`:
-
-```
-python -m keel audit --help
-# keel: unknown command: audit        (exit 1)
-```
-
-What follows is the shape the demo takes — and then the half that **does** run today, measured, because
-that half is the honest part.
-
-### The shape: two revisions, one pair of runs
-
-R7 (`keel/CHARTER.md` line 94) commits the tool to running the audit against `rentguard/CHARTER.md` at
-`bd63920`, `ce69cea`, `c512125` and `310f449`. D7 (`keel/PROJECT-STATE.md` lines 140–155) says why a
-single run at rentguard's HEAD cannot be the demo: the fixes are ancestors of HEAD, so the charter there
-already records the defects as closed. The audit is run with rentguard's worktree at a named revision:
-
-| revision | what the audit must report there | why that revision |
-|---|---|---|
-| `bd63920` | the MCP-arming defect as divergence | the commit immediately before the fix, `590c58e` (D7) |
-| `ce69cea` | the idle-clamp defect — a guard that could stop a healthy pod | immediately before `d5fdaea` |
-| `c512125` | the volume-transport defect | immediately before `da51005` |
-| `310f449` | only what is still open: the cap that exists only while `watch` runs, and the absent technical lock on publishing — and **not** the three closed defects as open | rentguard's HEAD when D7 was written |
-
-All seven revisions named in that table exist in `rentguard` and are ancestors of its current HEAD
-`ad2e880` (measured 2026-10-14). **Open item:** nothing yet specifies *how* a revision is handed to the audit — the ruled
-contract is `python -m keel audit <path-to-repo>` (`keel/tests/CONTRACT.md` lines 10–21) with
-`--record <path>` and `--fail-on-wish` (D8/A3, `keel/PROJECT-STATE.md` lines 170–174). This page does not
-invent a flag for it.
-
-### The half that runs today
+**Status: the audit runs today. The two-revision demonstration has still not been run.** Measured at keel
+`fa6fb87`, on rentguard, the real repository:
 
 ```
 cd keel
-python -m keel charter ../rentguard/CHARTER.md      # exit 0, measured 2026-10-14 at b81c374
+python -m keel audit ../rentguard --record /tmp/keel-runs.jsonl
 ```
 
-Against the five defects the by-hand audit found on rentguard:
+```
+keel audit -- …/rentguard
+commit:   eef6bdb…
+ratified: (not named -- this charter is not auditable)
+sections: 5/6  requirements: 10  gates ratified: 0  wishes: 3
+DIVERGENCES (2)
+  [missing-section] problems: a section R1's fixed format names is missing from the charter
+  [vacuity] gates: no gate is ratified at (no anchor), and no executable gate is declared …; R2's gate is
+    an executable script with a content hash, so the hash half of this audit verified nothing
+NOT AUDITABLE: the charter names no ratification commit (`Ratified at: <sha>`), so there is no reference
+  side to compare against (A2): not auditable, never clean
+REVIEW (clean context, R4): missing
+  no review line …; run `keel review <repo> --reviewer "<command>"` (D15)
+exit: 1
+```
 
-| by-hand defect (rentguard's row) | in the parser run |
-|---|---|
-| no way to arm the guard over MCP (R2) | found as a **symptom** — the row's state says `met` and it names no mechanism |
-| the guard could stop a healthy pod (W4) | **missed** — it lives in code, in no requirement row |
-| the cap exists only while `watch` runs (W1 / R9) | found |
-| no technical lock on publishing (W2 / R8) | found |
-| the volume path unexercised (W3) | **missed** — prose in the wishes section, not a requirement row |
+That is the honest 60 seconds: on a real repository the audit reports three named things and refuses to
+call anything healthy — the missing `problems` section, a gate-less charter, and a charter with no anchor
+at all. On keel itself the same command reports `6/6 sections, 9 requirements, gates ratified: 1`, and
+still exits 1, because the one ratified gate is a **prompt row** and the vacuity line names why it does
+not count:
 
-The score and the wording are the R7 artefact's
-(`keel/tests/_artefacts/R7-demonstration-mechanical-2026-10-14.md` lines 23–33), whose numbers are pinned
-to `fbd9837`; the parser output is the same at `b81c374` because the package is unchanged since
-`489f47d` (`git diff --stat 489f47d..HEAD -- keel/` is empty). On keel's own charter the same command
-reports `6/6` sections, `9` requirements, `0` wishes and `0` asserted enforcement.
+```
+[vacuity] gates: the ratified table at 117ac7c holds 1 prompt row(s) and no executable gate … the hash
+  half of this audit verified nothing -- and an audit that verifies nothing is not a clean run (D8)
+```
 
-The miss is the point, and it is why the demo is a *pair* of runs rather than one: a
-requirements-table audit reads the charter about itself, and the two defects that cost money or data
-resolve in code and in prose. It is also why the audit must report a gate-less charter as **vacuous**
-rather than clean — measured today, neither charter declares a single gate (no `## Gates` heading in
-`keel/CHARTER.md` or `rentguard/CHARTER.md`), and `keel/CHARTER.md` lines 28–29 already rule that an
-audit which verified nothing is a divergence, never a clean run.
+### The two-revision shape, still to run
+
+R7 (`keel/CHARTER.md` line 99) commits the tool to running the audit against `rentguard/CHARTER.md` at
+four revisions, and D7 (`PROJECT-STATE.md` lines 140–155) says why a single run at rentguard's HEAD
+cannot be the demo: the fixes are ancestors of HEAD, so the charter there already records the defects as
+closed. The audit exists now, so the pair can be run; it has not been, and that run is Proctor's.
+
+| revision | what the audit must report there | why that revision |
+|---|---|---|
+| `bd63920` | the MCP-arming defect as divergence | immediately before its fix, `590c58e` (D7) |
+| `ce69cea` | the idle-clamp defect — a guard that could stop a healthy pod | immediately before `d5fdaea` |
+| `c512125` | the volume-transport defect | immediately before `da51005` |
+| `310f449` | only what is still open — the cap that exists only while `watch` runs, and the absent publishing lock — and **not** the three closed defects as open | rentguard's HEAD when D7 was written |
+
+All seven revisions named in the table exist in `rentguard` and are ancestors of its current HEAD
+`eef6bdb` (measured 2026-10-14). The demonstration's second half — the clean-context review — is built
+(`keel review`, `review-prompt.md` ratified as a hashed gate row, D15) and **has never been started on
+either repository**: no `kind: "review"` line exists in any record yet.
+
+### The five by-hand defects, all six names
+
+rentguard's by-hand audit found five defects, which are **six names** because R4 and W4 are one finding in
+two stages — the guard was unproven, and tested, it was wrong (`PROJECT-STATE.md` D11 F6, lines 235–244):
+
+| # | the finding | names |
+|---|---|---|
+| 1 | the MCP surface could not arm the guard | R2 |
+| 2 | the guard was unproven and, tested, wrong | **R4 and W4** |
+| 3 | the cap exists only while `watch` runs | W1 (R9) |
+| 4 | publishing has no lock | W2 (R8) |
+| 5 | the volume path is unexercised | W3 |
+
+Both earlier listings of "the five" had each dropped one name — one lost W2, the other lost R4 — which is
+why both read as fine. The catalogue now prints all six.
 
 ## Install and run
 
 **Nothing is installable yet, and I did not install it here.** `keel/pyproject.toml` (795 bytes,
 28 lines) declares the entry point `keel = "keel.cli:main"`, `requires-python = ">=3.10"` and no
-dependencies — but installing it would mutate the shared interpreter environment other Bots are using,
-so this page reports only the zero-install form, which I did run on Python 3.12.6:
+dependencies — but installing it would mutate the shared interpreter environment other bots are using, so
+this page reports only the zero-install form, which I did run on Python 3.12.6:
 
 ```
 cd keel
-python -m keel --help                             # exit 0 — one command today: charter <path>
-python -m keel charter CHARTER.md                 # exit 0 — 6/6 sections, 9 requirements, 0 wishes
-python -m keel charter ../rentguard/CHARTER.md    # exit 0 — see the demo above
-python -m keel audit ../rentguard                 # exit 1 — keel: unknown command: audit
+python -m keel --help                          # exit 0
+python -m keel charter CHARTER.md               # exit 0 — 6/6 sections, 9 requirements, 1 gate, anchor 117ac7c
+python -m keel charter ../rentguard/CHARTER.md  # exit 1 — 5/6 sections: a charter that parses with findings
+python -m keel audit ../rentguard --record /tmp/runs.jsonl   # exit 1 — see the demo
+python -m keel gate hash keel/cli.py            # exit 0 — sha256:d00cdcd7… over git-normalized bytes (D9)
+python -m keel review --help                    # exit 0 — the clean-context runner
+python -m keel hook install <repo>              # installs the pre-commit hook (R5); `hook status` is read-only
 ```
 
-The tests, as they stand at `b81c374` — red by design, because `keel audit` does not exist yet:
+`keel review <repo> --reviewer "<command>"` starts a reviewer that keel never sees a shell for: it is run
+with the export as its working directory and the ratified prompt on stdin, and it returns exactly one JSON
+object classifying what it sees as missing / unrequested / shifted (D15, `PROJECT-STATE.md` lines
+396–451). A stub command is a complete test double, so none of this needs a model.
+
+The tests, at this revision, from a `git archive` (no `.git`, so nothing of the working directory leaks
+in):
 
 ```
-python -m pytest -q -p no:cacheprovider tests/test_audit_cli.py tests/test_charter_silent_wish.py tests/test_cli_encoding.py
-# 13 failed, 16 passed in 9.81s
+python -m pytest -q
+# 93 passed, 6 skipped in 270.59s — the 6 skips are the R5 hook tests:
+# git's own `sh` cannot start under this sandbox (D19, PROJECT-STATE.md lines 498–499)
 ```
 
-Name the modules: `python -m pytest` from the repository root stops with 2 collection errors (exit 2) on
-two unreadable `pytest-cache-files-*` directories that nothing ignores — finding F4 in
-`docs/ARTEFACT-MAP.md`.
+Name the test paths if you run in a dirty worktree: `python -m pytest` from the repository root stops
+with 2 collection errors on two unreadable `pytest-cache-files-*` directories — finding F4 in
+`docs/ARTEFACT-MAP.md`, where it is recorded as measured, then unreproduced, then measured again.
 
-The surfaces are meant to arrive in the charter's order (R5, `keel/CHARTER.md` line 92): **git hook
-first**, then the **CLI**, then an **MCP call**, then a **harness hook adapter** last. One ruling matters
-to anyone reading that order: D2 (`keel/PROJECT-STATE.md` lines 75–82) accepted that every local surface
-can be silenced by the agent it constrains (`--no-verify`, `disableAllHooks`), so hooks are *reach*, not
-enforcement — and the guarantee moves into the audit: ratified hashes anchored to a commit (D1) plus an
-append-only run record in which a bypass appears as a **missing** line.
+The surfaces arrive in the charter's order (R5, line 97): **git hook first** (installer landed),
+**CLI** (five commands), **review runner**, then MCP and a harness adapter. One ruling matters to anyone
+reading that order: D2 accepted that every local surface can be silenced by the agent it constrains
+(`--no-verify`, `disableAllHooks`), so hooks are *reach*, not enforcement — the guarantee moves into the
+audit: hashes anchored to a commit, plus an append-only record in which a bypass appears as a **missing**
+line.
 
 ## What it deliberately does not do
 
-- **No daemon and no server.** A bounded CLI run and an MCP call that returns; no long-lived process, no
-  listening socket (R6, `keel/CHARTER.md` line 93).
+- **No daemon and no server.** A bounded CLI run that returns; no long-lived process, no listening socket
+  (R6, `keel/CHARTER.md` line 98).
 - **No harness of its own.** A git hook, a CLI and an optional adapter — not another agent runtime
-  (lines 47–49).
+  (lines 52–54).
 - **Not a spec-authoring suite.** Spec Kit makes *living* specs first-class, which is the opposite of
   freezing an original (`external:ECC-ASSESSMENT.md` line 73).
 - **Not a memory or learning layer.** ECC's memory accumulates and evolves — instincts become skills,
   memories get promoted — and nothing in it freezes an original or audits against one (lines 69–72).
   keel is the anchor, not the memory.
-- **Not a job runner.** It does not start, schedule or supervise work (line 49).
+- **Not a job runner.** It does not start, schedule or supervise work (line 54).
 
 ## Status of every number on this page
 
 | claim | source | reproducible here? |
 |---|---|---|
-| keel `b81c374`, 9 commits, branch `main`, no remote configured | `git rev-parse`, `git rev-list --count`, `git remote -v`, 2026-10-14 | yes — a commit |
-| the frozen-original block is byte-identical at `ae375c6`, `b81c374` and the worktree (530 bytes, sha256 `093a271b4c150594…`) | `git show` + sha256, 2026-10-14 | yes — two commits and a worktree |
-| the charter file itself grew from 99 to 127 lines after the freeze | `git show ae375c6:CHARTER.md` vs the worktree | yes |
-| parser on `keel/CHARTER.md`: 6/6 sections, 9 requirements, 0 wishes, 0 asserted enforcement | `python -m keel charter CHARTER.md` at `b81c374` | yes, at this commit |
-| parser on `rentguard/CHARTER.md`: 5/6 sections (`problems` missing), 10 requirements, 3 wishes (R2, R4, R8), 2 asserted (R5, R9) | same command; the input is byte-identical to the `a72e7c4` snapshot (`046fa7d91a3a…`) | yes, at this commit |
-| `keel audit` does not exist: exit 1, unknown command | measured at `b81c374` | yes |
-| the suite: 13 failed / 16 passed when the three modules are named; collection from the root fails (2 errors, exit 2) | measured at `b81c374`, `-p no:cacheprovider` | yes, at this commit |
-| rentguard `ad2e880`, 75 commits, worktree modified (1 file) | `git -C rentguard log`, `git status`, 2026-10-14 | yes |
-| the seven demo revisions exist and are ancestors of rentguard's HEAD | `git cat-file -t`, `git merge-base --is-ancestor` | yes |
+| keel `fa6fb87`, 40 commits, `main`, no remote configured | `git rev-parse`, `git rev-list --count`, `git remote -v`, 2026-10-14 | yes — a commit |
+| the frozen-original block is 553 bytes, sha256 `376f11a4…`, and byte-identical at `ae375c6` and `117ac7c` | `keel charter CHARTER.md`; `git show` of both commits | yes |
+| the anchor moved once, at the user's word, to `117ac7c` | `keel/CHARTER.md` line 26; D17, `PROJECT-STATE.md` lines 453–473 | yes |
+| `keel audit .` → exit 1: one `[vacuity]` finding naming the single prompt row, and `REVIEW … missing` | measured at `fa6fb87` | yes, at this commit |
+| `keel audit ../rentguard` → exit 1: missing section, vacuity, not auditable, review missing | measured at `fa6fb87` | yes |
+| `keel charter ../rentguard/CHARTER.md` → exit 1 (5/6 sections) | measured at `fa6fb87` | yes |
+| `keel gate hash keel/cli.py` = `sha256:d00cdcd7…` | measured at `fa6fb87` | yes |
+| the suite: 93 passed, 6 skipped from a `git archive` of `fa6fb87` | measured 2026-10-14 | yes, at this commit |
+| a dirty worktree cannot collect from its root (2 errors, exit 2); the same revision is green in a clean extraction | measured at `b81c374`, `1b65a53`, `fa6fb87` | yes — and see F4 |
+| rentguard `eef6bdb`, 82 commits, clean; its `CHARTER.md` byte-identical to keel's `a72e7c4` snapshot (`046fa7d91a3a…`) | `git -C rentguard log`, `status`; both files hashed | yes |
 | rentguard: 189 passed / 0 failed, 45 subtests, coverage floor 90.2% | `rentguard/CHARTER.md` lines 30 and 44, pinned at `74b9f7a` | **no — quoted, not re-measured** |
-| the two files in Folio's lane (`README.md`, `docs/`) are untracked | `git status --porcelain` | yes |
+| the seven demo revisions exist and are ancestors of rentguard's HEAD | `git cat-file -t`, `git merge-base --is-ancestor` | yes |
 
-Two caveats a stranger should carry away. The by-hand defects are named **two different ways** in two
-files — `keel/PROJECT-STATE.md` line 43 lists R2, R4, W1, W3, W4, while the R7 artefact's table lists
-R2, W4, W1, W2, W3 — so "the five" needs a ruling before an audit can claim to reproduce them (finding
-F6). And the map behind every row above, with every missing artefact named, is
+The map behind every row, with every missing artefact named and every finding dated, is
 [`docs/ARTEFACT-MAP.md`](docs/ARTEFACT-MAP.md).

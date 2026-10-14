@@ -114,10 +114,10 @@ def _anchored_prompt(
         return {
             "exit": 1,
             "error": (
-                f"the working charter's prompt row is not the ratified one (working: "
-                f"{working_row.path + ' ' + working_row.hash if working_row else '(none)'}; ratified: "
-                f"{ratified_row.path} {ratified_row.hash}); a working-tree edit does not re-ratify an "
-                "instruction (D1, D12, D15)"
+                "rule 2 of the prompt check: the working charter's prompt row is not the ratified one "
+                f"(working: {working_row.path + ' ' + working_row.hash if working_row else '(none)'}; "
+                f"ratified: {ratified_row.path} {ratified_row.hash}); a working-tree edit of the table "
+                "does not re-ratify an instruction (D1, D12, D15)"
             ),
         }
     anchor = working.ratified_at or ""
@@ -125,32 +125,28 @@ def _anchored_prompt(
     if blob is None:
         return {
             "exit": 1,
-            "error": f"the prompt {ratified_row.path} does not exist at the anchor {anchor}",
+            "error": (
+                "rule 2 of the prompt check: the prompt "
+                f"{ratified_row.path} does not exist at the anchor {anchor}"
+            ),
         }
     digest = "sha256:" + hashlib.sha256(blob).hexdigest()
     if digest != ratified_row.hash:
         return {
             "exit": 1,
             "error": (
-                f"the prompt's blob at {anchor} hashes {digest}, but the ratified row records "
-                f"{ratified_row.hash}; the row and the artefact disagree (fix the row at the anchor)"
+                "rule 2 of the prompt check: the prompt's blob at "
+                f"{anchor} hashes {digest}, but the ratified row records {ratified_row.hash}; the row "
+                "and the artefact at the anchor disagree (fix the row at the anchor)"
             ),
         }
-    try:
-        current, _ = normalize.content_hash(owner_repo, ratified_row.path)
-    except FileNotFoundError:
-        return {"exit": 1, "error": f"the prompt {ratified_row.path} is missing from the working tree"}
-    except normalize.NormalizationError as exc:
-        return {"exit": 1, "error": f"the prompt cannot be hashed: {exc}"}
-    if current != ratified_row.hash:
-        return {
-            "exit": 1,
-            "error": (
-                f"the prompt {ratified_row.path} has changed since ratification "
-                f"({ratified_row.hash} -> {current}); keel does not review against a weakened "
-                "instruction (R2, D15)"
-            ),
-        }
+    # Deliberately **not** checked here: whether the working-tree *file* still hashes to the ratified
+    # row. The instruction handed over is the anchored blob, so a worktree edit cannot weaken it, and
+    # the audit already reports that drift as `[gate]`. Gilbert's split: rule 1 is "no ratified row
+    # anywhere plus --prompt", which runs and is recorded `prompt_ratified: false`; rule 2 is "a
+    # ratified row exists and the artefact at the anchor disagrees", which refuses. Checking the
+    # worktree file here made a fixture's checkout-configured line endings look like a weakened
+    # instruction and blocked the manifest red behind a refusal.
     return {
         "text": blob.decode("utf-8", errors="replace"),
         "path": ratified_row.path,

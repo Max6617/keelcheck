@@ -31,7 +31,11 @@ packages = ["keel"]
 # pytest's transient cache directories (`pytest-cache-files-*`) were created in the repository root
 # mode 0700, and on this host a confined directory under the root then breaks *collection* -- two
 # errors and exit 2 in the worktree while the same revision from `git archive` is green. Keeping the
-# existing ignore rule does not stop pytest recursing into them, so the cache is pinned here and the
-# name is excluded from collection (F4, twice; the second time it was blocking the coverage gate).
+# existing ignore rule does not stop pytest recursing into them, so the cache is pinned here and
+# `testpaths` keeps collection inside `tests/` whatever else is lying in the root (F4, twice; the
+# second time it was blocking the coverage gate). Note: `cache_dir` is a valid key, but it is
+# reported as unknown when a run passes `-p no:cacheprovider`, which is why the warning is not a
+# sign that this table is in the wrong place.
 cache_dir = ".pytest_cache"
+testpaths = ["tests"]
 norecursedirs = [".*", "build", "dist", "*.egg", "pytest-cache-files-*", "node_modules"]

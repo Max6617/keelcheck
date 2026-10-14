@@ -553,17 +553,21 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
             charter.unknown_sections.append(heading)
 
     # Requirements table: the first table after the requirements heading.
-    if "requirements" in charter.sections:
-        start = charter.sections["requirements"]
-        for n in range(start, len(lines)):
-            if _section_of(lines[n]) and n > start:
-                break
-            if lines[n].strip().startswith("|"):
-                charter.requirements, _ = _parse_requirements_table(lines, n, path)
-                break
-        else:
-            where = f"{path}" if path else "input"
-            raise CharterFormatError(f"no requirements table found after the requirements heading in {where}")
+    where = f"{path}" if path else "input"
+    if "requirements" not in charter.sections:
+        raise CharterFormatError(
+            f"no requirements section in {where}: R1's format names one, and a file without it "
+            "is not a charter, however much prose it carries"
+        )
+    start = charter.sections["requirements"]
+    for n in range(start, len(lines)):
+        if _section_of(lines[n]) and n > start:
+            break
+        if lines[n].strip().startswith("|"):
+            charter.requirements, _ = _parse_requirements_table(lines, n, path)
+            break
+    else:
+        raise CharterFormatError(f"no requirements table found after the requirements heading in {where}")
 
     # Frozen original: the whole section under its heading, heading included (D11 F9).
     for n, line in enumerate(lines):
@@ -723,7 +727,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.fail_on_wish and (charter.wishes or charter.asserted_enforcement):
         return 2
-    return 0
+    # D12: one meaning per number. A charter that parses and has findings -- a missing required
+    # section -- is exit 1; the file-level failures above are exit 2. Printing MISSING SECTIONS
+    # and then exiting 0 would be the command declining to act on what it just reported.
+    return 1 if charter.missing_sections else 0
 
 
 if __name__ == "__main__":  # pragma: no cover

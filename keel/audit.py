@@ -94,14 +94,24 @@ class Audit:
         self.findings.append(Finding(kind, subject, message))
 
     def compute_exit(self) -> int:
+        """Divergence classes drive the code; wishes never do (D12).
+
+        A charter with no ``Ratified at:`` line is exit 2, never 0: the audit could not establish
+        the reference at all, and vacuity -- which is a *consequence* of having no reference --
+        must not turn that into exit 1. A content divergence (a missing section, a moved block, a
+        gate whose hash or table changed) still wins, because that is a finding about the charter.
+        """
         if self.fatal:
             return EXIT_CANNOT_RUN
         if self.fail_on_wish and self.charter is not None and self.charter.wishes:
             return EXIT_CANNOT_RUN
-        if self.findings:
+        blocking = [f for f in self.findings if f.kind != "vacuity"]
+        if blocking:
             return EXIT_DIVERGENCE
         if self.cannot_run:
             return EXIT_CANNOT_RUN
+        if self.findings:
+            return EXIT_DIVERGENCE
         return EXIT_CLEAN
 
     def render(self) -> str:
@@ -376,11 +386,12 @@ def _anchor_moved(audit: Audit) -> None:
 def _resolves(audit: Audit, path: str) -> bool:
     """True when ``path`` names something that exists in the audited repository (D13).
 
-    Checked at the audited revision and in the working tree. The audit's own outputs count as
-    built wherever ``--record`` puts them, and at their default location under the repo: R4's
-    cell names ``.keel/review-context.json``, a file this tool writes, and D13 is about a
-    *borrowed* mechanism -- ``tools/coverage.py`` from another repository -- not about the
-    tool's own output. The carve-out is exactly two paths, not a prefix.
+    Checked at the audited revision and in the working tree, plus the two files **this run**
+    writes: R4's cell names ``.keel/review-context.json``, which the audit produces, and D13
+    is about a *borrowed* mechanism -- ``tools/coverage.py`` from another repository -- not
+    about the tool's own output. The exception is the run's own two paths where the run
+    actually put them, not their default names: with ``--record`` elsewhere the named file is
+    not in the repository, and calling that built is the hole Proctor measured.
     """
     if (audit.repo / path).exists():
         return True
@@ -388,13 +399,14 @@ def _resolves(audit: Audit, path: str) -> bool:
         audit.repo, "cat-file", "-e", f"{audit.commit}:{path}", check=False
     ).returncode == 0:
         return True
-    produced = (audit.record_path, audit.review_context_path)
-    produced += record.record_paths(audit.repo)
     try:
         target = (audit.repo / path).resolve()
     except OSError:  # pragma: no cover - unreadable path components
         return False
-    return any(written.resolve() == target for written in produced)
+    return any(
+        written.resolve() == target
+        for written in (audit.record_path, audit.review_context_path)
+    )
 
 
 def _check_enforced_by_paths(audit: Audit) -> None:

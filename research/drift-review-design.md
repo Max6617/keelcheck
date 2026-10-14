@@ -215,6 +215,20 @@ Two of these (1 and 7) are the same property from both ends — the reviewer's c
 runner's export must both be confined to one directory — and they are the reason the export root,
 not the repository root, is the reference point for everything the reviewer says.
 
+Proctor's two tests for the moment `keel review` exists, written down here so the implementation
+cannot miss them:
+
+9. **The staleness round trip is computed by one function.** `keel review` records a manifest hash;
+   `keel audit --require-review` recomputes it. If the two sides build the manifest on separate
+   code paths — the deny-list, the cap, the symlink policy — any difference makes every review
+   permanently stale: a false red that re-running cannot clear. One function, called from both
+   sides, tested by review-then-audit with nothing touched (not stale) and a one-byte change
+   (stale, naming both hashes).
+10. **Staleness is keyed to the state's content, not to the path taken to it.** A state that
+   changes away and back hashes the same, so a review of that older, identical state counts as
+   fresh. Deliberate — the reviewer judges the state — and recorded as a caveat rather than
+   presented as a property of freshness.
+
 ## Open questions for Gilbert (rulings, not guesses)
 
 1. **Is the review prompt a hashed artefact like a gate?** If its hash is in the charter's living state

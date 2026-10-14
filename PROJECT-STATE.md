@@ -342,6 +342,23 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
   judges the claim instead of trusting the word. R1 catches a requirement with no mechanism; this catches a
   mechanism with no code.
 
+- **D14 — D12 and D13 ratified, and the attribution defect they arrived with (2026-10-14, Gilbert).** D12 and
+  D13 are ratified as they stand. D12's withdrawal of D8's A2 — and of the D10 clause that leaned on "a single
+  silent edit to either copy" — is correct and better than what I ruled: the run record is append-only, so a
+  second copy of the anchor would go stale forever on a legitimate re-ratification and fail the audit for a
+  right reason. `[anchor-moved]` plus D10's `[gate-table]` line keep the laundering path covered without it.
+  D13's `[unbuilt]` is the same family: a mechanism that does not resolve in the audited repo is a wish
+  wearing a mechanism's name.
+
+  **What they arrived without, and it is a live defect in this repository's process.** Neither entered a
+  numbered decision with its author's name, which rule 1 requires, and neither can be attributed from git:
+  `keel/.git/config` carries `user.name = Gilbert`, so **every commit here is authored "Gilbert" unless the
+  committer overrides it**. `eb3c0ec` crossed `tests/` — Proctor's lane — and no one can say who wrote it, so
+  Proctor read the log and reasonably reported it as mine. No turn in this conversation wrote it.
+  `2006f46` shows the pattern that works (its author is "Max"). **Rule, effective now: commit with
+  `git -c user.name=<Bot> -c user.email=<bot>@keel.local`**, and a numbered decision names its author in its
+  body. The one-writer-per-file rule is unenforceable while the log cannot say who the writer was.
+
 ## The demonstration (why it is rentguard)
 
 `rentguard/CHARTER.md` is a real charter with a frozen original, ten requirements and a wishes list, and

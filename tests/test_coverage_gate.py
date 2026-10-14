@@ -21,6 +21,7 @@ Both the blind case and the tracer case therefore pass an explicit small target 
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -29,6 +30,7 @@ import _support
 
 GATE = _support.REPO / "tools" / "coverage.py"
 BLIND_TARGET = "tests/_artefacts/blind_target.py"
+CHILD_TARGET = "tests/_artefacts/child_trace_target.py"
 
 
 def _gate(*args: str) -> subprocess.CompletedProcess:
@@ -61,3 +63,34 @@ def test_a_target_that_reaches_no_keel_code_refuses_instead_of_reporting_zero():
         f"the refusal does not say it is a measurement failure:\n{out}")
     assert "reached no module" in out.lower(), (
         f"the refusal does not say the tracer reached nothing:\n{out}")
+
+
+def test_the_tracer_reaches_the_cli_modules_through_child_processes():
+    """The red for the child-process tracer, and the reason the gate exists.
+
+    The suite drives keel from outside (D3), so a tracer in the pytest process sees nothing: measured
+    at `866912b`, `audit.py`, `gate.py`, `review.py` and `export.py` all reported 0.0% while 101 tests
+    passed against them — 15.3% total, a measurement failure dressed as a score. The target here
+    imports nothing; it drives `keel audit` in a subprocess. If the tracer follows children,
+    `keel/audit.py` cannot be 0.0%.
+
+    Asserted on `--json` (D19 shape, agreed with Mason and Gilbert), never on the printed table: total,
+    per-file percentages keyed by repo-relative path, the decided exit code, and the provenance line —
+    full sha plus `worktree clean|dirty` — so a machine consumer gets what the human line has.
+    """
+    proc = _gate("--min", "0.0", "--json", CHILD_TARGET)
+
+    assert proc.stdout.strip().startswith("{"), (
+        "the gate has no `--json` yet, so the tracer cannot be asserted on the agreed shape "
+        f"(D19):\n{_support.combined(proc)[:400]}")
+
+    doc = json.loads(proc.stdout)
+    files = doc["files"]
+
+    assert files.get("keel/audit.py", 0.0) > 0.0, (
+        f"a target that drives the audit in a child process still measures keel/audit.py at 0.0%:\n"
+        f"{json.dumps(files, indent=2)[:600]}")
+    assert doc["exit"] == proc.returncode, "the document's exit code is not the one the gate returned"
+    provenance = doc.get("provenance") or {}
+    assert provenance.get("sha") and provenance.get("worktree") in ("clean", "dirty"), (
+        f"the document carries no provenance line (D19): {provenance!r}")

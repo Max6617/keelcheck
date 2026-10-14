@@ -165,7 +165,10 @@ def test_editing_the_recommendation_moves_the_frozen_original(scratch):
     _support.write(scratch / "CHARTER.md", source)
     sha = _support.init_repo(scratch)
     text = (scratch / "CHARTER.md").read_text(encoding="utf-8")
-    text = re.sub(r"`Ratified at:` `[0-9a-f]{7,40}`", f"`Ratified at:` `{sha}`", text, count=1)
+    # D12: the canonical pointer is a plain `Ratified at: <sha>`; keel's own charter still writes the
+    # sha in backticks, so match the label and take the sha wherever it sits, not one spelling.
+    text, replaced = re.subn(r"(Ratified at:?\s*`?)([0-9a-f]{7,40})", rf"\g<1>{sha}", text, count=1)
+    assert replaced == 1, "the copy has no `Ratified at:` line to repoint"
     assert sha in text, "the copy still names another repository's ratification commit"
     _support.write(scratch / "CHARTER.md", text)
     _support.commit_all(scratch, "name this repository's ratification commit")

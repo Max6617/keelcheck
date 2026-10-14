@@ -14,24 +14,30 @@ python -m keel audit <path-to-repo>
 | exit | meaning |
 |---|---|
 | 0 | the audit ran; no divergence, **and at least one ratified gate was checked**. Wishes may exist and are reported; they do not change the exit code |
-| 1 | divergence — a ratified gate's file hash differs from the reference at the ratification commit, a named gate has **no run record**, a required charter section is missing, the ratified/recorded pointers disagree, or **zero ratified gates were found (vacuity, D8)** |
-| 2 | the audit could not run honestly (charter unparseable, ratification commit unreadable or unnamed), or `--fail-on-wish` was given and wishes exist |
+| 1 | divergence — a ratified gate's file hash differs from the reference at the ratification commit, a named gate has **no run record**, a required charter section is missing, the anchor **moved** since the last record entry (`[anchor-moved]`, D12), an `enforced-by` names a repo path that does not resolve (`[unbuilt]`, D13), or **zero ratified gates were found (vacuity, D8)** |
+| 2 | the audit could not run honestly (charter unparseable or unnamed, no `Ratified at:` line, no git), or `--fail-on-wish` was given and wishes exist |
 
 D8 corrected D3 in two places the tests had already been written against, so both were changed in the
 same commit as this note: **vacuity is a divergence, not a clean run**, and **the report prints all
 four columns** — a requirement guarded only by a `checked-by` sentence is a human check, never silence.
+D12 and D13 then added three classes the tests must not treat as clean.
 
 Records: `.keel/runs.jsonl` (append-only, one JSON object per run, written even when the run fails)
 and `.keel/review-context.json` (the runner's inputs for the clean-context reviewer, R4).
 
-## The ruled gate shape (D8 ruled A1–A3; they are no longer assumptions)
+## The ruled gate shape (D8 ruled A1–A3; A2 superseded by D12)
 
 - **A1** a gate is declared as `| gate | path | hash |` under a `## Gates` heading; the path is
   repo-relative; the hash is `sha256:<64 hex>` over the script's git-normalized bytes.
-- **A2** the ratification commit is named as ``Ratified at: `<sha>` `` in the charter's living state
-  **and** as the first line of `.keel/runs.jsonl`; the audit exits 1 when they disagree.
+- **A2 (D12)** the anchor lives in exactly **one** place: the charter's `Ratified at: <sha>` line, in
+  the canonical plain spelling (other spellings still parse and are reported `[format]`). A charter
+  with no such line is exit 2, never 0. D8's second copy in the record's header was withdrawn: the
+  record is append-only, so a legitimate re-ratification would leave that copy stale forever. The
+  record keeps the anchor **used on each run**, and when it differs from the previous entry the audit
+  prints `[anchor-moved]`, names both SHAs and exits 1.
 - **A3** the record paths above, tracked by git; `--record <path>` overrides the location (needed for
-  the demonstration, because D4 keeps `rentguard/` read-only).
+  the demonstration, because D4 keeps `rentguard/` read-only). `keel audit` accepts a directory and
+  writes `<dir>/runs.jsonl`; `keel gate run` does not yet — that is red in `test_gate_cli.py`.
 
 Only A1–A3's *shape* lives in `_support.ASSUMPTIONS`; the values above are ruled. One edit to
 `_support.py` still moves every test if a shape changes again.

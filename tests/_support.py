@@ -77,7 +77,9 @@ def charter_text(*, frozen: str = FROZEN_SENTINEL, requirements=(), gates=(),
         gate_rows = "\n".join("| {} | {} | {} |".format(*g) for g in gates)
         parts += ["## Gates", "", "| gate | path | hash |", "|---|---|---|", gate_rows, ""]
     if ratified is not None:
-        parts += ["## Ratification", "", f"- `Ratified at:` `{ratified}`", ""]
+        # D12: one canonical spelling, a plain line. Other spellings still parse, so a fixture that
+        # used one would keep working and quietly stop testing the format.
+        parts += ["## Ratification", "", f"Ratified at: {ratified}", ""]
     text = "\n".join(parts) + "\n"
     for section in omit_sections:
         text = _drop_section(text, section)

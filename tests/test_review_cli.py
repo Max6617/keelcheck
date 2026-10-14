@@ -651,6 +651,31 @@ def test_a_path_a_gate_row_names_is_never_silently_absent_from_the_export(scratc
         f"files={manifest.get('files')} skipped={manifest.get('skipped')}")
 
 
+def test_a_review_of_an_unratified_charter_records_a_null_anchor(scratch):
+    """Gilbert's ruling for R7 (option b, D4 untouched): D12 forbids an unanchored **audit**, but an
+    unanchored **review** runs and records `ratified: null` — the prompt's own ratification is
+    independent of the audited charter's anchor, and freshness is the manifest, not the anchor.
+
+    Measured at `bcf4bf5`: `keel review ../rentguard` exits 2 in 0 s, so the demonstration's own
+    frozen input cannot be reviewed at all. The faithful copy was the interim evidence; this is the
+    fix.
+    """
+    _support.write(scratch / "tracked.txt", "hello\n")
+    _support.write_charter(scratch, requirements=REQUIREMENTS)  # no `Ratified at:` line, no rows
+    _support.init_repo(scratch)
+    outside = _support.write(scratch.parent / f"{scratch.name}-instruction.md", "instruction\n")
+
+    proc = _review(scratch, _stub(scratch, "clean", CLEAN), "--prompt", str(outside))
+    lines = _review_lines(scratch)
+
+    assert proc.returncode == 0, (
+        f"a review of a charter that names no anchor did not run:\n{_support.combined(proc)}")
+    assert lines, "no review line was written"
+    assert lines[-1]["ratified"] is None, (
+        f"the unanchored review claims an anchor: {lines[-1]['ratified']!r}")
+    assert lines[-1]["prompt_ratified"] is False, "an unlocked --prompt is not marked unratified"
+
+
 def test_the_record_does_not_claim_a_history_free_reviewer(scratch):
     """Sift's finding 5 and Gilbert's ruling for the demonstration: §1 promised `none | git | unknown`
     and the field was a literal `none`.

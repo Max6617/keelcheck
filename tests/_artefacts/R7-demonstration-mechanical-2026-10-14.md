@@ -137,3 +137,17 @@ demonstration cannot say "the audit reproduces the by-hand audit". It can say wh
 the mechanical half names the charter's own gaps (a missing section, no ratified gate, three wishes)
 and the drift review is what must name the five, or the shortfall is the finding. No sentence here may
 print five defects as mechanically found.
+## R7 as written is NOT MET (recorded 2026-10-14, Gilbert's ruling 2)
+
+The requirement claims the audit reproduces the by-hand defects with each attributed to the half that
+finds it. Measured: **neither half reproduces the five.** The mechanical half carries rentguard's
+charter gaps (problems, zero ratified gates, three wishes) and none of the five as divergence; the
+drift review, run once on a faithful copy of 310f449, named at most one cleanly (R2's row, as a
+*different* MCP defect — un's command.split() mangling) and one partly (W4 as an unproven gap
+rather than a wrong guard), with two reachable but unnamed (publishing under unreviewed, the volume
+deletion as *unrequested*) and three unnamed. **Not met as written.** The twelve extra findings the
+review produced are routed to Scribe and to Gilbert, not softened here.
+
+Also unrun at the time of writing: D7's **pre-fix** revisions (d63920, ce69cea, c512125) — the
+five were still present there, which is where a clean-context reviewer can see the defect as the
+state. One call each, queued.

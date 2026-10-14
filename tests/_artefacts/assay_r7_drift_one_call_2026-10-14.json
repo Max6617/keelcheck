@@ -1,0 +1,307 @@
+# R7 drift half - one Claude Code call, 2026-10-14
+# Reviewer: claude -p via tests/_artefacts/claude-reviewer.py (wrapped for keel's one-JSON-object contract)
+# Input: a FAITHFUL COPY of rentguard@310f449 (git archive + tar), anchored to the copy's own commit
+#   because rentguard's charter names no Ratified at: line and keel review refuses an unanchored repo (exit 2).
+# Prompt: --prompt-repo keel, recorded prompt_ratified=true, ratified_in=keel@117ac7c
+# Result: exit 1, verdict divergence, items missing=3 unrequested=3 shifted=8 verified=14 unverified=0, coverage 71/71
+# Cost: one call on the user's own Claude Code session, wall 241s.
+
+{
+  "exit": 1,
+  "line": {
+    "kind": "review",
+    "at": "2026-10-14T21:20:28Z",
+    "commit": "346bf42d167c5de23ceea9226029ff132384a511",
+    "ratified": "08dd3c40efafba69a21aa5fb7b80fb5003d44739",
+    "manifest": "sha256:d118ec7a05effb2c3bd22ac72728c449e87e9e457a55a2c0c394e88da8cee208",
+    "context": "sha256:b01d6cc03ee130c6dfe84032f8ec0c5c4c8d3e9f1d955c1144b94b9b2695e6e5",
+    "prompt": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "prompt_path": "review-prompt.md",
+    "prompt_ratified": true,
+    "ratified_in": "keel@117ac7c",
+    "working_copy_hash": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "working_copy_differs": false,
+    "command": [
+      "C:\\Python312\\python.exe",
+      "C:\\Users\\besen\\.dsh\\bot\\workspace\\keel\\tests\\_artefacts\\claude-reviewer.py"
+    ],
+    "exit": 0,
+    "result": "pass",
+    "history_reachable": "none",
+    "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-d118ec7a05ef-13400\\tree",
+    "files": 71,
+    "bytes": 724525,
+    "truncated": false,
+    "warnings": [],
+    "verdict": "divergence",
+    "items": {
+      "missing": 3,
+      "unrequested": 3,
+      "shifted": 8,
+      "verified": 14,
+      "unverified": 0
+    },
+    "unreviewed": [
+      "Whether the single publication-approval question was actually sent to the user: the tree contains no artefact of it.",
+      "Whether anything was pushed, tagged or published: there is no git metadata in this directory, so the 'no remote configured' claim cannot be checked.",
+      "The test suite and tools/coverage.py were not run; every pass count and coverage figure is taken from the docs as stated.",
+      "The 45 files under tests/ were read in full by a read-only subagent confined to this directory and summarised to me; I read only tests/test_mcp_run_output.py and tests/_artefacts/assay_full_run_2026-10-14.txt myself.",
+      "Note: one Read call targeted ../__init__.py, a path typo just outside this directory; it was denied and nothing outside the directory was read."
+    ],
+    "coverage": {
+      "files_seen": 71,
+      "files_total": 71
+    },
+    "claims": [
+      {
+        "class": "missing",
+        "subject": "R4: the guard (watch and the cap stop) proven end to end on a real rented GPU",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The original asks for end-to-end proof on a real rented GPU, but watch has never been armed on a billing pod (the checklist leaves R4 unchecked). So the tool's central promise, that a forgotten machine stops itself, has only been exercised against the fake provider.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "Record of the third real rental (the A4000→4090 fallback, $0.0094)",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "CHARTER.md R5 and PUBLISH-CHECKLIST.md cite three rentals totalling $0.0264 and name M2-REAL-RENTAL.md as the record, but that page documents only runs 1 and 2, so no file in the tree records the third rental.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Claimed extent of the real-GPU proof (\"twice, $0.017\" vs \"three rentals, $0.0264\")",
+        "evidence": "CHANGELOG.md",
+        "verified": true,
+        "why": "CHANGELOG.md, docs/quickstart.md and docs/VERIFICATION.md still say the paid path ran twice for $0.017, while CHARTER.md and docs/PUBLISH-CHECKLIST.md say three rentals for $0.0264, so the release documentation disagrees with itself about what was proven.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "\"within a small budget\": reported spend vs ledger spend",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "The proof is reported as $0.0264, but run 2 shows the ledger at $2.15 of a $5.00 cap (above M2's own 'under $2' budget). cli.py:251 and docs/KNOWN-FAILURES.md F-3 attribute about $2.14 of that to a stray A6000 rented during the work, so the budget figure leaves out real spend.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "CHARTER.md requirement states R3 and R10",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "The charter still records 189 tests at 74b9f7a and 90.2% coverage with an 89% floor ('94% still to come'). tools/coverage.py now enforces a 0.98 floor and PUBLISH-CHECKLIST.md reports 322 tests and 98.4%, so the one file meant for a human no longer describes the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "R10: 94% line-coverage target with a ratchet gate in CI",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "The frozen original asks only that the money-critical paths be hardened with tests; a project-wide 94% code-coverage standard enforced in .github/workflows/ci.yml appears nowhere in it.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "R10 '100% of the features' claim vs the feature-matrix test",
+        "evidence": "tests/test_feature_matrix.py",
+        "verified": true,
+        "why": "The ten-command test only checks that each name appears in --help, and no test calls the rentguard_doctor or rentguard_pull MCP tools, so '100% of features green (10 commands, 11 MCP tools)' claims more than the matrix checks.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "MCP rentguard_run command handling",
+        "evidence": "mcp_server.py",
+        "verified": true,
+        "why": "dispatch splits the command string on whitespace (command.split()), and cli._remote_command then shell-quotes each word separately. A compound or quoted command such as 'mkdir -p results; hostname > x' reaches the remote shell mangled, which brings back M2 defect 1 on the MCP surface.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Guard-heartbeat wording in the docs vs the code",
+        "evidence": "cli.py",
+        "verified": true,
+        "why": "docs/quickstart.md, docs/cap.md and docs/VERIFICATION.md quote 'NO HEARTBEAT — nothing is watching this instance' and 'the guard is probably dead'. cmd_status now prints 'NO GUARD — …' and 'probably dead (heartbeat N min old)', so the documented output is not what the tool prints.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Stale verification statements in the docs",
+        "evidence": "docs/cap.md",
+        "verified": true,
+        "why": "cap.md still says 74 tests at af1ba5a and that the --dry-run defect is covered by no test, and limitations.md calls mcp_server.py the weakest module. Both conflict with the fixes and with the 7febd07 measurements in PUBLISH-CHECKLIST.md.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "docs/KNOWN-FAILURES.md scope",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "The page says a defect leaves the file once a test covers it, yet it still lists the fixed F-1, F-4, F-5 and F-6, so it no longer means 'open defects'.",
+        "confidence": "low"
+      },
+      {
+        "class": "unrequested",
+        "subject": "tests/_artefacts/ (assay probe scripts and captured outputs)",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
+        "verified": true,
+        "why": "No test references these 13 reviewer probe scripts and UTF-16 console captures; they record superseded failing states and absolute C:\\Users\\besen paths, and are not part of a publishable release.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Deleting the account's network volume and terminating another project's pod",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "Deleting small-agents-vol and terminating small-agents-workbench went beyond the rentguard brief. The docs say it was done 'on the user's instruction', which suggests a question to the user beyond the single publication approval the original allows.",
+        "confidence": "low"
+      },
+      {
+        "class": "missing",
+        "subject": "Install and wheel-build evidence at the release pin",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The checklist leaves 'install evidence is older than this pin' unchecked: pip install and the wheel build were never verified at 7febd07, so 'publishable release' is not shown for the candidate revision.",
+        "confidence": "low"
+      }
+    ]
+  },
+  "review": {
+    "verdict": "divergence",
+    "items": [
+      {
+        "class": "missing",
+        "subject": "R4: the guard (watch and the cap stop) proven end to end on a real rented GPU",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The original asks for end-to-end proof on a real rented GPU, but watch has never been armed on a billing pod (the checklist leaves R4 unchecked). So the tool's central promise, that a forgotten machine stops itself, has only been exercised against the fake provider.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "Record of the third real rental (the A4000→4090 fallback, $0.0094)",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "CHARTER.md R5 and PUBLISH-CHECKLIST.md cite three rentals totalling $0.0264 and name M2-REAL-RENTAL.md as the record, but that page documents only runs 1 and 2, so no file in the tree records the third rental.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Claimed extent of the real-GPU proof (\"twice, $0.017\" vs \"three rentals, $0.0264\")",
+        "evidence": "CHANGELOG.md",
+        "verified": true,
+        "why": "CHANGELOG.md, docs/quickstart.md and docs/VERIFICATION.md still say the paid path ran twice for $0.017, while CHARTER.md and docs/PUBLISH-CHECKLIST.md say three rentals for $0.0264, so the release documentation disagrees with itself about what was proven.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "\"within a small budget\": reported spend vs ledger spend",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "The proof is reported as $0.0264, but run 2 shows the ledger at $2.15 of a $5.00 cap (above M2's own 'under $2' budget). cli.py:251 and docs/KNOWN-FAILURES.md F-3 attribute about $2.14 of that to a stray A6000 rented during the work, so the budget figure leaves out real spend.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "CHARTER.md requirement states R3 and R10",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "The charter still records 189 tests at 74b9f7a and 90.2% coverage with an 89% floor ('94% still to come'). tools/coverage.py now enforces a 0.98 floor and PUBLISH-CHECKLIST.md reports 322 tests and 98.4%, so the one file meant for a human no longer describes the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "R10: 94% line-coverage target with a ratchet gate in CI",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "The frozen original asks only that the money-critical paths be hardened with tests; a project-wide 94% code-coverage standard enforced in .github/workflows/ci.yml appears nowhere in it.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "R10 '100% of the features' claim vs the feature-matrix test",
+        "evidence": "tests/test_feature_matrix.py",
+        "verified": true,
+        "why": "The ten-command test only checks that each name appears in --help, and no test calls the rentguard_doctor or rentguard_pull MCP tools, so '100% of features green (10 commands, 11 MCP tools)' claims more than the matrix checks.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "MCP rentguard_run command handling",
+        "evidence": "mcp_server.py",
+        "verified": true,
+        "why": "dispatch splits the command string on whitespace (command.split()), and cli._remote_command then shell-quotes each word separately. A compound or quoted command such as 'mkdir -p results; hostname > x' reaches the remote shell mangled, which brings back M2 defect 1 on the MCP surface.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Guard-heartbeat wording in the docs vs the code",
+        "evidence": "cli.py",
+        "verified": true,
+        "why": "docs/quickstart.md, docs/cap.md and docs/VERIFICATION.md quote 'NO HEARTBEAT — nothing is watching this instance' and 'the guard is probably dead'. cmd_status now prints 'NO GUARD — …' and 'probably dead (heartbeat N min old)', so the documented output is not what the tool prints.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Stale verification statements in the docs",
+        "evidence": "docs/cap.md",
+        "verified": true,
+        "why": "cap.md still says 74 tests at af1ba5a and that the --dry-run defect is covered by no test, and limitations.md calls mcp_server.py the weakest module. Both conflict with the fixes and with the 7febd07 measurements in PUBLISH-CHECKLIST.md.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "docs/KNOWN-FAILURES.md scope",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "The page says a defect leaves the file once a test covers it, yet it still lists the fixed F-1, F-4, F-5 and F-6, so it no longer means 'open defects'.",
+        "confidence": "low"
+      },
+      {
+        "class": "unrequested",
+        "subject": "tests/_artefacts/ (assay probe scripts and captured outputs)",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
+        "verified": true,
+        "why": "No test references these 13 reviewer probe scripts and UTF-16 console captures; they record superseded failing states and absolute C:\\Users\\besen paths, and are not part of a publishable release.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Deleting the account's network volume and terminating another project's pod",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "Deleting small-agents-vol and terminating small-agents-workbench went beyond the rentguard brief. The docs say it was done 'on the user's instruction', which suggests a question to the user beyond the single publication approval the original allows.",
+        "confidence": "low"
+      },
+      {
+        "class": "missing",
+        "subject": "Install and wheel-build evidence at the release pin",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The checklist leaves 'install evidence is older than this pin' unchecked: pip install and the wheel build were never verified at 7febd07, so 'publishable release' is not shown for the candidate revision.",
+        "confidence": "low"
+      }
+    ],
+    "counts": {
+      "missing": 3,
+      "unrequested": 3,
+      "shifted": 8,
+      "verified": 14,
+      "unverified": 0
+    },
+    "unreviewed": [
+      "Whether the single publication-approval question was actually sent to the user: the tree contains no artefact of it.",
+      "Whether anything was pushed, tagged or published: there is no git metadata in this directory, so the 'no remote configured' claim cannot be checked.",
+      "The test suite and tools/coverage.py were not run; every pass count and coverage figure is taken from the docs as stated.",
+      "The 45 files under tests/ were read in full by a read-only subagent confined to this directory and summarised to me; I read only tests/test_mcp_run_output.py and tests/_artefacts/assay_full_run_2026-10-14.txt myself.",
+      "Note: one Read call targeted ../__init__.py, a path typo just outside this directory; it was denied and nothing outside the directory was read."
+    ],
+    "coverage": {
+      "files_seen": 71,
+      "files_total": 71
+    }
+  },
+  "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-d118ec7a05ef-13400\\tree",
+  "manifest": "sha256:d118ec7a05effb2c3bd22ac72728c449e87e9e457a55a2c0c394e88da8cee208"
+}

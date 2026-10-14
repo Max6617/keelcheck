@@ -100,7 +100,7 @@ impossible, fatal or recoverable. `checked-by:` = a human judges it, or a demo m
 **Decision appended before freezing the states, 2026-10-14 (not part of the frozen original):** R2's
 "ratified" hash is read from the **ratification commit**, not from the working-tree charter
 (`git show <sha>:CHARTER.md`), and the audit reports a gate with no run record as missing. Ruling recorded
-as D1 in `keel-project-state.md`.
+as D1 in `PROJECT-STATE.md`, this repository's record.
 
 **W1 — "a stranger would find this useful" has no mechanism.** Adoption is the user's test of
 impressive, and nothing here makes a stranger install it; only the demonstration does, and the

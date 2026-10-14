@@ -107,3 +107,33 @@ D7 pins the demonstration at rentguard HEAD `310f449`. The rentguard **code** re
 moved to `ad2e880`; `rentguard/CHARTER.md` itself is unchanged (the snapshot test in
 `test_charter_silent_wish.py` still passes), so the demonstration input is intact. The D7 wording
 "at rentguard HEAD `310f449`" is now stale and is flagged to Gilbert rather than edited here.
+
+## R7's per-half table, measured by Proctor 2026-10-14 (ssay_r7_mechanical_two_revisions.txt)
+
+Gilbert dry-ran the pair; I reproduced it before this write-up depends on it, and one of his two facts
+needs stating more narrowly. **The divergence list is identical at d63920 and 310f449** —
+[missing-section] problems and [vacuity] gates, with NOT AUDITABLE and exit 2 — and it names
+none of the five by-hand defects. **The reports are not byte-identical**: the living-state section
+differs, because the fixes landed between the revisions (asserted enforcement 3 → 2, and R2, R5, R6,
+R10 change state and cells). So the mechanical half *sees the state move* and names none of it as
+divergence.
+
+| # | by-hand defect (human) | mechanical divergence | mechanical state class | drift review |
+|---|---|---|---|---|
+| 1 | no way to arm the guard over MCP (rentguard R2) | none | R2 is a wish at both revisions; at 310f449 its state says met with nothing behind it — the symptomatic reading, and it is not present at d63920, where R2 reads NOT MET honestly | to run |
+| 2 | a guard that could stop a healthy pod (W4) | none | none: R4's row reads NOT MET at both, honest about the gap and silent about the behaviour | to run |
+| 3 | the cap exists only while watch runs (W1) | none | R9 is sserted_enforcement **and** declared_wish_not_wish at both revisions: a condition wearing a mechanism's name | to run |
+| 4 | no technical lock on publishing (W2) | none | R8 has neither cell at both revisions → wish | to run |
+| 5 | the volume path unexercised (W3) | none | none: prose in the wishes section, no requirement row, so the requirements-table half never sees it | to run |
+
+**What the mechanical half carries at those revisions**: problems (a missing section) and vacuity
+(zero ratified gates) as divergences, and three of the five as *state classes* — R2, R8, R9 — of which
+only R2's met claim is a lie rather than a stated gap. The problems finding and the vacuity finding
+are not among the five; they are findings about rentguard's charter that the by-hand audit did not
+list, which is what this note already recorded.
+
+**What that means for the claim.** The two-revision pair does not discriminate by divergence class: the
+demonstration cannot say "the audit reproduces the by-hand audit". It can say what the table says —
+the mechanical half names the charter's own gaps (a missing section, no ratified gate, three wishes)
+and the drift review is what must name the five, or the shortfall is the finding. No sentence here may
+print five defects as mechanically found.

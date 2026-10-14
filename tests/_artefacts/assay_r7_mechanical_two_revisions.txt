@@ -1,0 +1,191 @@
+# R7 mechanical half, two revisions - raw audit output, reproduced by Proctor 2026-10-14
+# keel@4b5aec5 ; rentguard bd63920 and 310f449, each in a detached worktree
+# command: python -m keel audit <worktree> --record <outside>   (rentguard/ itself untouched; worktrees removed)
+# exit 2 at both. The DIVERGENCE list is identical at both revisions (missing-section problems; vacuity) and so is NOT AUDITABLE; the reports are NOT byte-identical: the living-state section below the divergences differs, because the fixes landed between the two revisions (asserted enforcement 3 -> 2, R2/R5/R6/R10 states and their cells). The mechanical half sees the state move and names none of it as divergence.
+
+=== bd63920 ===
+keel audit -- <WORKTREE>
+commit:   bd63920ad32af74187a532e101ff45d2966f39a0
+charter:  <WORKTREE>\CHARTER.md
+ratified: (not named -- this charter is not auditable)
+sections: 5/6  requirements: 10  gates ratified: 0 (0 executable)  wishes: 3
+
+DIVERGENCES (2)
+  [missing-section] problems: a section R1's fixed format names is missing from the charter
+  [vacuity] gates: no gate is ratified at (no anchor), and no executable gate is declared in the working charter either; R2's gate is an executable script with a content hash, so the hash half of this audit verified nothing -- and an audit that verifies nothing is not a clean run (D8)
+NOT AUDITABLE: the charter names no ratification commit (`Ratified at: <sha>`), so there is no reference side to compare against (A2): not auditable, never clean
+
+REVIEW (clean context, R4): missing
+  no review line in rec-bd63920.jsonl; run `keel review <repo> --reviewer "<command>"` (D15)
+
+exit: 2
+
+charter: <WORKTREE>\CHARTER.md
+title:   Charter â€” rentguard
+sections: 5/6 required
+  MISSING SECTIONS: problems
+requirements: 10
+gates: 0 declared
+ratified at: (not named)
+review: reported, not required
+frozen original: 539 bytes, sha256:0e96174df311f76e4cc0af1e8bae8d78699b9220599b9e7bf657f977cbb760f5
+
+REQUIREMENTS (10) -- all four columns
+  R1  state: met
+      requirement:  CLI surface complete â€” ten commands
+      enforced-by:  code: the parser
+      checked-by:   â€”
+  R2  state: NOT MET â€” no watch, no init
+      requirement:  MCP surface complete
+      enforced-by:  â€”
+      checked-by:   â€”
+  R3  state: met (logic only)
+      requirement:  Money-critical paths hardened with tests
+      enforced-by:  74 tests, fake provider
+      checked-by:   suite run
+  R4  state: NOT MET â€” watch has never run against a rented pod
+      requirement:  The guard proven end to end on a real machine
+      enforced-by:  â€”
+      checked-by:   â€”
+  R5  state: met
+      requirement:  End-to-end proof on a real rented GPU
+      enforced-by:  3 rentals, $0.0264
+      checked-by:   ledger reconciled by hand
+  R6  state: partial â€” README omits adopt
+      requirement:  Documentation
+      enforced-by:  â€”
+      checked-by:   read through
+  R7  state: met
+      requirement:  Never reports an account balance
+      enforced-by:  code: the provider interface has no such method
+      checked-by:   â€”
+  R8  state: wish â€” discipline, not a control
+      requirement:  Never publishes anything
+      enforced-by:  â€”
+      checked-by:   â€”
+  R9  state: wish â€” see below
+      requirement:  The cap protects the user
+      enforced-by:  only while `watch` runs
+      checked-by:   â€”
+  R10  state: NOT MET â€” 74.8% measured 2026-10-14, runpod.py at 21.0%
+      requirement:  94% of the code and 100% of the features exercised
+      enforced-by:  `tools/coverage.py`, ratchet floor in CI
+      checked-by:   the CI run
+
+WISHES (neither enforced-by nor checked-by): 3
+  R2 (line 33) state=NOT MET â€” no watch, no init
+      MCP surface complete
+  R4 (line 35) state=NOT MET â€” watch has never run against a rented pod
+      The guard proven end to end on a real machine
+  R8 (line 39) state=wish â€” discipline, not a control
+      Never publishes anything
+
+HUMAN CHECKS (checked-by only, no mechanism): 1
+  R6 (line 37) checked-by: read through
+      Documentation
+
+ASSERTED ENFORCEMENT (enforced-by names no artefact): 3
+  R3 (line 34) enforced-by: 74 tests, fake provider
+  R5 (line 36) enforced-by: 3 rentals, $0.0264
+  R9 (line 40) enforced-by: only while `watch` runs
+  heuristic: 'names an artefact' means a `code:` marker, a backticked path or filename, a commit sha, or a path-like token with an extension, read from the enforced-by cell only. 0 here means no cell matched that reading, not that every mechanism exists (D13).
+
+DECLARED WISH, NOT A WISH BY THE R1 RULE:
+  R9 (line 40) enforced-by: only while `watch` runs
+
+WISH BY THE R1 RULE, NOT DECLARED AS ONE:
+  R2 (line 33) state=NOT MET â€” no watch, no init
+  R4 (line 35) state=NOT MET â€” watch has never run against a rented pod
+
+=== 310f449 ===
+keel audit -- <WORKTREE>
+commit:   310f449ffecc2af8d6cc6afbe067bede97f63ba4
+charter:  <WORKTREE>\CHARTER.md
+ratified: (not named -- this charter is not auditable)
+sections: 5/6  requirements: 10  gates ratified: 0 (0 executable)  wishes: 3
+
+DIVERGENCES (2)
+  [missing-section] problems: a section R1's fixed format names is missing from the charter
+  [vacuity] gates: no gate is ratified at (no anchor), and no executable gate is declared in the working charter either; R2's gate is an executable script with a content hash, so the hash half of this audit verified nothing -- and an audit that verifies nothing is not a clean run (D8)
+NOT AUDITABLE: the charter names no ratification commit (`Ratified at: <sha>`), so there is no reference side to compare against (A2): not auditable, never clean
+
+REVIEW (clean context, R4): missing
+  no review line in rec-310f449.jsonl; run `keel review <repo> --reviewer "<command>"` (D15)
+
+exit: 2
+
+charter: <WORKTREE>\CHARTER.md
+title:   Charter â€” rentguard
+sections: 5/6 required
+  MISSING SECTIONS: problems
+requirements: 10
+gates: 0 declared
+ratified at: (not named)
+review: reported, not required
+frozen original: 539 bytes, sha256:0e96174df311f76e4cc0af1e8bae8d78699b9220599b9e7bf657f977cbb760f5
+
+REQUIREMENTS (10) -- all four columns
+  R1  state: met
+      requirement:  CLI surface complete â€” ten commands
+      enforced-by:  code: the parser
+      checked-by:   â€”
+  R2  state: met â€” eleven tools, incl. watch, watch_once, init (590c58e)
+      requirement:  MCP surface complete
+      enforced-by:  â€”
+      checked-by:   â€”
+  R3  state: met (logic only)
+      requirement:  Money-critical paths hardened with tests
+      enforced-by:  189 tests at `74b9f7a`, fake provider
+      checked-by:   the clean-worktree suite run
+  R4  state: NOT MET â€” watch has never run against a rented pod; the three M2 rentals never armed it
+      requirement:  The guard proven end to end on a real machine
+      enforced-by:  â€”
+      checked-by:   â€”
+  R5  state: met â€” incl. the real A4000â†’4090 fallback
+      requirement:  End-to-end proof on a real rented GPU
+      enforced-by:  3 rentals, $0.0264
+      checked-by:   ledger reconciled by hand
+  R6  state: met â€” README covers adopt; the MCP page documents all eleven tools
+      requirement:  Documentation
+      enforced-by:  â€”
+      checked-by:   read through
+  R7  state: met
+      requirement:  Never reports an account balance
+      enforced-by:  code: the provider interface has no such method
+      checked-by:   â€”
+  R8  state: wish â€” discipline, not a control
+      requirement:  Never publishes anything
+      enforced-by:  â€”
+      checked-by:   â€”
+  R9  state: wish â€” see below
+      requirement:  The cap protects the user
+      enforced-by:  only while `watch` runs
+      checked-by:   â€”
+  R10  state: half met â€” 100% of the features green (feature matrix: 10 commands, 11 MCP tools); 90.2% of the code, 94% still to come
+      requirement:  94% of the code and 100% of the features exercised
+      enforced-by:  `tools/coverage.py`, ratchet floor 89%
+      checked-by:   the clean-worktree run
+
+WISHES (neither enforced-by nor checked-by): 3
+  R2 (line 36) state=met â€” eleven tools, incl. watch, watch_once, init (590c58e)
+      MCP surface complete
+  R4 (line 38) state=NOT MET â€” watch has never run against a rented pod; the three M2 rentals never armed it
+      The guard proven end to end on a real machine
+  R8 (line 42) state=wish â€” discipline, not a control
+      Never publishes anything
+
+HUMAN CHECKS (checked-by only, no mechanism): 1
+  R6 (line 40) checked-by: read through
+      Documentation
+
+ASSERTED ENFORCEMENT (enforced-by names no artefact): 2
+  R5 (line 39) enforced-by: 3 rentals, $0.0264
+  R9 (line 43) enforced-by: only while `watch` runs
+  heuristic: 'names an artefact' means a `code:` marker, a backticked path or filename, a commit sha, or a path-like token with an extension, read from the enforced-by cell only. 0 here means no cell matched that reading, not that every mechanism exists (D13).
+
+DECLARED WISH, NOT A WISH BY THE R1 RULE:
+  R9 (line 43) enforced-by: only while `watch` runs
+
+WISH BY THE R1 RULE, NOT DECLARED AS ONE:
+  R2 (line 36) state=met â€” eleven tools, incl. watch, watch_once, init (590c58e)
+  R4 (line 38) state=NOT MET â€” watch has never run against a rented pod; the three M2 rentals never armed it

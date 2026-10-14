@@ -28,6 +28,7 @@ import json
 import os
 import shlex
 import subprocess
+import threading
 from pathlib import Path
 
 from . import export, gitcmd, normalize, record
@@ -39,6 +40,9 @@ __all__ = ["main", "run_review", "validate_output"]
 
 DEFAULT_TIMEOUT = 600.0
 MAX_STDOUT = 1024 * 1024
+#: stderr is read to the same discipline as stdout: drained to the end, kept only to a cap, with the
+#: dropped bytes counted in the record. The recorded *reason* keeps the first 500 characters.
+MAX_STDERR = 256 * 1024
 CLASSES = ("missing", "unrequested", "shifted")
 VERDICTS = ("clean", "divergence")
 
@@ -228,19 +232,50 @@ def _resolve_prompt(
     return {"text": text, "path": rel, "hash": _hash_text(text), "ratified": False, "ratified_in": None}
 
 
+def _drain(stream, limit: int, box: dict) -> None:
+    """Read a stream to the end, keeping at most ``limit`` bytes and counting the rest.
+
+    A capped read has to keep draining: stopping at the cap would leave the child blocked on a full
+    pipe, which is the same deadlock class from the other side. The reader thread drains, the main
+    thread enforces the timeout.
+    """
+    kept: list[bytes] = []
+    total = 0
+    try:
+        while True:
+            chunk = stream.read(8192)
+            if not chunk:
+                break
+            if total < limit:
+                kept.append(chunk[: limit - total])
+            total += len(chunk)
+    except (OSError, ValueError):  # pragma: no cover - the child died mid-read
+        pass
+    finally:
+        try:
+            stream.close()
+        except OSError:  # pragma: no cover
+            pass
+    box["text"] = b"".join(kept).decode("utf-8", errors="replace")
+    box["dropped"] = max(0, total - len(b"".join(kept)))
+
+
 def _run_reviewer(command: list[str], tree: Path, timeout: float) -> dict:
     """Start the reviewer once, with the export as cwd and the prompt on stdin.
 
     The prompt reaches the reviewer as a **file**, not through a pipe this process has to write:
     ``stdin=open(REVIEW-PROMPT.md)`` gives the child a real handle it can read or ignore. Writing the
-    prompt through a pipe is the shape that hangs on Windows -- a child that never drains its stdin
-    leaves the parent blocked in the write past any timeout, and the run is then recorded as
-    `timeout` where `malformed` is the truth (Gilbert's report; measured: with the file, a reviewer
-    that prints and ignores stdin returns in about 0.2 s).
+    prompt through a pipe is the shape that can hang on Windows -- a child that never drains its
+    stdin leaves the parent blocked in the write past any timeout, and the run is then recorded as
+    `timeout` where `malformed` is the truth (Gilbert's report). Measured here: the pipe shape did
+    not stall in this session (a 200 KB prompt to a child that prints and exits returned in 0.16 s,
+    with `BrokenPipeError` on the write once the child had gone), so the class was removed rather
+    than timed.
 
-    What is recorded is bounded: stdout is capped by `MAX_STDOUT` in validation, and the reason keeps
-    the first 500 characters of stderr. Both are still buffered in full by `capture_output`, which is
-    named in D15 as the one uncapped part of this path.
+    Both streams are read by threads that drain to the end and keep a bounded prefix (`MAX_STDOUT`,
+    `MAX_STDERR`), so a chatty or silent reviewer cannot fill memory or block the child, and the
+    timeout stays enforced in this thread. The record carries what happened: the exit code, the kept
+    output, and whether anything was dropped.
     """
     if not command:
         return {"result": "error", "exit": None, "stdout": "", "reason": "empty reviewer command"}
@@ -250,29 +285,52 @@ def _run_reviewer(command: list[str], tree: Path, timeout: float) -> dict:
         return {"result": "error", "exit": None, "stdout": "", "reason": f"no prompt in the export: {exc}"}
     try:
         with handle:
-            proc = subprocess.run(
+            proc = subprocess.Popen(
                 command,
                 cwd=str(tree),
                 stdin=handle,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
-    except subprocess.TimeoutExpired:
-        return {"result": "timeout", "exit": None, "stdout": "", "reason": f"timed out after {timeout:g}s"}
     except OSError as exc:
         return {"result": "error", "exit": None, "stdout": "", "reason": f"could not start {command[0]}: {exc}"}
-    if proc.returncode != 0:
-        detail = (proc.stderr or "").strip()[:500]
+
+    out_box: dict = {}
+    err_box: dict = {}
+    readers = [
+        threading.Thread(target=_drain, args=(proc.stdout, MAX_STDOUT, out_box), daemon=True),
+        threading.Thread(target=_drain, args=(proc.stderr, MAX_STDERR, err_box), daemon=True),
+    ]
+    for reader in readers:
+        reader.start()
+    try:
+        status = proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        status = proc.wait()
+        for reader in readers:
+            reader.join(timeout=5)
+        return {
+            "result": "timeout",
+            "exit": status,
+            "stdout": out_box.get("text", ""),
+            "reason": f"timed out after {timeout:g}s",
+        }
+    for reader in readers:
+        reader.join(timeout=5)
+    stdout = out_box.get("text", "")
+    stderr = err_box.get("text", "")
+    dropped = out_box.get("dropped", 0) + err_box.get("dropped", 0)
+    note = f" ({dropped} bytes over the cap were dropped)" if dropped else ""
+    if status != 0:
+        detail = stderr.strip()[:500]
         return {
             "result": "error",
-            "exit": proc.returncode,
-            "stdout": proc.stdout or "",
-            "reason": f"the reviewer exited {proc.returncode}: {detail or '(no stderr)'}",
+            "exit": status,
+            "stdout": stdout,
+            "reason": f"the reviewer exited {status}: {detail or '(no stderr)'}{note}",
         }
-    return {"result": "pass", "exit": 0, "stdout": proc.stdout or "", "reason": (proc.stderr or "").strip()}
+    return {"result": "pass", "exit": status, "stdout": stdout, "reason": stderr.strip() + note}
 
 
 def _evidence_resolves(tree: Path, evidence: str, requirement_ids: set[str]) -> bool:

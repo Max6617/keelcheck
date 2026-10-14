@@ -17,6 +17,7 @@ from . import __version__
 from .audit import main as audit_main
 from .charter import main as charter_main
 from .gate import main as gate_main
+from .hook import main as hook_main
 from .output import emit, emit_err
 from .review import main as review_main
 
@@ -30,6 +31,8 @@ commands:
   gate run <repo>     run the ratified gates and record the run (R2)
   gate hash <path>    the content hash a gate row records (R2, D9)
   review <repo>       start a reviewer with no history and record what it was handed (R4)
+  hook install <repo> install the pre-commit hook that runs the ratified gates (R5)
+  hook status <repo>  report which hooks are installed (R5)
 
   keel <command> --help   for that command's options
 """
@@ -53,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
         return gate_main(rest)
     if command == "review":
         return review_main(rest)
+    if command == "hook":
+        return hook_main(rest)
 
     emit_err(f"keel: unknown command: {command}\n")
     emit_err(USAGE)

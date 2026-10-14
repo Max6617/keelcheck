@@ -320,8 +320,21 @@ def _run_reviewer(command: list[str], tree: Path, timeout: float) -> dict:
         reader.join(timeout=5)
     stdout = out_box.get("text", "")
     stderr = err_box.get("text", "")
-    dropped = out_box.get("dropped", 0) + err_box.get("dropped", 0)
-    note = f" ({dropped} bytes over the cap were dropped)" if dropped else ""
+    dropped_out = out_box.get("dropped", 0)
+    dropped_err = err_box.get("dropped", 0)
+    if dropped_out:
+        # The cap is named where the drop is known, rather than left to surface as a JSON error:
+        # over-cap output is `malformed` by D15, and the reason has to say which cap and by how much.
+        return {
+            "result": "malformed",
+            "exit": status,
+            "stdout": stdout,
+            "reason": (
+                f"the reviewer's output exceeded the {MAX_STDOUT}-byte cap "
+                f"({dropped_out} bytes dropped)"
+            ),
+        }
+    note = f" ({dropped_err} bytes of stderr over the cap were dropped)" if dropped_err else ""
     if status != 0:
         detail = stderr.strip()[:500]
         return {
@@ -518,7 +531,12 @@ def run_review(
         "command": command,
         "exit": run["exit"],
         "result": run["result"],
-        "history_reachable": "none",
+        # What is provable is the **export**: it holds no `.git`, no record and no prior report. What
+        # the reviewer loads from its own harness is not observable from here -- the command is the
+        # caller's, and a harness reads user-level configuration and memory. So the record says
+        # `unknown` rather than claiming `none`, which would read as a measurement and be a constant
+        # (Sift's finding 5; Gilbert's ruling for the demonstration, where the reviewer is Claude Code).
+        "history_reachable": "unknown",
         "export": str(tree),
         "files": manifest["count"],
         "bytes": manifest["bytes"],

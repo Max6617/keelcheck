@@ -467,7 +467,11 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
     per line in `runs.jsonl`, appended after the reviewer returns. It carries the anchor it used, so
     `[anchor-moved]` compares the previous entry **of any kind that carries an anchor** (D12 amended):
     D10's `[gate-table]` still compares the last `audit` entry, because only audits carry a gate array.
-    `history_reachable` is `none` here by construction: the reviewer is always pointed at an export.
+    `history_reachable` is **`unknown`**, not `none` (amended 2026-10-14 after Sift's finding 5 and
+    Gilbert's ruling for the demonstration): what the tool can prove is that the export holds no `.git`, no
+    record and no prior report; what it cannot observe is the context of a command the caller names, and the
+    demonstration's reviewer is a harness that loads the user's own configuration and memory. `none` would be a
+    constant reading as a measurement.
   - **Exit codes.** `keel review`: 0 when a review was recorded with verdict `clean`; 1 when the recorded
     verdict is `divergence`, `partial` or `unverified`, and 1 when the ratified prompt no longer matches its
     hash; 2 when it could not run honestly (no charter, no anchor, no prompt, unwritable export or record, or

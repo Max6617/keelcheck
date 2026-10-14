@@ -59,13 +59,13 @@ transcript — that is T1 with a guaranteed-fresh conversation, which is the str
 available to us. It is *not* T2 by itself: a subagent can run shell commands, so unless it is pointed
 at the export it can `git log` in the audited repository. T1 + T2 together is what we can actually run
 here: fresh conversation, history-free directory. What the runner records is
-`history_reachable: none` — and **that is not a three-valued measurement, it is a constant by
-construction** (Sift's finding 5; D15 ruled it this way): the runner always builds the export and
-always starts the reviewer there, so there is no code path that could record `git` or `unknown`. The
-field is kept because it says *why* the reviewer cannot reach the history — the tool never runs a
-reviewer in the repository — and the honest reading is that a constant is not evidence. If a future
-version ever runs a reviewer in the repository, the field becomes a measurement again, and until then
-it should not be read as one.
+`history_reachable: unknown` — and **the honest value is `unknown`, not `none`** (Sift's finding 5,
+then Gilbert's ruling for the demonstration). What the tool can prove is the *export*: no `.git`, no
+record, no prior report, verified by the manifest. What it cannot observe is the reviewer's own
+context — the command is the caller's, and a harness loads user-level configuration, memory and rules
+of its own; the demonstration's reviewer is Claude Code, which does exactly that. A record saying
+`none` would be a constant wearing the clothes of a measurement, which is the vacuity class this
+project exists to catch.
 
 ## 2. What the runner hands over
 

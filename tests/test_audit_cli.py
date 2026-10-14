@@ -108,6 +108,42 @@ def test_rewriting_the_hash_in_the_working_tree_charter_does_not_silence_it(scra
     assert "coverage" in _support.combined(proc)
 
 
+def test_a_crlf_worktree_is_not_a_gate_hash_divergence(scratch):
+    """D9, measured: ``core.autocrlf=true`` writes CRLF on a Windows checkout while the blob is LF.
+
+    A hash over raw worktree bytes then reports a divergence that is not one — on every Windows
+    checkout, in exactly the rule the tool exists for
+    (``_artefacts/assay_parser_boundaries_b81c374.txt``). The declared hash here is over the LF
+    content git stores; the same gate with a CRLF worktree is not a change.
+
+    The exit code alone cannot carry this test: "hash changed" and "no run record" are both exit 1.
+    The observable is the report — a real change names the gate *and* the hash (see the test above),
+    so the CRLF run must contain no such naming.
+    """
+    script = _support.write(scratch / "tools" / "gate.py", "print('coverage')\n")
+    digest = _support.hash_file(script)
+    requirements = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
+    gates = [("coverage", "tools/gate.py", digest)]
+    _support.write_charter(scratch, requirements=requirements, gates=gates)
+    sha = _support.init_repo(scratch)
+    _support.git(scratch, "config", "core.autocrlf", "true")
+    _support.write_charter(scratch, requirements=requirements, gates=gates, ratified=sha)
+    _support.commit_all(scratch, "ratified")
+
+    _support.audit(scratch)  # settle whatever run-record policy applies, so only the hash is left
+    assert _support.hash_file(script) == digest
+
+    script.write_bytes(b"print('coverage')\r\n")  # what a fresh Windows checkout writes
+    after = _support.audit(scratch)
+
+    out = _support.combined(after).lower()
+    assert after.returncode != 2, f"the audit could not run on a CRLF worktree:\n{_support.combined(after)}"
+    assert not ("coverage" in out and "hash" in out), (
+        "a CRLF worktree was reported as a gate hash divergence; the hash must be over git-normalized "
+        f"content (D9)\n{_support.combined(after)}"
+    )
+
+
 def test_a_named_gate_with_no_run_record_is_divergence_not_a_pass(scratch):
     """Property: an audit must not report success for a gate that never ran. A local hook is a
     detector, not a lock (D2), so a bypass is a *missing* record and must be divergence."""
@@ -157,7 +193,13 @@ def test_the_run_record_is_append_only(scratch):
 # --- exit 0: wishes are reported, not fatal -----------------------------------
 
 
-def test_a_complete_charter_with_no_gates_audits_clean(scratch):
+def test_a_charter_with_zero_ratified_gates_is_a_named_finding_not_a_clean_run(scratch):
+    """D8 corrected D3 here: an audit that finds zero ratified gates verified nothing.
+
+    D3 first said a complete charter with no gates audits clean. Proctor then measured rentguard —
+    0 gate hashes — and D8 ruled that succeeded nothing must say so as a named divergence and must
+    not exit 0. Exit 0 on this input would be the audit reporting health it never measured.
+    """
     _support.write_charter(
         scratch,
         requirements=[("R1", "the parser exists", "code: the charter parser", "—", "**met**")],
@@ -166,11 +208,19 @@ def test_a_complete_charter_with_no_gates_audits_clean(scratch):
 
     proc = _support.audit(scratch)
 
-    assert proc.returncode == 0, f"exit {proc.returncode}\n{_support.combined(proc)}"
+    assert proc.returncode == 1, (
+        f"a vacuous audit exited {proc.returncode}; zero ratified gates is a divergence, not clean\n"
+        f"{_support.combined(proc)}"
+    )
+    assert "gate" in _support.combined(proc).lower(), "the vacuity finding is not named"
 
 
 def test_wishes_are_reported_but_do_not_change_the_exit_code(scratch):
-    """D3: wishes may exist and are reported; they do not change the exit code."""
+    """D3: wishes may exist and are reported; they do not change the exit code.
+
+    D8 changed the baseline: with no ratified gate this charter is already divergent (exit 1). So
+    the wish must not add the *fatal* code — 2 — and must be named in the report.
+    """
     _support.write_charter(
         scratch,
         requirements=[("R9", "nothing is published without the user's word", "—", "—", "**wish**")],
@@ -179,7 +229,7 @@ def test_wishes_are_reported_but_do_not_change_the_exit_code(scratch):
 
     proc = _support.audit(scratch)
 
-    assert proc.returncode == 0, f"a wish changed the exit code\n{_support.combined(proc)}"
+    assert proc.returncode != 2, f"a wish made the audit fatal\n{_support.combined(proc)}"
     assert "R9" in _support.combined(proc), "the wish is not reported"
 
 

@@ -1,0 +1,123 @@
+"""R1's boundaries, driven from outside the package: `python -m keel.charter`.
+
+**Red against landed code, not a pin.** R1 landed at `489f47d` before these existed; a pin records an
+answer as *correct*, these record a hole. Every failure below is already in the working tree at
+`b81c374`, measured in `_artefacts/assay_parser_boundaries_b81c374.txt`.
+
+Three holes, all of the kind the tool exists to catch — a requirement that is not honoured, not
+checked, and not reported:
+
+1. a row that would be a wish is dropped when its id cell is empty or its id column is labelled
+   something the parser does not know: exit 0, ``requirements: 0``, ``wishes: []`` — invisible;
+2. a ``checked-by`` cell holding a zero-width character or ``&nbsp;`` renders as nothing but is read
+   as content, so the row leaves the wishes list and the report never prints it;
+3. a requirement backed only by a sentence appears in ``--json`` but not in the two-minute report a
+   human reads (the same hole as `test_charter_silent_wish`'s red, asserted here on the CLI surface).
+"""
+
+from __future__ import annotations
+
+import json
+
+import _support
+
+HEADER = "| # | requirement | enforced-by | checked-by | state |"
+UNKNOWN_ID_HEADER = "| Rule | requirement | enforced-by | checked-by | state |"
+
+
+def _charter(rows: list[str], header: str = HEADER) -> str:
+    return (
+        "# Charter - probe\n\n## The frozen original\n\n> probe\n\n"
+        "## What it is for\nx\n\n## What it is good at\nx\n\n"
+        "## Problems the human and the agent agreed on\nx\n\n"
+        "## Requirements\n\n" + header + "\n|---|---|---|---|---|\n"
+        + "\n".join(rows)
+        + "\n\n## Permissions\nnone\n\n## Scopes\nproject\n"
+    )
+
+
+def _write(scratch, name: str, text: str):
+    return _support.write(scratch / name, text)
+
+
+# --- 1. a row is never silently dropped ---------------------------------------
+
+
+def test_a_requirement_row_is_never_silently_dropped(scratch):
+    """A fixed-format parser may refuse a chart it cannot read; it may not read it as empty.
+
+    `wishes: []` with a non-zero exit is an honest "I could not read this". `wishes: []` with exit 0
+    on a file that contains an unenforced, unchecked requirement is the tool lying about itself.
+    """
+    cases = [
+        ("empty id cell", HEADER, ["|  | the pod must stop itself | \u2014 | \u2014 | draft |"]),
+        ("unrecognised id header", UNKNOWN_ID_HEADER,
+         ["| R1 | the pod must stop itself | \u2014 | \u2014 | draft |"]),
+    ]
+    for i, (label, header, rows) in enumerate(cases):
+        path = _write(scratch, f"dropped-{i}.md", _charter(rows, header))
+        proc = _support.charter_cli(path)
+        doc = json.loads(proc.stdout)
+        parsed, present = len(doc["requirements"]), len(rows)
+        assert proc.returncode != 0 or parsed == present, (
+            f"{label}: exit 0 with {parsed} of {present} rows parsed, so the unenforced, unchecked "
+            f"requirement in the dropped row is invisible (wishes={doc['wishes']})\n{proc.stdout}"
+        )
+
+
+# --- 2. a cell that renders blank is not a check -------------------------------
+
+
+def test_a_cell_that_renders_blank_is_not_a_check(scratch):
+    """Not the empty *string* — the cell that is empty to the eye and not empty to the parser.
+
+    The literal empty string is handled (control below). These are the spellings that survive a copy
+    out of a browser, a bad editor, or an agent producing emphasis, and each turns an R1 wish into a
+    silent row: not a wish, not `asserted_enforcement` (that class reads `enforced-by` only), and
+    `render()` never prints `checked-by`.
+    """
+    for i, (label, cell) in enumerate([
+        ("zero-width space", "\u200b"),
+        ("word joiner", "\u2060"),
+        ("BOM / ZWNBSP", "\ufeff"),
+        ("&nbsp; entity", "&nbsp;"),
+    ]):
+        path = _write(scratch, f"blank-{i}.md",
+                      _charter([f"| R1 | the pod must stop itself | \u2014 | {cell} | met |"]))
+        doc = json.loads(_support.charter_cli(path).stdout)
+        r = doc["requirements"][0]
+        assert r["is_wish"], (
+            f"checked-by={label} ({cell!r}) renders as nothing but was read as content: "
+            f"is_wish={r['is_wish']}, wishes={doc['wishes']}, asserted={doc['asserted_enforcement']}"
+        )
+
+
+def test_the_literal_empty_checked_by_is_a_control(scratch):
+    """A control, so the test above cannot pass by calling every `checked-by` a wish."""
+    path = _write(scratch, "empty.md",
+                  _charter(["| R1 | the pod must stop itself | \u2014 |  | met |"]))
+    doc = json.loads(_support.charter_cli(path).stdout)
+    assert doc["requirements"][0]["is_wish"] is True
+    assert doc["wishes"] == ["R1"]
+
+
+# --- 3. the report must not hide the sentence --------------------------------
+
+
+def test_the_two_minute_report_does_not_hide_a_requirement_backed_only_by_a_sentence(scratch):
+    """The machine-readable path carries the column; the report the human reads must too (D8).
+
+    keel's own R9 is exactly this shape: publishing is guarded by a sentence, and a report that says
+    "0 wishes, 0 asserted" is reporting health it did not measure.
+    """
+    marker = "the user's word before any push"
+    path = _write(scratch, "sentence.md",
+                  _charter([f"| R9 | nothing is published | \u2014 | {marker} | checked, not enforced |"]))
+    json_proc = _support.charter_cli(path)
+    report = _support.charter_cli(path, json_out=False)
+
+    assert marker in json_proc.stdout, "precondition: the JSON output carries the cell"
+    assert marker in report.stdout or report.returncode != 0, (
+        "the report hides a requirement whose only backing is a human check; it printed:\n"
+        f"{report.stdout}"
+    )

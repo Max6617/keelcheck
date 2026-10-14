@@ -1,0 +1,143 @@
+{
+  "path": "tests\\_artefacts\\rentguard-CHARTER-a72e7c4.md",
+  "title": "Charter — rentguard",
+  "frozen_original": "Take rentguard from v0.1 to a publishable release with a dedicated Bot team, deciding all design\nquestions autonomously: complete the CLI and MCP surface, harden the money-critical paths with\ntests, prove it end-to-end on a real rented GPU within a small budget, and write the documentation.\nDo not publish anything publicly (no public repo, no PyPI, no announcement) and do not ask the user\nanything else — the publication approval is the only question that goes back to them.",
+  "sections": {
+    "purpose": 17,
+    "strengths": 22,
+    "requirements": 28,
+    "permissions": 82,
+    "scopes": 88
+  },
+  "missing_sections": [
+    "problems"
+  ],
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "CLI surface complete — ten commands",
+      "enforced_by": "code: the parser",
+      "checked_by": "—",
+      "state": "**met**",
+      "line": 35,
+      "is_wish": false,
+      "enforcement": "mechanical",
+      "declared_wish": false
+    },
+    {
+      "id": "R2",
+      "text": "MCP surface complete",
+      "enforced_by": "—",
+      "checked_by": "—",
+      "state": "**met** — eleven tools, incl. `watch`, `watch_once`, `init` (`590c58e`)",
+      "line": 36,
+      "is_wish": true,
+      "enforcement": "none",
+      "declared_wish": false
+    },
+    {
+      "id": "R3",
+      "text": "Money-critical paths hardened with tests",
+      "enforced_by": "189 tests at `74b9f7a`, fake provider",
+      "checked_by": "the clean-worktree suite run",
+      "state": "**met** (logic only)",
+      "line": 37,
+      "is_wish": false,
+      "enforcement": "mechanical",
+      "declared_wish": false
+    },
+    {
+      "id": "R4",
+      "text": "The guard proven end to end on a real machine",
+      "enforced_by": "—",
+      "checked_by": "—",
+      "state": "**NOT MET** — `watch` has never run against a rented pod; the three M2 rentals never armed it",
+      "line": 38,
+      "is_wish": true,
+      "enforcement": "none",
+      "declared_wish": false
+    },
+    {
+      "id": "R5",
+      "text": "End-to-end proof on a real rented GPU",
+      "enforced_by": "3 rentals, $0.0264",
+      "checked_by": "ledger reconciled by hand",
+      "state": "**met** — incl. the real A4000→4090 fallback",
+      "line": 39,
+      "is_wish": false,
+      "enforcement": "asserted",
+      "declared_wish": false
+    },
+    {
+      "id": "R6",
+      "text": "Documentation",
+      "enforced_by": "—",
+      "checked_by": "read through",
+      "state": "**met** — README covers `adopt`; the MCP page documents all eleven tools",
+      "line": 40,
+      "is_wish": false,
+      "enforcement": "none",
+      "declared_wish": false
+    },
+    {
+      "id": "R7",
+      "text": "Never reports an account balance",
+      "enforced_by": "code: the provider interface has no such method",
+      "checked_by": "—",
+      "state": "**met**",
+      "line": 41,
+      "is_wish": false,
+      "enforcement": "mechanical",
+      "declared_wish": false
+    },
+    {
+      "id": "R8",
+      "text": "Never publishes anything",
+      "enforced_by": "—",
+      "checked_by": "—",
+      "state": "**wish** — discipline, not a control",
+      "line": 42,
+      "is_wish": true,
+      "enforcement": "none",
+      "declared_wish": true
+    },
+    {
+      "id": "R9",
+      "text": "The cap protects the user",
+      "enforced_by": "only while `watch` runs",
+      "checked_by": "—",
+      "state": "**wish** — see below",
+      "line": 43,
+      "is_wish": false,
+      "enforcement": "asserted",
+      "declared_wish": true
+    },
+    {
+      "id": "R10",
+      "text": "94% of the code and 100% of the features exercised",
+      "enforced_by": "`tools/coverage.py`, ratchet floor 89%",
+      "checked_by": "the clean-worktree run",
+      "state": "**half met** — 100% of the features green (feature matrix: 10 commands, 11 MCP tools); 90.2% of the code, 94% still to come",
+      "line": 44,
+      "is_wish": false,
+      "enforcement": "mechanical",
+      "declared_wish": false
+    }
+  ],
+  "wishes": [
+    "R2",
+    "R4",
+    "R8"
+  ],
+  "asserted_enforcement": [
+    "R5",
+    "R9"
+  ],
+  "declared_wish_not_wish": [
+    "R9"
+  ],
+  "wish_not_declared": [
+    "R2",
+    "R4"
+  ]
+}

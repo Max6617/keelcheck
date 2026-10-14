@@ -92,9 +92,20 @@ def write_charter(root, **kwargs) -> Path:
     return write(Path(root) / "CHARTER.md", charter_text(**kwargs))
 
 
+def hash_bytes(data: bytes) -> str:
+    """The content hash a charter records for a gate script.
+
+    **Normalized, not raw (D9).** The host sets ``core.autocrlf=true``, so a fresh checkout on Windows
+    writes CRLF into the worktree while the blob — and therefore any ratified hash read back through
+    git — is LF. A hash over raw worktree bytes would report a divergence that is not one, on every
+    Windows checkout, in exactly the rule the tool exists for. Git's own text normalization is
+    CRLF -> LF; this is that, and it is the same value ``git hash-object --path=`` returns.
+    """
+    return "sha256:" + hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+
+
 def hash_file(path: Path) -> str:
-    """The content hash a charter would record for a gate script."""
-    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return hash_bytes(Path(path).read_bytes())
 
 
 # --- git ----------------------------------------------------------------------
@@ -138,3 +149,13 @@ def audit(root, *extra, env_extra: dict | None = None) -> subprocess.CompletedPr
 
 def combined(proc: subprocess.CompletedProcess) -> str:
     return (proc.stdout or "") + (proc.stderr or "")
+
+
+# --- the parser CLI -----------------------------------------------------------
+
+
+def charter_cli(path, *, json_out: bool = True, env_extra: dict | None = None) -> subprocess.CompletedProcess:
+    """Run `python -m keel.charter <path>` the way a user would (R1's own surface, no internals)."""
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", **(env_extra or {})}
+    args = [sys.executable, "-m", "keel.charter", str(path)] + (["--json"] if json_out else [])
+    return subprocess.run(args, cwd=REPO, capture_output=True, text=True, encoding="utf-8", env=env)

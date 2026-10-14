@@ -1,12 +1,13 @@
 # R7 — the rentguard demonstration, run mechanically
 
-**Tool:** `keel@fbd9837` (working tree; the audit does not exist yet, so this is the parser stage only).
-**Input:** `rentguard/CHARTER.md`, source `rentguard@a72e7c4`; unchanged at `rentguard@310f449`
-(clean tree) — the snapshot `rentguard-CHARTER-a72e7c4.md` beside this file is byte-identical
-(SHA-256 `046FA7D9…7C4C`).
-**Command:** `python -m keel.charter rentguard/CHARTER.md` (and `--json`). Raw output:
-`assay_rentguard_parser_489f47d.txt`, `.json` — the parser is unchanged between `489f47d` and
-`fbd9837`, but the counts are named against **fbd9837** because that is the tree they were run in.
+**Tool:** `keel@b81c374`. The parser is unchanged since `489f47d`, and this was measured through a
+detached worktree at `b81c374`, so the answers are the landed parser's — not the working tree's
+(Mason's R2 build was uncommitted at the time; `assay_suite_worktree-2026-10-14.txt` says so).
+**Input:** `rentguard/CHARTER.md` at `rentguard@a72e7c4`; the byte-identical snapshot
+`rentguard-CHARTER-a72e7c4.md` beside this file is what was parsed, and the live file still matches it.
+**Command:** `python -m keel.charter <snapshot>` and `--json`. Raw output:
+`assay_rentguard_parser_b81c374.txt` / `.json` (superseding the `489f47d` pair; the answers are the
+same).
 
 ## What the run finds
 
@@ -20,24 +21,57 @@
 | required sections | **5/6 — `problems` missing** |
 | gate content hashes declared in the charter | **0** |
 
-## Against the five defects the by-hand audit found
+## The five defects a human found, against what a mechanical audit can see
 
-| # | by-hand defect | mechanical run at fbd9837 | honest read |
-|---|---|---|---|
-| 1 | no way to arm the guard over MCP | **found, as a symptom** — R2 is a wish *whose state says `met`*: a met claim with nothing behind it. The run cannot see *why* the MCP surface was incomplete. | a human still has to check the surface |
-| 2 | a guard that could stop a healthy pod (W4) | **missed** | it lives in code; no row states it. R4 says `NOT MET`, which is honest about the gap and silent about the guard being wrong |
-| 3 | the cap exists only while `watch` runs (W1) | **found** — R9 is both `asserted_enforcement` ("only while \`watch\` runs") and `declared_wish_not_wish` | the closest mechanical match to the human reading |
-| 4 | no technical lock on publishing (W2) | **found** — R8 has neither cell → wish | |
-| 5 | the volume path was unexercised (W3) | **missed** | prose in the wishes section, no requirement row; a requirements-table audit never sees it |
+Two questions per defect, not one: did the run find it, and **what would a mechanical detector have
+needed in order to find it?** The second is the real limit of the first version, and it is the part a
+README must not round off.
 
-Score at fbd9837: **2 clear (R8, R9), 1 symptomatic (R2), 2 missed (W4, W3).**
+| # | by-hand defect (found by a human) | found at b81c374? | what a mechanical find would need | mechanisable in v1? |
+|---|---|---|---|---|
+| 1 | no way to arm the guard over MCP (rentguard R2) | **symptom only** — R2 is a wish whose state says `met`: a met claim with nothing behind it | a declared gate that calls the MCP arming path end to end and asserts the guard is armed; then `met` has a run record behind it | **yes, once such a gate is written** — the cell alone names nothing, so today only the symptom is visible |
+| 2 | a guard that could stop a healthy pod (W4) | **missed** — R4 reads `NOT MET`, honest about the gap and silent about the behaviour | a scenario gate: a synthetic pod 32 seconds old, provider idle reported large, assert the guard does **not** stop it. Coverage cannot catch it — every line of the defect executed | **no** — the scenario has to be imagined before it can be gated; no requirement row encodes it. Drift review, not the mechanical half |
+| 3 | the cap exists only while `watch` runs (W1) | **found** — R9's `enforced-by` is prose ("only while `watch` runs") and its state says wish | nothing more: the cell is the finding. A gate could only assert a cap that survives `watch`'s exit — which is the design W1 refuses | **yes, as written** (the cell). The missing supervisor is a design call, not a check |
+| 4 | no technical lock on publishing (W2) | **found** — R8 has neither cell → wish | a gate that fails while a public remote or a publish path exists (a configuration control) | **yes, once such a gate is written**; today only the wish is visible, not the absence of the lock |
+| 5 | the network-volume path unexercised (W3) | **missed** — prose in the wishes section, no requirement row | a gate that exercises `[runpod].volume_id` end to end (or at the transport seam), declared and hashed. After the volume was deleted there was nothing to attach | **no, and not only for lack of a volume** — a requirements-table audit never sees prose that has no row |
+
+Score at b81c374: **2 clear (W2/R8, W1/R9), 1 symptomatic (R2), 2 not mechanically findable (W4, W3).**
+The user's "five real defects" is not withdrawn: the audit is two halves by R3's own wording, and W4
+and W3 belong to the drift-review half.
+
+## The honest boundary of the first version
+
+What the mechanical half can find — all of it **declarative**, i.e. written in the charter or in git:
+
+- a requirement that names neither a mechanism nor a check (R1's wish);
+- an `enforced-by` cell that is prose rather than an artefact (asserted enforcement);
+- a state column that disagrees with the rule, in either direction;
+- a required section missing;
+- a ratified gate whose content hash changed, or a named gate with no run record;
+- zero ratified gates at all (vacuity): an audit that verified nothing;
+- the frozen-original block edited, or the ratification pointer disagreeing with the record.
+
+What it **cannot** find, and why:
+
+1. **Behaviour that no requirement row encodes.** W4 is the type specimen: the guard was wrong, every
+   line of the defect executed, and the coverage floor still stood at 74.8%. A gate catches this only
+   after a human conceives the scenario; the audit can never generate the scenario.
+2. **Prose that is not a requirement row.** W3 lives in the wishes section. The parser reports the
+   *requirements table*; a paragraph with no row in it is invisible to it.
+3. **Whether a declared gate is sufficient.** v1 checks that a gate ran and that its hash is intact.
+   A gate that runs, passes, and measures the wrong thing is green. rentguard's own R10 note is the
+   proof: the money defects all sat in lines the coverage gate already counted.
+
+The consequence for R7's claim: the mechanical half reproduces **three of five** — two clearly (R8,
+R9) and one as a symptom (R2) — and the drift review is what the other two need. That is a narrower
+sentence than "the audit found five defects", and it is the one the README has to earn.
 
 ## The miss is the finding
 
 The audit sees the charter about itself, and the two defects that cost money or data resolve in
 **code**, not in the charter. D7 already answers this properly — two revisions, one pair of runs:
-the revision immediately before each fix must report the defect as divergence, and `310f449` must
-report only what is still open. That half cannot run at fbd9837: there is no audit and **rentguard's
+the revision immediately before each fix must report the defect as divergence, and rentguard HEAD
+must report only what is still open. That half cannot run yet: there is no audit, and **rentguard's
 charter declares zero gates**, so there is nothing executable for it to run at `bd63920`, `ce69cea`
 or `c512125`.
 
@@ -56,5 +90,13 @@ reduces to reading back the charter's prose — the failure the project exists t
 
 With **0** gates declared, a hash-checking audit on rentguard verifies nothing, and "a named gate has
 no run record" (D3, exit 1) never fires because no gate is named. An audit that exits 0 there would
-be reporting health it never measured. This is the third adversarial property — success when a gate
-was skipped, absent, or never ran — standing on the project's own demonstration input.
+be reporting health it never measured. D8 now makes that vacuity itself a named divergence and an
+exit 1, which is why `test_a_charter_with_zero_ratified_gates_is_a_named_finding_not_a_clean_run`
+exists in the adversarial set: otherwise the demonstration input is the first place the tool lies.
+
+## One drift found while measuring
+
+D7 pins the demonstration at rentguard HEAD `310f449`. The rentguard **code** repository has since
+moved to `ad2e880`; `rentguard/CHARTER.md` itself is unchanged (the snapshot test in
+`test_charter_silent_wish.py` still passes), so the demonstration input is intact. The D7 wording
+"at rentguard HEAD `310f449`" is now stale and is flagged to Gilbert rather than edited here.

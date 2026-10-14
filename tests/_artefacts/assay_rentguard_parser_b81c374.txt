@@ -1,0 +1,25 @@
+charter: tests\_artefacts\rentguard-CHARTER-a72e7c4.md
+title:   Charter — rentguard
+sections: 5/6 required
+  MISSING SECTIONS: problems
+requirements: 10
+
+WISHES (neither enforced-by nor checked-by): 3
+  R2 (line 36) state=met — eleven tools, incl. watch, watch_once, init (590c58e)
+      MCP surface complete
+  R4 (line 38) state=NOT MET — watch has never run against a rented pod; the three M2 rentals never armed it
+      The guard proven end to end on a real machine
+  R8 (line 42) state=wish — discipline, not a control
+      Never publishes anything
+
+ASSERTED ENFORCEMENT (enforced-by names no artefact): 2
+  R5 (line 39) enforced-by: 3 rentals, $0.0264
+  R9 (line 43) enforced-by: only while `watch` runs
+
+DECLARED WISH, NOT A WISH BY THE R1 RULE:
+  R9 (line 43) enforced-by: only while `watch` runs
+
+WISH BY THE R1 RULE, NOT DECLARED AS ONE:
+  R2 (line 36) state=met — eleven tools, incl. watch, watch_once, init (590c58e)
+  R4 (line 38) state=NOT MET — watch has never run against a rented pod; the three M2 rentals never armed it
+

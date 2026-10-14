@@ -58,7 +58,8 @@ test hashes raw worktree bytes.
 | `test_audit_cli.py` | **Red against `HEAD`**: the adversarial set — a missing section, a gate edited after ratification, a hash rewritten in the working-tree charter, a gate with no run record, a CRLF worktree that must **not** read as a gate content change (D9), the append-only record, vacuity (D8), wishes non-fatal, `--fail-on-wish`, an unparseable charter, **the frozen original moving when the accepted recommendation is edited (D11/F9)**, and the clean-context file. The first test asserts `keel audit --help` exists, so no other test can pass because the command is unknown. |
 | `test_gate_cli.py` | **Two reds, four pins** on `keel gate run` / `keel gate hash`: a gate that **ran and failed** (or timed out) is recorded with the ratified hash, the audit accepts the record and reports **exit 0, no divergences**; and `--record <directory>` works for `keel audit` but not for `keel gate run`, which executes the gate and then exits 2 without recording it. Pins: an audit run never counts as a gate run (the skipped-gate property), a gate whose content changed is never executed, `hash`/`ratified` are D10's two sides, and `gate hash` is git-normalized (D9). |
 | `test_cli_encoding.py` | `--json` on `rentguard/CHARTER.md` must survive a cp1252 stdout; the host's `PYTHONIOENCODING` is pinned inside the test, never inherited. Asserts `!= 2` and that the arrow round-trips, because D12 moved the exit code and `== 0` was asserting the fixture's cleanliness. |
-| `test_hook_cli.py` | **Red first at `7371668`** for R5, `keel hook install` / `keel hook status`: a failing ratified gate must **block a commit** and a passing one must let it land (the second is the guard against a git-caused block); the hook must leave the `kind: gate` record the audit reads, so the audit is **clean** after a hook-run commit; an existing hook is never clobbered and `--force` keeps it as `pre-commit.keel-backup`; no anchor → install nothing, exit 2; idempotent; POSIX `#!/bin/sh` with no CRLF; works from a subdirectory. |
+| `test_hook_cli.py` | **Red at `7371668`, built at `08771ce`.** Installer: a failing ratified gate must **block a commit** and a passing one must let it land (the second is the guard against a git-caused block); the hook must leave the `kind: gate` record the audit reads; an existing hook is never clobbered and `--force` keeps it as `pre-commit.keel-backup`; no anchor → install nothing, exit 2; idempotent; POSIX `#!/bin/sh` with no CRLF; the body carries a marker and absolute paths. **Five git-level tests skip on this host** (git's `sh.exe` cannot start — see below); the hook's command is executed directly by four others, so the *behaviour* of the body is still verified here. |
+| `test_review_cli.py` | **Red against `6810818`, closed at `e9ec9a1`/`18023d9`.** The clean-context review with stub reviewers: the state is always reported and is divergence only when required; verdict mapping (clean 0, partial/divergence/unverified 1); evidence checked against the export **and** the charter; malformed/error/timeout recorded with a reason and exit 2; fresh → stale on one byte → fresh again; a failed review never satisfies a required one, a partial one does (presence is mechanical); the prompt is a hashed artefact and a weakened one is refused before a review runs; the reviewer is never run through a shell; the export carries the prompt and no history, no secrets, no committed record directory; the vacuity message names what it tested. |
 
 ## The anchor test, and a fixture trap it exposed
 
@@ -114,3 +115,37 @@ SHAs and fires once; a non-canonical pointer is `[format]` and quotes the line.
 require `returncode == 0` on the rentguard snapshot; that asserted the charter's cleanliness, which is
 `test_charter_silent_wish`'s business. It now requires `!= 2`, no `UnicodeEncodeError`, and that the
 arrow round-trips through the JSON — the encoding property it exists for.
+
+## The review round, and the R5 environment split
+
+**Suite at 1aa89b7: 88 passed, 5 skipped.** Both numbers are measurements, not estimates.
+
+**Two real findings came out of 	est_review_cli.py, and both were red against landed code** — so the
+ordering was red-after-code, named rather than dressed up as red-first:
+
+1. **Evidence was verified by containment only.** _inside_export returned True for *any* relative
+   string, because Path.resolve() does not require the target to exist and the only test was that
+   the result sat under the export root. 
+o-such-file.md and R999 both counted as verified, and
+   the requirement-id branch D15 names was not implemented at all. Fixed at e9ec9a1.
+2. **The export did not carry the prompt.** REVIEW-PROMPT.md was not written into the tree, so what
+   the reviewer was told was not part of what was handed over whenever the prompt was not a tracked
+   repo file. Fixed at e9ec9a1.
+
+**One test was split, not made flaky.** The .env/private.pem test also asserted REVIEW-PROMPT.md
+was present; that assertion failed once — correctly, because the file was missing — and the fix
+followed. The secret-file case itself never failed. The two properties are now separate tests. Mason's
+candidate for a real flake — two reviews in the same repo inside one second share
+eview-<utc second>/ — is a naming risk, not something this suite can trigger deterministically
+from outside; it is on the record instead of being covered by a test that only sometimes runs.
+
+**The R5 split is environmental and auto-detected.** git for Windows runs hooks through its own
+sh.exe, and under this host's sandbox sh.exe cannot create its named objects
+(NtCreateDirectoryObject(...msys-2.0S5-...): 0xC0000022) — the same limitation that makes git
+clone impossible here. So *every* hook fails to start, which means the git-level tests cannot measure
+anything: the block test would pass because sh crashed, not because the gate failed. _git_sh_works()
+probes it with a **trivial foreign hook**, never one of ours, so a broken installer cannot skip its own
+tests. The five git-level tests skip with that reason; four tests execute the installed hook's exec
+line directly (passing → exit 0 and a passing kind: gate record the audit accepts, failing → exit 1,
+python off PATH → still exit 0), and the body's marker and absolute paths are pinned on the text.
+On a host where sh works, the five come back.

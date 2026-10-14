@@ -36,12 +36,60 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shlex
+import shutil
 import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import pytest
 
 import _support
 
 REQUIREMENTS = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
 HOOK = ".git/hooks/pre-commit"
+
+
+# --- can git start a hook on this host? ---------------------------------------
+
+
+def _git_sh_works() -> bool:
+    """True when git can actually run a hook here.
+
+    git for Windows runs hooks through its own ``sh``, and under this host's sandbox ``sh.exe`` cannot
+    create its named objects (``NtCreateDirectoryObject(...msys-2.0S5-...): 0xC0000022``), so *every*
+    hook fails to start. Probed with a trivial, correct, foreign hook — never with one of ours, so a
+    broken installer cannot make this return False and skip its own tests.
+    """
+    try:
+        root = Path(tempfile.mkdtemp(prefix="keel-sh-probe-"))
+    except OSError:  # pragma: no cover - the writable-root policy in conftest owns this
+        return False
+    try:
+        _support.write(root / "f.txt", "x\n")
+        hook = root / ".git" / "hooks" / "pre-commit"
+        # init_repo commits once, before the hook exists
+        _support.init_repo(root)
+        _support.write(hook, "#!/bin/sh\nexit 0\n")
+        _support.write(root / "f.txt", "y\n")
+        _support.git(root, "add", "-A")
+        return _support.git(root, "commit", "-m", "probe").returncode == 0
+    except Exception:  # noqa: BLE001 - any failure here means no hook can run
+        return False
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+_GIT_SH = _git_sh_works()
+_SH_REASON = (
+    "git cannot start a hook on this host: its sh.exe fails with "
+    "NtCreateDirectoryObject(...msys-2.0S5-...): 0xC0000022, measured with a trivial correct hook. "
+    "The git-level half of R5 is not verifiable here; the hook command itself is tested directly in "
+    "test_the_hook_command_runs_the_gates_and_records_them and "
+    "test_the_hook_command_does_not_need_python_on_the_path."
+)
+needs_git_sh = pytest.mark.skipif(not _GIT_SH, reason=_SH_REASON)
 
 
 def _hook_repo(scratch, gate_body: str = "print('ok')\n", *, anchor: bool = True):
@@ -78,6 +126,7 @@ def test_the_hook_command_exists(scratch):
 # --- 1. the hook does something -----------------------------------------------
 
 
+@needs_git_sh
 def test_the_installed_hook_blocks_a_commit_when_a_ratified_gate_fails(scratch):
     repo, _ = _hook_repo(scratch, "import sys\nprint('bad')\nsys.exit(1)\n")
     installed = _support.keel("hook", "install", str(repo))
@@ -91,6 +140,7 @@ def test_the_installed_hook_blocks_a_commit_when_a_ratified_gate_fails(scratch):
     assert _head(repo) == before, "the commit was created despite a failing gate"
 
 
+@needs_git_sh
 def test_the_installed_hook_lets_a_commit_land_when_the_gate_passes(scratch):
     """The control for the test above: same fixture, passing gate. If this fails too, the block was
     git's and not the hook's."""
@@ -108,6 +158,7 @@ def test_the_installed_hook_lets_a_commit_land_when_the_gate_passes(scratch):
 # --- 2. the hook's run is the record the audit reads --------------------------
 
 
+@needs_git_sh
 def test_a_hook_run_satisfies_the_audits_run_record_check(scratch):
     """The hook must leave a `kind: gate` line with `result: pass`, or the audit reads the tool's own
     hook as a bypass. The observable is the audit's exit code, not the record's contents."""
@@ -200,6 +251,7 @@ def test_the_installed_hook_is_a_posix_script_without_crlf(scratch):
     assert b"\r\n" not in raw, "the hook has CRLF line endings; git's sh will not run it reliably"
 
 
+@needs_git_sh
 def test_the_hook_runs_when_the_commit_is_made_from_a_subdirectory(scratch):
     """A hook that assumes the invoking cwd is the repository root blocks or misrecords commits made
     from anywhere else."""
@@ -217,6 +269,7 @@ def test_the_hook_runs_when_the_commit_is_made_from_a_subdirectory(scratch):
     assert _head(repo) == before
 
 
+@needs_git_sh
 def test_a_passing_commit_lands_when_python_is_not_on_the_path(scratch):
     """git for Windows runs hooks through its own `sh` with whatever PATH it inherits. A hook that
     invokes a bare `python`/`keel` then fails to start, and a failing hook blocks **every** commit —
@@ -243,3 +296,85 @@ def test_a_passing_commit_lands_when_python_is_not_on_the_path(scratch):
         f"{_support.combined(commit)}"
     )
     assert _head(repo) != before, "the commit did not land"
+
+
+# --- the hook body, without git's sh ------------------------------------------
+
+
+def _hook_argv(repo) -> tuple[list[str], str | None]:
+    """The command and PYTHONPATH the installed hook would run, read out of the file it wrote."""
+    text = (repo / HOOK).read_text(encoding="utf-8")
+    argv: list[str] = []
+    pythonpath = None
+    for line in text.splitlines():
+        if line.startswith("PYTHONPATH="):
+            pythonpath = line.split("=", 1)[1].split("${")[0].strip().strip('"')
+        elif line.startswith("exec "):
+            argv = shlex.split(line[len("exec "):])
+    return argv, pythonpath
+
+
+def _run_hook_body(repo, *, path: str | None = None):
+    argv, pythonpath = _hook_argv(repo)
+    assert argv, "the installed hook has no `exec` line"
+    env = {**os.environ}
+    if pythonpath:
+        env["PYTHONPATH"] = pythonpath
+    if path is not None:
+        env["PATH"] = path
+    return subprocess.run(argv, cwd=repo, capture_output=True, text=True, encoding="utf-8", env=env)
+
+
+def test_the_hook_command_runs_the_gates_and_records_them(scratch):
+    """What git would execute, executed directly: the hook's own exit status is the whole decision
+    git makes on it. Passing → 0 and a `kind: gate` record with `result: pass`, which is what makes
+    the audit clean afterwards."""
+    repo, _ = _hook_repo(scratch, "print('ok')\n")
+    assert _support.keel("hook", "install", str(repo)).returncode == 0
+
+    proc = _run_hook_body(repo)
+
+    assert proc.returncode == 0, f"the hook command failed on a passing gate:\n{_support.combined(proc)}"
+    lines = [json.loads(l) for l in (repo / ".keel" / "runs.jsonl").read_text(
+        encoding="utf-8").splitlines() if l.strip()]
+    assert any(o.get("kind") == "gate" and o.get("result") == "pass" for o in lines), (
+        "the hook command left no passing gate record, so the audit would read it as a bypass")
+    assert _support.audit(repo).returncode == 0, "the audit does not accept the hook's own record"
+
+
+def test_the_hook_command_exits_non_zero_on_a_failing_gate(scratch):
+    repo, _ = _hook_repo(scratch, "import sys\nsys.exit(1)\n")
+    assert _support.keel("hook", "install", str(repo)).returncode == 0
+
+    proc = _run_hook_body(repo)
+
+    assert proc.returncode != 0, "a failing gate produced exit 0; git would let the commit through"
+
+
+def test_the_hook_command_does_not_need_python_on_the_path(scratch):
+    """The PATH hazard without git: the interpreter and the import root are absolute in the body."""
+    repo, _ = _hook_repo(scratch, "print('ok')\n")
+    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    path = os.pathsep.join(
+        p for p in os.environ.get("PATH", "").split(os.pathsep) if p and "python" not in p.lower())
+
+    proc = _run_hook_body(repo, path=path)
+
+    assert proc.returncode == 0, (
+        "the hook command needs python on PATH, so it would block every commit:\n"
+        f"{_support.combined(proc)}")
+
+
+def test_the_hook_body_carries_the_marker_and_absolute_paths(scratch):
+    """The marker is what makes idempotence and never-clobber compatible at all; the absolute paths
+    are what make the hook independent of git's environment."""
+    repo, _ = _hook_repo(scratch)
+    assert _support.keel("hook", "install", str(repo)).returncode == 0
+
+    text = (repo / HOOK).read_text(encoding="utf-8")
+    argv, pythonpath = _hook_argv(repo)
+
+    assert "# keel-hook v1" in text, (
+        "the hook has no marker, so a second install cannot tell its own hook from a foreign one")
+    assert argv and Path(argv[0]).is_absolute(), f"no absolute interpreter: {argv[:1]}"
+    assert pythonpath and Path(pythonpath).is_absolute(), f"no absolute import root: {pythonpath!r}"

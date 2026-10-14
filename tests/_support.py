@@ -45,7 +45,7 @@ def write(path: Path, text: str) -> Path:
 
 
 def charter_text(*, frozen: str = FROZEN_SENTINEL, requirements=(), gates=(),
-                 ratified: str | None = None, omit_sections=()) -> str:
+                 ratified: str | None = None, omit_sections=(), review_required: bool = False) -> str:
     """A complete charter: all six required sections, so a baseline has no other divergence.
 
     requirement tuples: (id, text, enforced_by, checked_by, state)
@@ -74,12 +74,20 @@ def charter_text(*, frozen: str = FROZEN_SENTINEL, requirements=(), gates=(),
         "## Scopes", "project", "",
     ]
     if gates:
-        gate_rows = "\n".join("| {} | {} | {} |".format(*g) for g in gates)
-        parts += ["## Gates", "", "| gate | path | hash |", "|---|---|---|", gate_rows, ""]
+        # D15: a `## Gates` row may carry a fourth column, `kind`, which defaults to `gate`. The
+        # column is emitted only when a fixture uses it, so the three-column shape stays the default.
+        wide = any(len(g) == 4 for g in gates)
+        header = "| gate | path | hash | kind |" if wide else "| gate | path | hash |"
+        rule = "|---|---|---|---|" if wide else "|---|---|---|"
+        gate_rows = "\n".join("| " + " | ".join(str(x) for x in g) + " |" for g in gates)
+        parts += ["## Gates", "", header, rule, gate_rows, ""]
     if ratified is not None:
         # D12: one canonical spelling, a plain line. Other spellings still parse, so a fixture that
         # used one would keep working and quietly stop testing the format.
         parts += ["## Ratification", "", f"Ratified at: {ratified}", ""]
+    if review_required:
+        # D15: the charter's own declaration that a missing review is divergence, canonical spelling.
+        parts += ["## Review", "", "Review: required", ""]
     text = "\n".join(parts) + "\n"
     for section in omit_sections:
         text = _drop_section(text, section)

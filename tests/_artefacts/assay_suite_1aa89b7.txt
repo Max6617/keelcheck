@@ -1,0 +1,7 @@
+# keel test suite - keel@1aa89b7
+# measured: 2026-10-14T22:09:19.8065385+02:00
+# git status --short: ' M docs/ARTEFACT-MAP.md  M tests/_support.py  M tests/test_hook_cli.py ?? .mason-tmp/ ?? tests/test_review_cli.py'
+# pytest:
+.............................................sss.....ss................. [ 77%]
+.....................                                                    [100%]
+88 passed, 5 skipped in 233.10s (0:03:53)

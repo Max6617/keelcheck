@@ -701,8 +701,10 @@ shortfall is the finding.
   `[gate-unratified] reviewer: declared in the working charter but not ratified at 688fce8` — a check I did not
   know the tool had, and the one that makes the whole state fail-closed rather than silent. R4's cell now says
   which half is enforced (the command identity) and which is not (the runner that starts one).
-  **So the word closes it**: an anchor-move commit naming `3d04f31`, then one gate run whose pass row is the only
-  one at `973d639a…` and therefore the newest, then two audits.
+  **So the word closes it**: an anchor-move commit naming the **then-current HEAD** — `3d04f31` is where the rows
+  were set, and everything above it is state, the publish checklist and the licence, none of which touch the
+  three gate files, so any later commit carries the same three rows and the reference reads them identically —
+  then one gate run whose pass row is the only one at `973d639a…` and therefore the newest, then two audits.
 - **Found by comparing our gate with rentguard's fix (`f832596`): a tracer sees only the thread that installed
   it.** `tools/coverage.py:189` and `tools/_child_trace.py:67` call `sys.settrace(tracer)` and nothing else,
   while `keelcheck/review.py:308-309` runs `_drain` on two daemon threads — package lines counted in the

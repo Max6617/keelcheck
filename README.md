@@ -130,10 +130,10 @@ why both read as fine. The catalogue now prints all six.
 
 ## Install and run
 
-**Nothing is installable yet, and I did not install it here.** `pyproject.toml` (2151 bytes, 46
-lines) declares the entry point `keelcheck = "keelcheck.cli:main"`, `requires-python = ">=3.10"` and no
-dependencies — but installing it would mutate the shared interpreter environment other bots are using,
-so this page reports only the zero-install form, which I ran on Python 3.12.6 from the repository root:
+**Nothing is installable from an index yet; the wheel builds and installs, measured at `c5168d0`
+(2026-10-15) into a fresh virtual environment, so nothing shared is mutated.** `pyproject.toml` (2151
+bytes, 46 lines) declares the entry point `keelcheck = "keelcheck.cli:main"`, `requires-python =
+">=3.10"` and no dependencies. The zero-install form was run on Python 3.12.6 from the repository root:
 
 ```
 python -m keelcheck --help                       # exit 0 — seven commands, no `mcp`
@@ -144,6 +144,28 @@ python -m keelcheck gate hash keelcheck/cli.py   # exit 0 — the hash a gate ro
 python -m keelcheck review --help                # exit 0 — the clean-context runner
 python -m keelcheck hook install <repo>          # installs the pre-commit hook (R5); `hook status` is read-only
 ```
+
+**The install, measured at `c5168d0`** (Scribe, 2026-10-15): the wheel is built from the checkout,
+installed into a clean venv, and the console script is run from that venv — the install concern above is
+answered by the venv rather than by not installing.
+
+```
+python -m pip wheel . --no-deps --no-build-isolation -w dist
+#   Created wheel for keelcheck: filename=keelcheck-0.0.1-py3-none-any.whl size=55005 sha256=c05efef8…
+# Successfully built keelcheck       [27 s, exit 0]
+
+<venv>\Scripts\python.exe -m pip install --no-index --no-deps dist/keelcheck-0.0.1-py3-none-any.whl
+# Successfully installed keelcheck-0.0.1
+
+keelcheck --version                    # keelcheck 0.0.1        [exit 0]
+keelcheck gate hash keelcheck/cli.py   # sha256:79885adac75a12d83afa49f5cea59f65e159f0332a0e929935d30dc4340df2c0
+```
+
+Two flags are load-bearing on this host and neither is needed on a machine with network:
+`--no-build-isolation`, because an isolated build waits at `Installing build dependencies: started`
+fetching the `setuptools>=68` that `pyproject.toml` requires (measured here: still there after 7
+minutes, then killed); and `--no-index --no-deps`, because there is nothing to resolve. The digest above
+is the one at `c5168d0` and will differ from any recorded earlier, since the file changes.
 
 `keelcheck review <repo> --reviewer "<command>"` runs a command keelcheck never sees a shell for, with a
 `.git`-less export as its working directory and the ratified prompt on stdin; it returns one JSON object

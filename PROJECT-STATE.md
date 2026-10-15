@@ -626,3 +626,10 @@ shortfall is the finding.
   Bot with two conversations is still one writer per file.** A lane that works in a group treats a parallel
   instance's write as another writer's and reads before writing; the alternative is two versions of one
   snapshot, which is the failure this project exists to catch.
+- **Machine convention (B15 in `BOTTLENECKS.md`, Warden's record, 2026-10-15): heavy runs are serialised.**
+  At most one whole-suite run, gate run under the tracer, or fit campaign at a time; the lane that needs the
+  floor writes one line — lane, what, started, expected bound — and clears it, so a timing estimate is valid
+  only while its own claim is the only one held. **A frozen log is not evidence of a live run**: check the
+  process, because a killed run's log stops exactly where it stopped and looks identical to a hang. The
+  reason this is a rule here rather than advice: the milestone's own record depends on a suite finishing
+  inside a bound, and shared load is what turns a pass into a clock failure.

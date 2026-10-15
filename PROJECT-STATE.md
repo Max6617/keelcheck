@@ -613,3 +613,9 @@ shortfall is the finding.
 - **Open, and stated as such:** the drift column names **2 of the 5** by-hand defects, not 5 of 5 — that is
   the result rather than a run to be re-cut; and the review half's prior-context and deliberate-escape
   residuals stay named rather than closed.
+- **Ruling 2026-10-15 (Gilbert): recorded artefacts are evidence, so they are not rewritten — but new ones
+  must not carry the host's absolute paths.** `tests/_artefacts/` ships 39 matches of the author's machine
+  (`C:\Users\besen\.dsh\…`), which the R7 drift review called unrequested in rentguard's tree; the fix is not
+  a rewrite, because a rewritten transcript is a falsified one. Instead: captures normalise the checkout root
+  to a placeholder **at write time**, and the existing files stand as they are with one line saying whose
+  machine they record. Pre-publication item, owned by whoever writes the artefact, not a live blocker.

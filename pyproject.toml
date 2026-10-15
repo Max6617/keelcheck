@@ -31,11 +31,16 @@ packages = ["keel"]
 # pytest's transient cache directories (`pytest-cache-files-*`) were created in the repository root
 # mode 0700, and on this host a confined directory under the root then breaks *collection* -- two
 # errors and exit 2 in the worktree while the same revision from `git archive` is green. Keeping the
-# existing ignore rule does not stop pytest recursing into them, so the cache is pinned here and
-# `testpaths` keeps collection inside `tests/` whatever else is lying in the root (F4, twice; the
-# second time it was blocking the coverage gate). Note: `cache_dir` is a valid key, but it is
-# reported as unknown when a run passes `-p no:cacheprovider`, which is why the warning is not a
-# sign that this table is in the wrong place.
-cache_dir = ".pytest_cache"
+# existing ignore rule does not stop pytest recursing into them, so `testpaths` keeps collection
+# inside `tests/` whatever else is lying in the root (F4, twice; the second time it was blocking the
+# coverage gate).
+#
+# `cache_dir` is deliberately **not** set here, though it is a valid key. The gate runs pytest with
+# `-p no:cacheprovider`, which disables the plugin that owns the key, so pytest then reports the key
+# as unknown -- a correct configuration reading as a broken one, which is what Gilbert measured. The
+# underlying host condition is measured too (2026-10-15): pytest creates its cache directory through
+# `tempfile.TemporaryDirectory` (mode 0700) and this sandbox refuses writes inside such a directory,
+# so a run that keeps the plugin leaves another `pytest-cache-files-*` behind and warns. Nothing here
+# changes that; `testpaths` and `norecursedirs` are what make it harmless.
 testpaths = ["tests"]
 norecursedirs = [".*", "build", "dist", "*.egg", "pytest-cache-files-*", "node_modules"]

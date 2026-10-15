@@ -634,3 +634,50 @@ shortfall is the finding.
   process, because a killed run's log stops exactly where it stopped and looks identical to a hang. The
   reason this is a rule here rather than advice: the milestone's own record depends on a suite finishing
   inside a bound, and shared load is what turns a pass into a clock failure.
+
+## 2026-10-15 — the pending gate change, and the order that closes the milestone (Gilbert)
+
+- **The audit's live state, measured at `9e00e60` (`keelcheck audit .`, 4.8 s):** two divergences —
+  `[gate] suite: … its content hash changed since ratification (sha256:c0b4c4ca1… -> sha256:b4a8ae1ef…)`
+  and `[gate-record] suite: the recorded run of this gate did not pass (result: fail, timeout)`. Plus
+  `REVIEW (clean context, R4): missing`, which is **reported and not required** (the charter's own word),
+  so it is not a divergence and does not fail the audit. Those two are the whole distance to a clean audit.
+- **The file behind the first one is a gate change, not housekeeping.** The working tree carries the 3.13
+  tracer filter in `tools/coverage.py` (`{n for n in … if isinstance(n, int)}`): working tree
+  `sha256:b4a8ae1e…` against HEAD and the ratified row at `sha256:c0b4c4ca…`. Ruling: it lands (Mason's
+  lane, his commit) and the row moves in the same charter pass as the review prompt's new hash, under one
+  re-ratification from Max.
+- **Measured here, independent of Assay's rentguard measurement, and it cannot move the numbers:** over
+  `keelcheck/` (13 files) on this host, **3.12.6** gives 2451 executable lines, raw keys 2451, `None` keys
+  **0**; **3.13.15** gives the same **2451** integer lines, raw keys **2461**, `None` keys **10** (one each
+  in 10 of the 13 files). Identical line numbers on both, one unhittable denominator entry per file on
+  3.13, and the filter is a **no-op on 3.12** — the interpreter the gate run uses. Without it one tree
+  prints two denominators 0.41 points apart; with it, one floor means one thing.
+- **Read from the code, not assumed — where the ratified side comes from, and what that means for the
+  run.** `load_reference` reads the charter **at `Ratified at:`** (`git show <anchor>:CHARTER.md`) and the
+  gate file's bytes at that same commit; `_gate_runs` matches a recorded run by
+  `obj["gate"] == name and obj["hash"] == gate.hash`, where `gate` is the **reference** row; and a
+  working-tree row whose hash differs from the ratified table is its own divergence — *"editing the
+  working-tree hash does not re-ratify a gate (D1)"*. So a passing run recorded at the **new** script hash
+  satisfies `[gate-record]` the moment the anchor names a commit whose charter carries that hash, **with no
+  second run**. That is why the run is taken first and the anchor move closes it.
+- **What the re-ratification will look like in the record, so nobody reads it as breakage:** one commit
+  carrying the new row values, then the anchor line pointing at it (`041689b` → `688fce8` is the shape); the
+  first audit after that names the move and the table change —
+  `[anchor-moved]` plus one `[gate-table]` per moved row — and the audit after *that* is clean. Honest and
+  intended: the anchor moving is a human event, reported once.
+- **Landed here and now: the prompt's denominator** — `ee70da3`, `review-prompt.md` rule 3, the
+  `review-prompt` row's hash moving from `sha256:90df6ebc…` to
+  `sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91`. Rule 3 named the fields but
+  never fixed what they count, while the runner parks four of its own files in the directory it hands over
+  (`REVIEW-PROMPT.md`, `FROZEN-ORIGINAL.md`, `MECHANICAL-FINDINGS.txt`, `KEELCHECK-MANIFEST.json`), so a
+  two-file export read as six and an honest reviewer counting the directory was recorded `inconsistent` by
+  `validate_output`'s `total != handed` check. The instruction gets stricter, and the row is a **proposal**
+  until the anchor names it.
+- **Still pending, in order:** Mason commits the filter (tree clean); my gate run under B15, with its claim
+  line written before it starts; then the one charter pass — the two new hashes, R4's stale workspace
+  citation (`keel/research/drift-review-design.md` no longer resolves as written), the adapter's two
+  permissions — held **uncommitted as a plan** rather than left in the tree, because a dirty tree is what my
+  own run rule refuses and because a row under an old anchor would read as ratified when it is not; then
+  Max's word; then two audits. A lane's in-flight edit (this minute: `README.md`, Folio) dirties the tree
+  the same way, which is the one honest reason my run has not started yet.

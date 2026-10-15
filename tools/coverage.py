@@ -64,6 +64,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import uuid
 from pathlib import Path
 from trace import _find_executable_linenos
@@ -187,6 +188,12 @@ def measure(argv: list[str], *, quiet: bool = False) -> tuple[dict[str, tuple[in
     directory = _child_setup()
     captured = io.StringIO()
     sys.settrace(tracer)
+    # `sys.settrace` reaches only the thread that calls it, and the package runs code on threads
+    # (`review.py` starts two daemon threads around `_drain`). Without this, every line that only ever
+    # runs on a thread sits in the denominator and can never be hit -- a number wrong in the direction
+    # nobody checks. Measured: 2026-10-15, `review.py` line 72 (inside `split_command`) ran on a worker
+    # thread and was not recorded before this line existed (tests/test_thread_trace.py).
+    threading.settrace(tracer)
     try:
         if quiet:
             # `--json` promises one JSON object on stdout. pytest's own banner goes there, so the
@@ -198,6 +205,7 @@ def measure(argv: list[str], *, quiet: bool = False) -> tuple[dict[str, tuple[in
             suite_status = int(pytest.main(argv))
     finally:
         sys.settrace(None)
+        threading.settrace(None)
         if directory is not None:
             try:
                 # Only this run's own directory: the outer run's hits are not this measurement's, and

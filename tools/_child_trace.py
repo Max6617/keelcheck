@@ -25,6 +25,7 @@ from __future__ import annotations
 import atexit
 import os
 import sys
+import threading
 from pathlib import Path
 
 __all__ = ["activate"]
@@ -65,6 +66,10 @@ def activate() -> None:
         return tracer
 
     sys.settrace(tracer)
+    # The child is what measures the modules, so the same rule as the parent's tracer: `sys.settrace`
+    # reaches only the calling thread, and a package line that only runs on a worker thread would sit in
+    # the denominator unhittable (see tools/coverage.py and tests/test_thread_trace.py).
+    threading.settrace(tracer)
 
     def flush() -> None:
         # Every directory the gate that started this process asked for, fixed at activation: a nested

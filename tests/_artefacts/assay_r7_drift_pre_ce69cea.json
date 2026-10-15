@@ -1,32 +1,299 @@
 {
-  "exit": 2,
-  "error": "the reviewer exited 1: claude-reviewer: no JSON object in the reviewer's output (exit 1)",
+  "exit": 1,
   "line": {
     "kind": "review",
-    "at": "2026-10-14T21:29:13Z",
+    "at": "2026-10-15T19:57:55Z",
     "commit": "ce69cea731511f02ea3005c133f232ad81400fbe",
     "ratified": null,
     "manifest": "sha256:8360b6bdceed335226eda0845d6c4f9fe7d936c0ab5665791f7e000e90bd74e7",
-    "context": "sha256:e494d3aa6f7bc5de09449b9ca76cff2ed10bdd07e1f99ef76abd565ef08a188a",
-    "prompt": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "context": "sha256:2377faea849b27ee137a0f52104156c2a289acbfd0baf8d3fe654258323cf1c8",
+    "prompt": "sha256:90df6ebca467f5a196c7c2a912297ffcf3cafb147fdc040ba3ce101eb0aff7f2",
     "prompt_path": "review-prompt.md",
     "prompt_ratified": true,
-    "ratified_in": "keel@117ac7c",
-    "working_copy_hash": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "ratified_in": "keel@688fce8",
+    "working_copy_hash": "sha256:90df6ebca467f5a196c7c2a912297ffcf3cafb147fdc040ba3ce101eb0aff7f2",
     "working_copy_differs": false,
     "command": [
       "C:\\Python312\\python.exe",
       "C:\\Users\\besen\\.dsh\\bot\\workspace\\keel\\tests\\_artefacts\\claude-reviewer.py"
     ],
-    "exit": 1,
-    "result": "error",
+    "exit": 0,
+    "result": "pass",
     "history_reachable": "unknown",
-    "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-8360b6bdceed-6708\\tree",
+    "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-8360b6bdceed-29268\\tree",
     "files": 47,
     "bytes": 381110,
     "truncated": false,
     "warnings": [],
-    "reason": "the reviewer exited 1: claude-reviewer: no JSON object in the reviewer's output (exit 1)"
+    "verdict": "divergence",
+    "items": {
+      "missing": 1,
+      "unrequested": 3,
+      "shifted": 10,
+      "verified": 14,
+      "unverified": 0
+    },
+    "unreviewed": [
+      "Whether anything was actually published (public repo, PyPI, announcement): the tree has no git remote or history to check, so the original's prohibition can be judged only by absence of evidence.",
+      "Whether the user was asked anything besides the publication approval: process history is not in the tree.",
+      "Whether the work was done 'with a dedicated Bot team': process, not state.",
+      "Whether the test suite and tools/coverage.py actually pass at this state: I read the tests but did not execute them, and test counts in the docs (74) do not match the tree (test_money_paths.py now has 34 tests).",
+      "Whether the real-GPU spend stayed 'within a small budget' beyond the documented M2 runs: the ledger itself (.rentguard/runs.jsonl) is not in the tree."
+    ],
+    "coverage": {
+      "files_seen": 47,
+      "files_total": 47
+    },
+    "claims": [
+      {
+        "class": "missing",
+        "subject": "Money-critical guard path: idle-stop clamp (F-5)",
+        "evidence": "guard.py",
+        "verified": true,
+        "why": "The original asked for the money-critical paths to be hardened with tests, but `_idle_minutes_since_boot`/`decide` still compare the provider's per-GPU idle seconds against the idle window without clamping to uptime, so a 32-second-old paid pod can be stopped, and no test in tests/ covers it, while CHARTER.md marks R3 'met'.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "MCP `rentguard_run` command handling",
+        "evidence": "mcp_server.py",
+        "verified": true,
+        "why": "`dispatch` passes `command.split()` to `cmd_run`, so `_remote_command` shell-quotes each word and a compound or quoted command (`a; b`, `>`, `-c 'print(1)'`) is mangled; the MCP run tool does not mean what CLI `run` means, and this is the same defect M2 run 1 found and fixed only on the CLI.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Documentation of `up --dry-run` (F-4)",
+        "evidence": "docs/limitations.md",
+        "verified": true,
+        "why": "limitations.md, cap.md, quickstart.md, VERIFICATION.md and KNOWN-FAILURES.md all say `--dry-run` calls create and has no test, but cli.py checks `dry_run` before the create loop and tests/test_money_paths.py::DryRunSpendsNothing covers it, so the docs describe a different tool from the one in the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Open-defect register",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "F-1 (state id erased on 404) and F-3 (fixed default instance name) are still listed as open, but `cli._pod` no longer clears the id, `_instance_name` now derives from the project root, and tests/test_known_failures.py and InstanceNaming cover both, which breaks the file's own rule that a defect leaves when a test covers it.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Quickstart configuration guidance",
+        "evidence": "docs/quickstart.md",
+        "verified": true,
+        "why": "It says the generated file writes `volume_name` (cli.py `_template` writes `volume_id`, and tests/test_init_config.py asserts that), and its sample TOML puts `state_dir` below `[runpod]`, the exact placement README.md says gets silently swallowed into the table.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "M2 pass criterion 6 ('closing total under $2')",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "The criterion is stated as the ledger's closing total being under $2, but the same page records $2.15 against the cap and marks the criterion passed by substituting the $0.017 sum of the two runs.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Real-GPU end-to-end proof record (charter R5/R4)",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "R5 claims '3 rentals, $0.0264' reconciled by hand, while docs/M2-REAL-RENTAL.md, CHANGELOG.md and docs/VERIFICATION.md record two rentals for $0.017; also R4 says watch never ran on a rented pod while W4 says a paid run's guard stopped a 32-second-old pod, so the proof the original asked for is recorded inconsistently.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Release-readiness status",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The status table says nothing remains before the publication question (and cites 58 tests), while CHARTER.md lists R2, R4 and R10 as NOT MET, the guard defect is open, and pyproject.toml deliberately omits the project URLs the checklist itself requires, so 'publishable' has been redefined downward.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "CHANGELOG MCP claim",
+        "evidence": "CHANGELOG.md",
+        "verified": true,
+        "why": "It says the MCP server lets agents 'rent, watch and stop machines', but mcp_server.py exposes no watch tool and docs/mcp.md states watch is not exposed.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Coverage target R10 (94% code / 100% features) with ratchet tooling",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "The frozen original sets no coverage target, yet tools/coverage.py, .github/workflows/ci.yml and CHARTER.md attribute a 94%/100% target to 'the user' and gate CI on a ratchet floor.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Tracked probe scripts and run transcripts in the release tree",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
+        "verified": true,
+        "why": "tests/_artefacts/ ships two probe scripts and seven UTF-16 PowerShell transcripts. They contain the local user path C:\\Users\\besen\\..., German shell error noise and stale FAILED runs, and nothing in the original asked for them in a publishable release.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Widening the no-publish rule to every project (W2 scope 'all')",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "The original's no-publish instruction concerns this rentguard release; the charter's Scopes section extends it into a rule for all projects.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "ssh known-hosts handling vs limitations doc",
+        "evidence": "runpod.py",
+        "verified": true,
+        "why": "`ssh_argv` hard-codes `UserKnownHostsFile=NUL` on every OS. cli.py `_ssh` only substitutes a `{null}` placeholder that is never present, so Linux and macOS get a file named NUL, while docs/limitations.md says NUL is used on Windows.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "Fake-provider demonstration transcript",
+        "evidence": "docs/fake.md",
+        "verified": true,
+        "why": "The 'real output' shown includes lines (healthy, crash_loop, disappear, idle decision) that the printed script cannot produce, so the transcript does not belong to the code beside it.",
+        "confidence": "low"
+      }
+    ]
   },
-  "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-8360b6bdceed-6708\\tree"
+  "review": {
+    "verdict": "divergence",
+    "items": [
+      {
+        "class": "missing",
+        "subject": "Money-critical guard path: idle-stop clamp (F-5)",
+        "evidence": "guard.py",
+        "verified": true,
+        "why": "The original asked for the money-critical paths to be hardened with tests, but `_idle_minutes_since_boot`/`decide` still compare the provider's per-GPU idle seconds against the idle window without clamping to uptime, so a 32-second-old paid pod can be stopped, and no test in tests/ covers it, while CHARTER.md marks R3 'met'.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "MCP `rentguard_run` command handling",
+        "evidence": "mcp_server.py",
+        "verified": true,
+        "why": "`dispatch` passes `command.split()` to `cmd_run`, so `_remote_command` shell-quotes each word and a compound or quoted command (`a; b`, `>`, `-c 'print(1)'`) is mangled; the MCP run tool does not mean what CLI `run` means, and this is the same defect M2 run 1 found and fixed only on the CLI.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Documentation of `up --dry-run` (F-4)",
+        "evidence": "docs/limitations.md",
+        "verified": true,
+        "why": "limitations.md, cap.md, quickstart.md, VERIFICATION.md and KNOWN-FAILURES.md all say `--dry-run` calls create and has no test, but cli.py checks `dry_run` before the create loop and tests/test_money_paths.py::DryRunSpendsNothing covers it, so the docs describe a different tool from the one in the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Open-defect register",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "F-1 (state id erased on 404) and F-3 (fixed default instance name) are still listed as open, but `cli._pod` no longer clears the id, `_instance_name` now derives from the project root, and tests/test_known_failures.py and InstanceNaming cover both, which breaks the file's own rule that a defect leaves when a test covers it.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Quickstart configuration guidance",
+        "evidence": "docs/quickstart.md",
+        "verified": true,
+        "why": "It says the generated file writes `volume_name` (cli.py `_template` writes `volume_id`, and tests/test_init_config.py asserts that), and its sample TOML puts `state_dir` below `[runpod]`, the exact placement README.md says gets silently swallowed into the table.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "M2 pass criterion 6 ('closing total under $2')",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "The criterion is stated as the ledger's closing total being under $2, but the same page records $2.15 against the cap and marks the criterion passed by substituting the $0.017 sum of the two runs.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Real-GPU end-to-end proof record (charter R5/R4)",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "R5 claims '3 rentals, $0.0264' reconciled by hand, while docs/M2-REAL-RENTAL.md, CHANGELOG.md and docs/VERIFICATION.md record two rentals for $0.017; also R4 says watch never ran on a rented pod while W4 says a paid run's guard stopped a 32-second-old pod, so the proof the original asked for is recorded inconsistently.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "Release-readiness status",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The status table says nothing remains before the publication question (and cites 58 tests), while CHARTER.md lists R2, R4 and R10 as NOT MET, the guard defect is open, and pyproject.toml deliberately omits the project URLs the checklist itself requires, so 'publishable' has been redefined downward.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "CHANGELOG MCP claim",
+        "evidence": "CHANGELOG.md",
+        "verified": true,
+        "why": "It says the MCP server lets agents 'rent, watch and stop machines', but mcp_server.py exposes no watch tool and docs/mcp.md states watch is not exposed.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Coverage target R10 (94% code / 100% features) with ratchet tooling",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "The frozen original sets no coverage target, yet tools/coverage.py, .github/workflows/ci.yml and CHARTER.md attribute a 94%/100% target to 'the user' and gate CI on a ratchet floor.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Tracked probe scripts and run transcripts in the release tree",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
+        "verified": true,
+        "why": "tests/_artefacts/ ships two probe scripts and seven UTF-16 PowerShell transcripts. They contain the local user path C:\\Users\\besen\\..., German shell error noise and stale FAILED runs, and nothing in the original asked for them in a publishable release.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "Widening the no-publish rule to every project (W2 scope 'all')",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "The original's no-publish instruction concerns this rentguard release; the charter's Scopes section extends it into a rule for all projects.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "ssh known-hosts handling vs limitations doc",
+        "evidence": "runpod.py",
+        "verified": true,
+        "why": "`ssh_argv` hard-codes `UserKnownHostsFile=NUL` on every OS. cli.py `_ssh` only substitutes a `{null}` placeholder that is never present, so Linux and macOS get a file named NUL, while docs/limitations.md says NUL is used on Windows.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "Fake-provider demonstration transcript",
+        "evidence": "docs/fake.md",
+        "verified": true,
+        "why": "The 'real output' shown includes lines (healthy, crash_loop, disappear, idle decision) that the printed script cannot produce, so the transcript does not belong to the code beside it.",
+        "confidence": "low"
+      }
+    ],
+    "counts": {
+      "missing": 1,
+      "unrequested": 3,
+      "shifted": 10,
+      "verified": 14,
+      "unverified": 0
+    },
+    "unreviewed": [
+      "Whether anything was actually published (public repo, PyPI, announcement): the tree has no git remote or history to check, so the original's prohibition can be judged only by absence of evidence.",
+      "Whether the user was asked anything besides the publication approval: process history is not in the tree.",
+      "Whether the work was done 'with a dedicated Bot team': process, not state.",
+      "Whether the test suite and tools/coverage.py actually pass at this state: I read the tests but did not execute them, and test counts in the docs (74) do not match the tree (test_money_paths.py now has 34 tests).",
+      "Whether the real-GPU spend stayed 'within a small budget' beyond the documented M2 runs: the ledger itself (.rentguard/runs.jsonl) is not in the tree."
+    ],
+    "coverage": {
+      "files_seen": 47,
+      "files_total": 47
+    }
+  },
+  "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-8360b6bdceed-29268\\tree",
+  "manifest": "sha256:8360b6bdceed335226eda0845d6c4f9fe7d936c0ab5665791f7e000e90bd74e7"
 }

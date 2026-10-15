@@ -590,11 +590,17 @@ shortfall is the finding.
 - **The gate's suite timeout is a bound against a hang, not against slowness**: `8f6f8ed` raised it
   600 → 1800 s, because every run on this host recorded `timeout` while the suite was merely slow. The run
   record still has to be written on a **clean** tree — my own runs refused to start on a dirty one, on purpose.
-- **R7's drift column is complete.** The two held reviews ran at `ce69cea` and `c512125` on Max's released
-  calls: **2 of 5 by-hand defects named at each of the three pre-fix revisions**, every finding quoted to its
-  revision, while the same reviewer on the current state names none of them. R7 reads: the mechanical pair
-  gives identical divergences at both ends; drift is not met as written on the current state; **met in part at
-  the pre-fix revisions** — the difference between those two readings is the demonstration.
+- **R7's drift column: the completion claim was wrong, and an independent read corrected it.** The two held
+  reviews ran at `ce69cea` and `c512125` on Max's released calls, and per the review JSONs the reviewer names
+  **2 of 5** by-hand defects at `bd63920` and `ce69cea` and **1 of 5** at `c512125` — while the **current**
+  state names **1**, the same guard-proof item (`[missing] R4`), in every case. So drift is **not met as
+  written** on the current state (1, not none) and **met in part** at the pre-fix revisions (1–2, not 2
+  across the board); the pre-fix pair adds the MCP-surface item where it was still missing. Verdict's
+  write-up is `VERDICT-keel-r7-drift-column.md`, and it also found the demonstration file disagreeing with
+  its own JSONs (`c512125` reads "0" there against 1 in the JSON), a false `history_reachable: unknown` for
+  the current-state run (which records `"none"`), and the record carrying the failed 401 calls rather than
+  the successful review lines. **R7's headline is a correction rather than a completion** — found by ordering
+  the check rather than by trusting the claim, which is the whole point of the half that works.
 - **The largest gap, found by Sift and measured** (`research/gap-review-half.md`): a four-line stub satisfied
   R4's presence check — it claimed 999,999 files in a 76-file export — because `validate_output` took the file
   counts from the reviewer's own JSON. Being closed by (i) comparing against the runner's manifest count and

@@ -4,9 +4,10 @@
 and the anchor moved at `041689b`. This file is the evidence behind that decision and is otherwise
 unchanged — the recommendation below is what it was before the decision.
 
-Companion to `name-keel.md`, which records why `keel` itself fails (that file is in the workspace at
-`research/name-keel.md`, one level above this repository; the two are not yet in the same directory).
-The user decides. Nothing here renames anything.
+Companion to `name-keel.md`, which records why `keel` itself fails. Both files now live in
+`keel/research/` — `name-keel.md` moved here on 2026-10-15 so that every `research/…` path a project
+file cites resolves inside the repository (D6's corollary; before the move it sat one level above the
+repo and the citation did not resolve). The user decides. Nothing here renames anything.
 
 **What the name has to do.** keel is a Python CLI: `pip install <name>`, a console script, `import
 <name>`. It is a charter-and-audit tool — one frozen human-approved original, requirements that name

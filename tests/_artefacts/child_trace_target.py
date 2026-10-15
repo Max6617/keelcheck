@@ -1,8 +1,8 @@
-"""A tiny pytest target that drives keel from **outside** — the D3 shape the tracer exists to follow.
+"""A tiny pytest target that drives keelcheck from **outside** — the D3 shape the tracer exists to follow.
 
 Named without a `test_` prefix so the normal suite never collects it; the coverage gate is given the
-path explicitly. One test, one subprocess: nothing here imports keel, which is the whole point — if
-the tracer works, `keel/audit.py` is reached from the child process or not at all.
+path explicitly. One test, one subprocess: nothing here imports keelcheck, which is the whole point — if
+the tracer works, `keelcheck/audit.py` is reached from the child process or not at all.
 """
 
 from __future__ import annotations
@@ -13,13 +13,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]  # tests/_artefacts/x.py -> tests -> keel/
+REPO = Path(__file__).resolve().parents[2]  # tests/_artefacts/x.py -> tests -> keelcheck/
 
 
 def test_drive_the_audit_in_a_subprocess():
-    record = Path(tempfile.mkdtemp(prefix="keel-trace-")) / "runs.jsonl"
+    record = Path(tempfile.mkdtemp(prefix="keelcheck-trace-")) / "runs.jsonl"
     proc = subprocess.run(
-        [sys.executable, "-m", "keel", "audit", str(REPO), "--record", str(record)],
+        [sys.executable, "-m", "keelcheck", "audit", str(REPO), "--record", str(record)],
         cwd=str(REPO), capture_output=True, text=True, encoding="utf-8",
         env={**os.environ, "PYTHONIOENCODING": "utf-8"}, timeout=300,
     )

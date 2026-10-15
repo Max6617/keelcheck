@@ -1,4 +1,4 @@
-"""R1's boundaries, driven from outside the package: `python -m keel.charter`.
+"""R1's boundaries, driven from outside the package: `python -m keelcheck.charter`.
 
 **Red against landed code, not a pin.** R1 landed at `489f47d` before these existed; a pin records an
 answer as *correct*, these record a hole. Every failure below is already in the working tree at
@@ -16,7 +16,7 @@ checked, and not reported:
    this one is green since Mason's D8 render fix, kept as the CLI-level control).
 
 **No test here may pass because the command crashed.** A non-zero exit is only an acceptable answer
-when it is a clean named refusal ("keel: ..."), never a traceback: otherwise a broken parser would
+when it is a clean named refusal ("keelcheck: ..."), never a traceback: otherwise a broken parser would
 turn every hole below into a pass. This is the guard `test_the_audit_command_exists_and_help_succeeds`
 plays for the audit.
 
@@ -84,7 +84,7 @@ def test_a_requirement_row_is_never_silently_dropped(scratch):
         assert "Traceback" not in out, f"{label}: the parser crashed instead of reporting:\n{out}"
         if proc.returncode != 0:
             # a refusal is acceptable, a crash is not: it must be named, not a stack trace
-            assert "keel:" in out, f"{label}: refused without naming the reason:\n{out}"
+            assert "keelcheck:" in out, f"{label}: refused without naming the reason:\n{out}"
             continue
         doc = json.loads(proc.stdout)
         parsed, present = len(doc["requirements"]), len(rows)
@@ -137,7 +137,7 @@ def test_the_two_minute_report_does_not_hide_a_requirement_backed_only_by_a_sent
     """The machine-readable path carries the column; the report the human reads must too (D8).
 
     A `checked-by` sentence is valid charter content, not an error: the CLI must exit 0 *and* print
-    it. keel's own R9 is exactly this shape, and a report that says "0 wishes, 0 asserted" is
+    it. keelcheck's own R9 is exactly this shape, and a report that says "0 wishes, 0 asserted" is
     reporting health it did not measure.
     """
     marker = "the user's word before any push"
@@ -163,7 +163,7 @@ def test_keel_charter_exit_codes_are_the_ones_d12_rules(scratch):
     """D12: "A file that is not a charter — or is unreadable — is exit 2 ... A charter that parses and
     has findings (a missing section, ...) is exit 1."
 
-    Measured at `55cd6d7`: all three exit 0. `keel charter` prints `MISSING SECTIONS:` and then does
+    Measured at `55cd6d7`: all three exit 0. `keelcheck charter` prints `MISSING SECTIONS:` and then does
     not act on it, so the command reads a file it cannot claim to have read as a charter.
     """
     req = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]

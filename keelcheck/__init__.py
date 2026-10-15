@@ -1,4 +1,4 @@
-"""keel -- charter and audit.
+"""keelcheck -- charter and audit.
 
 One frozen human-approved original; requirements that name the mechanism upholding them
 or are marked as wishes; gates kept as hashed locked code; an audit that reports

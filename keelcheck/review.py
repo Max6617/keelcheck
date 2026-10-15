@@ -1,6 +1,6 @@
 """The review command: start a reviewer with no history, and record what it was handed (R4).
 
-This is the half that makes keel different from its neighbours, and it is deliberately small: the
+This is the half that makes keelcheck different from its neighbours, and it is deliberately small: the
 reviewer is a **command the caller names**, run once with the export as its working directory and the
 prompt on its stdin, and its answer is one JSON object that is validated mechanically before anything
 is recorded. No model is needed to test any of it (a stub command is a complete test double), and no
@@ -60,7 +60,7 @@ def split_command(command: str) -> list[str]:
 
     ``shlex`` in posix mode eats Windows path separators, and in non-posix mode it keeps the
     quoting characters, so the quotes are removed here after a non-posix split. The caller writes
-    one string; keel never sees a shell.
+    one string; keelcheck never sees a shell.
     """
     if os.name == "nt":
         parts = shlex.split(command, posix=False)
@@ -465,7 +465,7 @@ def run_review(
     # records ``ratified: null``. D12 forbids an unanchored *audit*; a review does not need an anchor
     # to run -- freshness is the manifest, and the prompt's own ratification comes from its table
     # (``--prompt-repo``), which is independent of the audited charter's anchor. Measured before this:
-    # `keel review ../rentguard` exited 2 in 0 s, so the R7 demonstration input could not be reviewed
+    # `keelcheck review ../rentguard` exited 2 in 0 s, so the R7 demonstration input could not be reviewed
     # at all and had to be copied with an anchor added.
     try:
         audit.commit = gitcmd.head(repo)
@@ -573,7 +573,7 @@ def run_review(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="keel review",
+        prog="keelcheck review",
         description=(
             "start a reviewer with no history -- a .git-less export of the current state against "
             "the frozen original -- and record what it was handed (R4)"
@@ -646,7 +646,7 @@ def main(argv: list[str] | None = None) -> int:
         for warning in line.get("warnings", []):
             emit(f"  warning:  {warning['path']}: {warning['reason']}")
     if result.get("error"):
-        emit_err(f"keel review: {result['error']}")
+        emit_err(f"keelcheck review: {result['error']}")
     return result.get("exit", 2)
 
 

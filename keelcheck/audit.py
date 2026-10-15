@@ -100,7 +100,7 @@ class Audit:
 
         **Exit 2 dominates exit 1** (Gilbert's ruling, 2026-10-14): a run that could not establish its
         anchor did not do the job, so it must not be reported with the code that means it did. The
-        findings are still printed -- `keel audit ../rentguard`, a charter with no `Ratified at:`
+        findings are still printed -- `keelcheck audit ../rentguard`, a charter with no `Ratified at:`
         line, printed its divergences and exited 1, which D12 forbids. Vacuity is not special-cased
         here any more: without an anchor there is no reference to be vacuous about.
         """
@@ -116,7 +116,7 @@ class Audit:
 
     def render(self) -> str:
         out: list[str] = []
-        out.append(f"keel audit -- {self.repo}")
+        out.append(f"keelcheck audit -- {self.repo}")
         out.append(f"commit:   {self.commit or '(unknown)'}")
         out.append(f"charter:  {self.charter_path}")
         out.append(f"ratified: {self.ratified_at or '(not named -- this charter is not auditable)'}")
@@ -186,13 +186,13 @@ class Audit:
         else:
             out.append(
                 f"  no review line in {self.record_path.name}; run "
-                '`keel review <repo> --reviewer "<command>"` (D15)'
+                '`keelcheck review <repo> --reviewer "<command>"` (D15)'
             )
         return out
 
     def as_dict(self) -> dict:
         return {
-            "keel": "audit/1",
+            "keelcheck": "audit/1",
             "repo": str(self.repo),
             "commit": self.commit,
             "charter": str(self.charter_path),
@@ -221,7 +221,7 @@ class Audit:
         """
         assert self.charter is not None
         return {
-            "keel": "review-context/1",
+            "keelcheck": "review-context/1",
             "generated": record.now(),
             "repo": str(self.repo),
             "commit": self.commit,
@@ -383,7 +383,7 @@ def _check_run_record(audit: Audit, gate: Gate, name: str) -> None:
             "gate-record",
             name,
             f"no run record for this gate in {audit.record_path.name}: it has never been "
-            "executed by `keel gate run` (or the hook that calls it). A local hook is a "
+            "executed by `keelcheck gate run` (or the hook that calls it). A local hook is a "
             "detector, not a lock, so a bypass shows up as a missing record rather than a "
             "wrong one (D1, D3)",
         )
@@ -794,7 +794,7 @@ def run_audit(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="keel audit",
+        prog="keelcheck audit",
         description=(
             "audit a repository against its ratified charter: hash-locked gates, the "
             "frozen original, the wishes (R1-R3)"
@@ -825,8 +825,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    # A directory is turned into <dir>/runs.jsonl inside record.record_paths, so `keel audit`
-    # and `keel gate run` read the same argument the same way.
+    # A directory is turned into <dir>/runs.jsonl inside record.record_paths, so `keelcheck audit`
+    # and `keelcheck gate run` read the same argument the same way.
     audit = run_audit(
         args.repo,
         record_path=args.record,

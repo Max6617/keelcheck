@@ -1,6 +1,6 @@
 """Oracle probe: apply the literal charter rules to a real charter by hand.
 
-This is NOT the keel package. It is a throwaway measurement used to state, with
+This is NOT the keelcheck package. It is a throwaway measurement used to state, with
 numbers, what a mechanical audit of a charter can and cannot see. It exists so
 the R7 demonstration can be reported before the parser exists.
 

@@ -1,14 +1,14 @@
-# What the keel tests pin, and what they refuse to guess
+# What the keelcheck tests pin, and what they refuse to guess
 
 `tests/` is Proctor's lane. This file records the contract the tests are written against, so a test is
 never written against a guess (D3 in `../PROJECT-STATE.md`).
 
 ## The ruled contract (D3, corrected by D8)
 
-The audit is exercised **only through the CLI**, never through `keel/` internals:
+The audit is exercised **only through the CLI**, never through `keelcheck/` internals:
 
 ```
-python -m keel audit <path-to-repo>
+python -m keelcheck audit <path-to-repo>
 ```
 
 | exit | meaning |
@@ -36,8 +36,8 @@ and `.keel/review-context.json` (the runner's inputs for the clean-context revie
   record keeps the anchor **used on each run**, and when it differs from the previous entry the audit
   prints `[anchor-moved]`, names both SHAs and exits 1.
 - **A3** the record paths above, tracked by git; `--record <path>` overrides the location (needed for
-  the demonstration, because D4 keeps `rentguard/` read-only). `keel audit` accepts a directory and
-  writes `<dir>/runs.jsonl`; `keel gate run` does not yet — that is red in `test_gate_cli.py`.
+  the demonstration, because D4 keeps `rentguard/` read-only). `keelcheck audit` accepts a directory and
+  writes `<dir>/runs.jsonl`; `keelcheck gate run` does not yet — that is red in `test_gate_cli.py`.
 
 Only A1–A3's *shape* lives in `_support.ASSUMPTIONS`; the values above are ruled. One edit to
 `_support.py` still moves every test if a shape changes again.
@@ -54,11 +54,11 @@ test hashes raw worktree bytes.
 | file | what it is |
 |---|---|
 | `test_charter_silent_wish.py` | **Pins** of the parser's answers at `489f47d` (green on landing) plus one red — a `checked-by`-only requirement, hidden by the report. Mason's D8 render fix turned the red green; the pin set is unchanged. |
-| `test_parser_boundaries.py` | **Red against landed code**: a requirement row silently dropped when its id cell is empty or its id column is labelled something unknown; a `checked-by` cell holding a zero-width character or `&nbsp;`, which renders blank but is read as content. Driven through `python -m keel.charter`, never imports, with a **crash guard** — a traceback's non-zero exit is not an acceptable answer, or a broken parser would turn every hole into a pass. Both holes were open at `ec18e0c` and closed in Mason's uncommitted build; the tests stay as regressions. |
-| `test_audit_cli.py` | **Red against `HEAD`**: the adversarial set — a missing section, a gate edited after ratification, a hash rewritten in the working-tree charter, a gate with no run record, a CRLF worktree that must **not** read as a gate content change (D9), the append-only record, vacuity (D8), wishes non-fatal, `--fail-on-wish`, an unparseable charter, **the frozen original moving when the accepted recommendation is edited (D11/F9)**, and the clean-context file. The first test asserts `keel audit --help` exists, so no other test can pass because the command is unknown. |
-| `test_gate_cli.py` | **Two reds, four pins** on `keel gate run` / `keel gate hash`: a gate that **ran and failed** (or timed out) is recorded with the ratified hash, the audit accepts the record and reports **exit 0, no divergences**; and `--record <directory>` works for `keel audit` but not for `keel gate run`, which executes the gate and then exits 2 without recording it. Pins: an audit run never counts as a gate run (the skipped-gate property), a gate whose content changed is never executed, `hash`/`ratified` are D10's two sides, and `gate hash` is git-normalized (D9). |
+| `test_parser_boundaries.py` | **Red against landed code**: a requirement row silently dropped when its id cell is empty or its id column is labelled something unknown; a `checked-by` cell holding a zero-width character or `&nbsp;`, which renders blank but is read as content. Driven through `python -m keelcheck.charter`, never imports, with a **crash guard** — a traceback's non-zero exit is not an acceptable answer, or a broken parser would turn every hole into a pass. Both holes were open at `ec18e0c` and closed in Mason's uncommitted build; the tests stay as regressions. |
+| `test_audit_cli.py` | **Red against `HEAD`**: the adversarial set — a missing section, a gate edited after ratification, a hash rewritten in the working-tree charter, a gate with no run record, a CRLF worktree that must **not** read as a gate content change (D9), the append-only record, vacuity (D8), wishes non-fatal, `--fail-on-wish`, an unparseable charter, **the frozen original moving when the accepted recommendation is edited (D11/F9)**, and the clean-context file. The first test asserts `keelcheck audit --help` exists, so no other test can pass because the command is unknown. |
+| `test_gate_cli.py` | **Two reds, four pins** on `keelcheck gate run` / `keelcheck gate hash`: a gate that **ran and failed** (or timed out) is recorded with the ratified hash, the audit accepts the record and reports **exit 0, no divergences**; and `--record <directory>` works for `keelcheck audit` but not for `keelcheck gate run`, which executes the gate and then exits 2 without recording it. Pins: an audit run never counts as a gate run (the skipped-gate property), a gate whose content changed is never executed, `hash`/`ratified` are D10's two sides, and `gate hash` is git-normalized (D9). |
 | `test_cli_encoding.py` | `--json` on `rentguard/CHARTER.md` must survive a cp1252 stdout; the host's `PYTHONIOENCODING` is pinned inside the test, never inherited. Asserts `!= 2` and that the arrow round-trips, because D12 moved the exit code and `== 0` was asserting the fixture's cleanliness. |
-| `test_hook_cli.py` | **Red at `7371668`, built at `08771ce`.** Installer: a failing ratified gate must **block a commit** and a passing one must let it land (the second is the guard against a git-caused block); the hook must leave the `kind: gate` record the audit reads; an existing hook is never clobbered and `--force` keeps it as `pre-commit.keel-backup`; no anchor → install nothing, exit 2; idempotent; POSIX `#!/bin/sh` with no CRLF; the body carries a marker and absolute paths. **Five git-level tests skip on this host** (git's `sh.exe` cannot start — see below); the hook's command is executed directly by four others, so the *behaviour* of the body is still verified here. |
+| `test_hook_cli.py` | **Red at `7371668`, built at `08771ce`.** Installer: a failing ratified gate must **block a commit** and a passing one must let it land (the second is the guard against a git-caused block); the hook must leave the `kind: gate` record the audit reads; an existing hook is never clobbered and `--force` keeps it as `pre-commit.keelcheck-backup`; no anchor → install nothing, exit 2; idempotent; POSIX `#!/bin/sh` with no CRLF; the body carries a marker and absolute paths. **Five git-level tests skip on this host** (git's `sh.exe` cannot start — see below); the hook's command is executed directly by four others, so the *behaviour* of the body is still verified here. |
 | `test_review_cli.py` | **Red against `6810818`, closed at `e9ec9a1`/`18023d9`.** The clean-context review with stub reviewers: the state is always reported and is divergence only when required; verdict mapping (clean 0, partial/divergence/unverified 1); evidence checked against the export **and** the charter; malformed/error/timeout recorded with a reason and exit 2; fresh → stale on one byte → fresh again; a failed review never satisfies a required one, a partial one does (presence is mechanical); the prompt is a hashed artefact and a weakened one is refused before a review runs; the reviewer is never run through a shell; the export carries the prompt and no history, no secrets, no committed record directory; the vacuity message names what it tested. |
 
 ## The anchor test, and a fixture trap it exposed
@@ -99,16 +99,16 @@ Suite: **49 passed** at that commit. The three reds Proctor filed at `92cfeec` a
    divergence without an anchor still wins, so a missing section in an unratified charter stays 1.
    Test: `test_a_charter_with_no_ratification_pointer_cannot_run_honestly`.
 2. **D13's carve-out covers only the two paths *this run* writes**, at the `--record` location. With
-   the record elsewhere, `.keel/runs.jsonl` named in a cell is `[unbuilt]` — including keel's own R4
+   the record elsewhere, `.keel/runs.jsonl` named in a cell is `[unbuilt]` — including keelcheck's own R4
    when audited with `--record` outside the repo, which is a cell fix for Gilbert, not a code fix.
    Test: `test_the_unbuilt_carve_out_covers_only_what_this_run_writes`.
-3. **`keel charter` is exit 1 for a parsed charter with findings, 2 when the file is not a charter** —
+3. **`keelcheck charter` is exit 1 for a parsed charter with findings, 2 when the file is not a charter** —
    no `## Requirements` section is a format failure, exactly like a heading with no table.
    Test: `test_keel_charter_exit_codes_are_the_ones_d12_rules`.
 
 Fixed and pinned in the same round: a gate record counts only when its `result` is `pass`
-(fail/timeout/error each named with the recorded result); `keel gate run --record <dir>` and
-`keel audit --record <dir>` agree; the record header carries no anchor; `[anchor-moved]` names both
+(fail/timeout/error each named with the recorded result); `keelcheck gate run --record <dir>` and
+`keelcheck audit --record <dir>` agree; the record header carries no anchor; `[anchor-moved]` names both
 SHAs and fires once; a non-canonical pointer is `[format]` and quotes the line.
 
 **One test changed because D12 moved the exit code, not the subject.** `test_cli_encoding.py` used to
@@ -136,7 +136,8 @@ o-such-file.md and R999 both counted as verified, and
 was present; that assertion failed once — correctly, because the file was missing — and the fix
 followed. The secret-file case itself never failed. The two properties are now separate tests. Mason's
 candidate for a real flake — two reviews in the same repo inside one second share
-eview-<utc second>/ — is a naming risk, not something this suite can trigger deterministically
+
+eview-<utc second>/ — is a naming risk, not something this suite can trigger deterministically
 from outside; it is on the record instead of being covered by a test that only sometimes runs.
 
 **The R5 split is environmental and auto-detected.** git for Windows runs hooks through its own
@@ -157,7 +158,8 @@ On a host where sh works, the five come back.
   line records 	runcated: true, and the gate script a row names is still in the export along with
   the charter. ig.bin sorts before 	ools/gate.py, so a naive cap drops the named path first.
 - **--export DIR**: the tree lands under the caller's directory and the record points at it.
-- **The 1 MB stdout cap**: over it, esult: malformed and the reason names the cap.
+- **The 1 MB stdout cap**: over it, 
+esult: malformed and the reason names the cap.
 - **core.hooksPath**: the installer resolves the hooks directory through git, so the hook lands in
   .githooks/pre-commit and not in the default directory.
 

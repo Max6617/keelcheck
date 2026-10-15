@@ -11,7 +11,7 @@ for rev in ("bd63920", "ce69cea", "c512125"):
     subprocess.run(["git", "-C", str(RG), "worktree", "add", "--detach", str(wt), rev], capture_output=True)
     cmd = f'"{PY}" "{WRAPPER}"'
     proc = subprocess.run(
-        [PY, "-m", "keel", "review", str(wt), "--reviewer", cmd, "--prompt-repo", str(KEEL),
+        [PY, "-m", "keelcheck", "review", str(wt), "--reviewer", cmd, "--prompt-repo", str(KEEL),
          "--record", str(TMP / f"pre-{rev}.jsonl"), "--timeout", "600", "--json"],
         cwd=str(KEEL), capture_output=True, text=True, encoding="utf-8",
         env={"PYTHONIOENCODING": "utf-8", "PATH": __import__("os").environ["PATH"]})

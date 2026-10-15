@@ -1,7 +1,7 @@
 """The demonstration's reviewer wrapper, tested with a fake `claude` — no model, no call.
 
-The wrapper exists so that `claude -p`'s prose and code fences do not turn keel's own validation into
-guesswork: what reaches keel must be one JSON object, and when there is none the wrapper must exit
+The wrapper exists so that `claude -p`'s prose and code fences do not turn keelcheck's own validation into
+guesswork: what reaches keelcheck must be one JSON object, and when there is none the wrapper must exit
 non-zero instead of printing something plausible. A stand-in `claude` on `PATH` makes both branches
 deterministic and free.
 """
@@ -47,7 +47,7 @@ def _run_wrapper(scratch, prompt="review this", *, path_extra=None):
 
 
 def test_fenced_and_prose_wrapped_json_is_extracted_exactly(scratch):
-    """`claude -p` answers in prose and fences the object; keel must still receive one clean object."""
+    """`claude -p` answers in prose and fences the object; keelcheck must still receive one clean object."""
     payload = {"verdict": "clean", "items": [], "unreviewed": [],
                "coverage": {"files_seen": 1, "files_total": 1}}
     output = "Certainly — here is the review:\n\n```json\n" + json.dumps(payload) + "\n```\nDone.\n"

@@ -3,14 +3,14 @@
 R2 says a gate is a script recorded in the charter with a content hash. Two halves follow
 from that, and they are deliberately different commands:
 
-``keel gate run``
+``keelcheck gate run``
     the **runner**. It refuses to execute a gate whose content hash differs from the
     ratified one -- running unratified code is the thing the lock exists to prevent -- and
     it is the only producer of the ``kind: "gate"`` run records the audit reads. A local
     hook is a detector, not a lock (D2), so the runner's record is what makes a bypass
     visible as a *missing* record rather than a wrong one (D1).
 
-``keel gate hash``
+``keelcheck gate hash``
     the authoring half: the recorded form (``sha256:<64 hex>``) of a script's content,
     taken over the bytes git would store (D9). This is what a charter row records when a
     gate is ratified.
@@ -99,7 +99,7 @@ def run_gate_command(
 
     audit.reference = load_reference(repo, charter, audit)
     for finding in audit.findings:
-        emit_err(f"keel gate run: {finding.line().strip()}")
+        emit_err(f"keelcheck gate run: {finding.line().strip()}")
     if audit.reference is None:
         return [], 2, audit.cannot_run or "the ratified charter could not be read"
     gate_rows = [g for g in audit.reference.gates if g.kind == "gate"]
@@ -154,7 +154,7 @@ def _check_and_run(audit: Audit, gate: Gate, runs: Path, timeout: float) -> dict
         entry["warnings"] = warnings
     if current != gate.hash:
         entry["reason"] = (
-            "the gate's content does not match the ratified hash, and keel does not run "
+            "the gate's content does not match the ratified hash, and keelcheck does not run "
             "code that is not the ratified code (R2)"
         )
         return entry
@@ -186,7 +186,7 @@ def hash_command(repo: Path | str, path: str) -> tuple[str | None, list[str], st
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="keel gate",
+        prog="keelcheck gate",
         description="run the ratified gates, or compute the hash a gate row records (R2)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -207,9 +207,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "hash":
         value, warnings, error = hash_command(args.repo, args.path)
         for warning in warnings:
-            emit_err(f"keel: warning: {warning}")
+            emit_err(f"keelcheck: warning: {warning}")
         if error:
-            emit_err(f"keel gate hash: {error}")
+            emit_err(f"keelcheck gate hash: {error}")
             return 2
         if args.json:
             emit(json.dumps({"path": args.path, "hash": value, "warnings": warnings}, ensure_ascii=False))
@@ -224,7 +224,7 @@ def main(argv: list[str] | None = None) -> int:
         emit(json.dumps({"gates": results, "exit": exit_code, "error": error}, indent=2, ensure_ascii=False))
     else:
         if error:
-            emit_err(f"keel gate run: {error}")
+            emit_err(f"keelcheck gate run: {error}")
         for result in results:
             detail = f" exit {result['exit']}" if result["exit"] is not None else ""
             emit(f"gate {result['gate']}: {result['result']}{detail}")

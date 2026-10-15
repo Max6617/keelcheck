@@ -1,4 +1,4 @@
-"""Probe `keel gate run` / `keel gate hash` from outside. Scratch measurement, not a test.
+"""Probe `keelcheck gate run` / `keelcheck gate hash` from outside. Scratch measurement, not a test.
 
 Run: python .assay-tmp/gate-probe.py
 """
@@ -18,7 +18,7 @@ REQ = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")
 
 def cli(*args, cwd=None):
     return subprocess.run(
-        [sys.executable, "-m", "keel", *args],
+        [sys.executable, "-m", "keelcheck", *args],
         cwd=str(cwd or (WS / "keel")), capture_output=True, text=True, encoding="utf-8",
         env={**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONPATH": str(WS / "keel")},
     )
@@ -45,7 +45,7 @@ def audit(root, *extra):
     return cli("audit", str(root), *extra)
 
 
-print(f"# gate surface probe - keel@{subprocess.run(['git','-C',str(WS/'keel'),'rev-parse','--short','HEAD'],capture_output=True,text=True).stdout.strip()}")
+print(f"# gate surface probe - keelcheck@{subprocess.run(['git','-C',str(WS / 'keel'),'rev-parse','--short','HEAD'],capture_output=True,text=True).stdout.strip()}")
 ROOT.mkdir(parents=True, exist_ok=True)
 
 # 1. a skipped gate: does an audit run heal the missing gate record?
@@ -94,10 +94,10 @@ _support.git(r, "config", "core.autocrlf", "true")
 h = cli("gate", "hash", "tools/gate.py", "--repo", str(r))
 git_oid = _support.git(r, "hash-object", "--path=tools/gate.py", "tools/gate.py").stdout.strip()
 print("\n## 5. gate hash over a CRLF worktree")
-print(f"  keel gate hash = {h.stdout.strip()}")
+print(f"  keelcheck gate hash = {h.stdout.strip()}")
 print(f"  recorded hash  = {digest}")
 print(f"  git blob oid   = {git_oid}")
-print(f"  agree: keel==recorded {h.stdout.strip() == digest}")
+print(f"  agree: keelcheck==recorded {h.stdout.strip() == digest}")
 
 # 6. record line shapes
 r, _ = repo("shapes", "print('ok')\n")

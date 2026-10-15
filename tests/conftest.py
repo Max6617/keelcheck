@@ -1,10 +1,10 @@
-"""Test-run setup for the keel suite.
+"""Test-run setup for the keelcheck suite.
 
 Two environment jobs, both inherited from rentguard where they were measured, not guessed.
 
 **1. Temporary files that can actually be written.** On this host the sandbox creates ``tempfile``
 directories mode 0700 and then refuses writes inside them, so ``TemporaryDirectory``/``mkdtemp``
-fail wherever they are created. ``tests/_scratch.py`` owns the policy (``KEEL_SCRATCH`` else a
+fail wherever they are created. ``tests/_scratch.py`` owns the policy (``KEELCHECK_SCRATCH`` else a
 writable platform temp dir else a checkout sibling) and this hook points ``tempfile`` at the same
 root so the two cannot disagree.
 
@@ -27,7 +27,7 @@ import pytest
 TESTS = Path(__file__).resolve().parent
 REPO_ROOT = TESTS.parent
 
-# The package under test lives at <repo>/keel/, the tests at <repo>/tests/.
+# The package under test lives at <repo>/keelcheck/, the tests at <repo>/tests/.
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 

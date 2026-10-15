@@ -52,7 +52,7 @@ DEAD_RULE_WARNING = (
 
 
 class NormalizationError(RuntimeError):
-    """keel cannot prove that the bytes it hashed are the bytes git would store."""
+    """keelcheck cannot prove that the bytes it hashed are the bytes git would store."""
 
 
 @dataclass

@@ -1,4 +1,4 @@
-"""`keel gate run` / `keel gate hash`, driven from outside (R2, D1-D3, D9, D10).
+"""`keelcheck gate run` / `keelcheck gate hash`, driven from outside (R2, D1-D3, D9, D10).
 
 **Two reds against `78dfc0b`, four pins.** The reds are the two ways the enforced half can still
 report health it did not measure:
@@ -6,15 +6,15 @@ report health it did not measure:
 1. a gate that **ran and failed** (or timed out) is recorded with the ratified hash, the audit's
    record check accepts it, and the audit then reports **exit 0, no divergences** — the mechanism the
    requirement rests on is red and the tool says clean;
-2. `--record <directory>` works for `keel audit` (its `main` turns the directory into
-   `runs.jsonl`) but not for `keel gate run`, which tries to append to the directory as a file and
+2. `--record <directory>` works for `keelcheck audit` (its `main` turns the directory into
+   `runs.jsonl`) but not for `keelcheck gate run`, which tries to append to the directory as a file and
    exits 2 **after executing the gate** — the run happened and was not recorded, so the next audit
    reports a bypass that did not happen.
 
 The pins are the properties Mason built and stated, green on landing here and locked so they cannot
 silently move: an audit run never counts as a gate run; a gate whose content no longer matches the
 ratified hash is never executed; the recorded `hash` and `ratified` are the two different sides of
-D10; and `keel gate hash` is git-normalized across line endings (D9).
+D10; and `keelcheck gate hash` is git-normalized across line endings (D9).
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ def test_a_gate_that_ran_and_failed_does_not_leave_the_audit_clean(scratch):
     """
     _gated_repo(scratch, "import sys\nprint('bad')\nsys.exit(1)\n")
 
-    run = _support.keel("gate", "run", str(scratch))
+    run = _support.keelcheck("gate", "run", str(scratch))
     assert run.returncode == 1, f"precondition: the gate run reports the failure\n{_support.combined(run)}"
 
     proc = _support.audit(scratch)
@@ -74,7 +74,7 @@ def test_a_gate_that_timed_out_does_not_leave_the_audit_clean(scratch):
     """The same hole by the other route: a timeout is recorded with the ratified hash too."""
     _gated_repo(scratch, "import time\ntime.sleep(30)\n")
 
-    run = _support.keel("gate", "run", str(scratch), "--timeout", "1")
+    run = _support.keelcheck("gate", "run", str(scratch), "--timeout", "1")
     assert run.returncode == 1, f"precondition: the gate run reports the timeout\n{_support.combined(run)}"
 
     proc = _support.audit(scratch)
@@ -89,7 +89,7 @@ def test_a_gate_that_timed_out_does_not_leave_the_audit_clean(scratch):
 def test_gate_run_accepts_a_record_directory_like_the_audit_does(scratch):
     """Mason's surface note: `--record PATH` takes a file, or a directory (then PATH/runs.jsonl).
 
-    `keel audit` honours it; `keel gate run` does not, so the two commands disagree about the same
+    `keelcheck audit` honours it; `keelcheck gate run` does not, so the two commands disagree about the same
     argument — and the disagreement costs the run record, not just a message.
     """
     _gated_repo(scratch, "print('ok')\n")
@@ -99,9 +99,9 @@ def test_gate_run_accepts_a_record_directory_like_the_audit_does(scratch):
     _support.audit(scratch, "--record", str(records))
     assert (records / "runs.jsonl").is_file(), "precondition: the audit accepts a record directory"
 
-    run = _support.keel("gate", "run", str(scratch), "--record", str(records))
+    run = _support.keelcheck("gate", "run", str(scratch), "--record", str(records))
     assert run.returncode == 0, (
-        f"`keel gate run --record <dir>` failed after executing the gate:\n{_support.combined(run)}")
+        f"`keelcheck gate run --record <dir>` failed after executing the gate:\n{_support.combined(run)}")
     assert (records / "runs.jsonl").is_file()
 
 
@@ -114,7 +114,7 @@ def test_a_gate_that_could_not_be_executed_does_not_leave_the_audit_clean(scratc
     passed."""
     _gated_repo(scratch, "print('not runnable')\n", path="tools/gate.txt")
 
-    run = _support.keel("gate", "run", str(scratch))
+    run = _support.keelcheck("gate", "run", str(scratch))
     assert run.returncode == 1, f"precondition: the gate run reports the error\n{_support.combined(run)}"
 
     proc = _support.audit(scratch)
@@ -127,7 +127,7 @@ def test_a_passing_gate_run_is_what_makes_the_audit_clean(scratch):
     """The control for the three tests above: the same fixture, a gate that exits 0, exit 0."""
     _gated_repo(scratch, "print('ok')\n")
 
-    assert _support.keel("gate", "run", str(scratch)).returncode == 0
+    assert _support.keelcheck("gate", "run", str(scratch)).returncode == 0
     proc = _support.audit(scratch)
 
     assert proc.returncode == 0, (
@@ -145,7 +145,7 @@ def test_an_audit_run_never_counts_as_a_gate_run(scratch):
     assert skipped.returncode == 1, "a skipped gate healed itself"
     assert "[gate-record]" in _support.combined(skipped), "the missing record is not named"
 
-    ran = _support.keel("gate", "run", str(scratch))
+    ran = _support.keelcheck("gate", "run", str(scratch))
     assert ran.returncode == 0, f"the gate did not run clean\n{_support.combined(ran)}"
     after = _support.audit(scratch)
     assert after.returncode == 0, (
@@ -161,11 +161,11 @@ def test_gate_run_never_executes_a_gate_whose_hash_changed(scratch):
         "import pathlib\n"
         f"pathlib.Path({str(marker)!r}).write_text('ran')\n", encoding="utf-8")
 
-    run = _support.keel("gate", "run", str(scratch))
+    run = _support.keelcheck("gate", "run", str(scratch))
 
     assert run.returncode == 1, f"a changed gate was not refused\n{_support.combined(run)}"
     assert "locked" in _support.combined(run).lower(), "the refusal does not name the lock"
-    assert not marker.exists(), "keel executed a gate whose content is not the ratified content"
+    assert not marker.exists(), "keelcheck executed a gate whose content is not the ratified content"
 
     line = _gate_lines(scratch)[-1]
     assert line["result"] == "locked"
@@ -180,7 +180,7 @@ def test_gate_hash_is_git_normalized_across_line_endings(scratch):
     _support.git(scratch, "config", "core.autocrlf", "true")
     script.write_bytes(b"print('ok')\r\n")
 
-    proc = _support.keel("gate", "hash", "tools/gate.py", "--repo", str(scratch))
+    proc = _support.keelcheck("gate", "hash", "tools/gate.py", "--repo", str(scratch))
 
     assert proc.returncode == 0, _support.combined(proc)
     assert proc.stdout.strip() == digest, (

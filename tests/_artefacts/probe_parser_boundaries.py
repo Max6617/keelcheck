@@ -1,4 +1,4 @@
-"""Probe the R1 parser and the hash rule from outside, through `python -m keel.charter` and `git`.
+"""Probe the R1 parser and the hash rule from outside, through `python -m keelcheck.charter` and `git`.
 
 Artefact of measurement, not a test. Three families (Gilbert, 2026-10-14):
 
@@ -6,7 +6,7 @@ Artefact of measurement, not a test. Three families (Gilbert, 2026-10-14):
   B. a `checked-by` cell that is an empty string rather than an absent cell
   C. a gate hash over a file whose worktree line endings differ
 
-Nothing here imports `keel/`; every answer is read off the CLI, the same surface an audit would use.
+Nothing here imports `keelcheck/`; every answer is read off the CLI, the same surface an audit would use.
 
 `git clone` cannot run under this sandbox (msys fails to create its named objects), so the fresh
 checkout is reproduced with `checkout-index`, which applies the same smudge filter a clone would.
@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[1]  # keel/
+REPO = HERE.parents[1]  # keelcheck/
 ROOT = REPO.parent / ".assay-tmp" / "parser-boundaries"
 
 GIT_ENV = {
@@ -48,7 +48,7 @@ def charter(rows: list[str], header: str = HEADER) -> str:
 
 
 def run_parser(path: Path, json_out: bool = True) -> subprocess.CompletedProcess:
-    args = [sys.executable, "-m", "keel.charter", str(path)] + (["--json"] if json_out else [])
+    args = [sys.executable, "-m", "keelcheck.charter", str(path)] + (["--json"] if json_out else [])
     return subprocess.run(
         args, cwd=REPO, capture_output=True, text=True, encoding="utf-8",
         env={**os.environ, "PYTHONIOENCODING": "utf-8"},
@@ -115,7 +115,7 @@ def main() -> int:
     ROOT = ROOT / f"run-{os.getpid()}"
     ROOT.mkdir(parents=True, exist_ok=True)
     head = git(REPO, "rev-parse", "--short", "HEAD").stdout.strip()
-    print(f"# parser and hash boundaries - keel@{head}")
+    print(f"# parser and hash boundaries - keelcheck@{head}")
     print(f"# python {sys.version.split()[0]}; {cp(REPO, '--version')}")
     print(f"# host core.autocrlf = {cp(REPO, 'config', '--get', 'core.autocrlf') or '(unset)'}\n")
 

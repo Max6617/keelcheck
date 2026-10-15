@@ -15,7 +15,7 @@ from __future__ import annotations
 import pytest
 
 import _support
-from keel.charter import parse_file, render
+from keelcheck.charter import parse_file, render
 
 ABSENT_FORMS = ["", " ", "—", "-", "--", "–", "n/a", "NONE", "none"]
 
@@ -47,7 +47,7 @@ def test_pin_rentguard_is_still_missing_the_problems_section():
 
 
 def test_pin_keel_own_charter_is_complete_and_reports_no_wishes():
-    doc = parse_file(_support.KEEL_CHARTER)
+    doc = parse_file(_support.KEELCHECK_CHARTER)
     assert doc.missing_sections == []
     assert [r.id for r in doc.wishes] == []
 
@@ -77,7 +77,7 @@ def test_a_named_mechanism_or_check_takes_a_requirement_out_of_the_wishes(scratc
 
 
 @pytest.mark.skipif(not _support.RENTGUARD_CHARTER_LIVE.exists(),
-                    reason="rentguard/ is not checked out beside keel/ (expected in a clone)")
+                    reason="rentguard/ is not checked out beside keelcheck/ (expected in a clone)")
 def test_the_snapshot_still_matches_the_live_demonstration_input():
     """D4: rentguard/ is read-only while it is R7's input. If it ever changes, the pins above would
     silently keep measuring an old target; this fails so the snapshot is re-taken deliberately."""
@@ -97,7 +97,7 @@ def test_the_report_shows_which_requirements_are_backed_only_by_a_human_check(sc
     not a wish (by the rule), not `asserted_enforcement` (that class only reads `enforced-by`), and
     `render()` never prints `checked-by` — so the two-minute report is silent about it.
 
-    keel's own charter takes exactly this path: R9's *"nothing is published without the user's
+    keelcheck's own charter takes exactly this path: R9's *"nothing is published without the user's
     explicit word"* was moved from the wishes to `checked-by` when the user struck the wish, and the
     parser now reports **0 wishes, 0 asserted** for a project whose publication is guarded by a
     sentence. A report that cannot show that is reporting health it did not measure.

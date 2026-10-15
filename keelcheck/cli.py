@@ -1,12 +1,12 @@
-"""The keel command line: a bounded run that exits (R6).
+"""The keelcheck command line: a bounded run that exits (R6).
 
 No daemon, no server, no listening socket. Every command reads files, prints a report and
 returns.
 
-    keel charter <path>      parse a charter; a requirement naming no mechanism is a wish (R1)
-    keel audit   <repo>      hash-locked gates, the frozen original, the wishes (R2, R3)
-    keel gate    run <repo>  run the ratified gates and record the run (R2)
-    keel gate    hash <path> the hash a gate row records, over git-normalized content (D9)
+    keelcheck charter <path>      parse a charter; a requirement naming no mechanism is a wish (R1)
+    keelcheck audit   <repo>      hash-locked gates, the frozen original, the wishes (R2, R3)
+    keelcheck gate    run <repo>  run the ratified gates and record the run (R2)
+    keelcheck gate    hash <path> the hash a gate row records, over git-normalized content (D9)
 """
 
 from __future__ import annotations
@@ -21,9 +21,9 @@ from .hook import main as hook_main
 from .output import emit, emit_err
 from .review import main as review_main
 
-USAGE = """keel -- charter and audit
+USAGE = """keelcheck -- charter and audit
 
-usage: keel <command> [options]
+usage: keelcheck <command> [options]
 
 commands:
   charter <path>      parse a charter, report the requirements that name no mechanism (R1)
@@ -34,7 +34,7 @@ commands:
   hook install <repo> install the pre-commit hook that runs the ratified gates (R5)
   hook status <repo>  report which hooks are installed (R5)
 
-  keel <command> --help   for that command's options
+  keelcheck <command> --help   for that command's options
 """
 
 
@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
         emit(USAGE)
         return 0
     if argv[0] in ("-V", "--version", "version"):
-        emit(f"keel {__version__}")
+        emit(f"keelcheck {__version__}")
         return 0
 
     command, rest = argv[0], argv[1:]
@@ -59,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     if command == "hook":
         return hook_main(rest)
 
-    emit_err(f"keel: unknown command: {command}\n")
+    emit_err(f"keelcheck: unknown command: {command}\n")
     emit_err(USAGE)
     return 1
 

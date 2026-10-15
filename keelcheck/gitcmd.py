@@ -1,12 +1,12 @@
-"""The git plumbing keel depends on (D1, D9).
+"""The git plumbing keelcheck depends on (D1, D9).
 
 Git is not a convenience here, it is the reference side: the ratified gate table is read
 with ``git show <sha>:CHARTER.md`` (D1) and every content hash is verified against
 ``git hash-object`` so that the bytes hashed are the bytes git would store (D9).
 
 Read-only on purpose: nothing in this module writes to the object database, the index or
-the worktree. The only write keel makes anywhere is the run record, and that is a plain
-file (see :mod:`keel.record`).
+the worktree. The only write keelcheck makes anywhere is the run record, and that is a plain
+file (see :mod:`keelcheck.record`).
 """
 
 from __future__ import annotations

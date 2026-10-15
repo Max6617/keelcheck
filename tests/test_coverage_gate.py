@@ -3,7 +3,7 @@
 The gate runs the suite and measures the package. Two properties about it are properties of an honest
 measurement rather than a threshold:
 
-1. **The blind case refuses.** A run that reaches no keel code measures zero, and zero is a
+1. **The blind case refuses.** A run that reaches no keelcheck code measures zero, and zero is a
    measurement failure, not a 0% score: the gate exits 2 and says why. This must keep holding once the
    tracer follows child processes — a working tracer makes the real measurement non-zero, and the
    refusal could be dropped at the same time and never noticed. Green on landing deliberately: it is a
@@ -12,7 +12,7 @@ measurement rather than a threshold:
    (D3). It is **not written yet**, on purpose: it asserts on structured output, and `--json` is
    arriving with the tracer, so the shape has to come before the test rather than the other way round
    (D3 — a test is never written against a guess). The red, once the shape is fixed: a target that
-   only drives `keel` from outside shows `keel/audit.py` at a non-zero percentage.
+   only drives `keelcheck` from outside shows `keelcheck/audit.py` at a non-zero percentage.
 
 **Recursion, named because it is the trap here.** No test in this file may run the gate over the full
 suite: the gate runs `pytest tests`, which contains this file, so such a test would re-enter itself.
@@ -55,10 +55,10 @@ def test_a_target_that_reaches_no_keel_code_refuses_instead_of_reporting_zero():
     out = _support.combined(proc)
 
     assert proc.returncode == 2, (
-        "a measurement that found no keel code did not refuse; a zero number would let a hand-set "
+        "a measurement that found no keelcheck code did not refuse; a zero number would let a hand-set "
         f"floor turn a broken measurement into a pass\n{out}")
     # The measured wording at 866912b: "no coverage measured -- the tracer reached no module of the
-    # keel package ... this is a measurement failure, not a coverage result". The child-process
+    # keelcheck package ... this is a measurement failure, not a coverage result". The child-process
     # explanation belongs to the other refusal path, so the assertion names what the gate prints.
     assert "measurement failure" in out.lower(), (
         f"the refusal does not say it is a measurement failure:\n{out}")
@@ -69,11 +69,11 @@ def test_a_target_that_reaches_no_keel_code_refuses_instead_of_reporting_zero():
 def test_the_tracer_reaches_the_cli_modules_through_child_processes():
     """The red for the child-process tracer, and the reason the gate exists.
 
-    The suite drives keel from outside (D3), so a tracer in the pytest process sees nothing: measured
+    The suite drives keelcheck from outside (D3), so a tracer in the pytest process sees nothing: measured
     at `866912b`, `audit.py`, `gate.py`, `review.py` and `export.py` all reported 0.0% while 101 tests
     passed against them — 15.3% total, a measurement failure dressed as a score. The target here
-    imports nothing; it drives `keel audit` in a subprocess. If the tracer follows children,
-    `keel/audit.py` cannot be 0.0%.
+    imports nothing; it drives `keelcheck audit` in a subprocess. If the tracer follows children,
+    `keelcheck/audit.py` cannot be 0.0%.
 
     Asserted on `--json` (D19 shape, agreed with Mason and Gilbert), never on the printed table: total,
     per-file percentages keyed by repo-relative path, the decided exit code, and the provenance line —
@@ -88,8 +88,8 @@ def test_the_tracer_reaches_the_cli_modules_through_child_processes():
     doc = json.loads(proc.stdout)
     files = doc["files"]
 
-    assert files.get("keel/audit.py", 0.0) > 0.0, (
-        f"a target that drives the audit in a child process still measures keel/audit.py at 0.0%:\n"
+    assert files.get("keelcheck/audit.py", 0.0) > 0.0, (
+        f"a target that drives the audit in a child process still measures keelcheck/audit.py at 0.0%:\n"
         f"{json.dumps(files, indent=2)[:600]}")
     assert doc["exit"] == proc.returncode, "the document's exit code is not the one the gate returned"
     provenance = doc.get("provenance") or {}
@@ -100,7 +100,7 @@ def test_the_tracer_reaches_the_cli_modules_through_child_processes():
 def test_a_red_suite_is_not_masked_by_the_coverage_number():
     """Mason's red-suite branch, pinned.
 
-    The target drives keel in a child — so the measurement is non-zero and the floor cannot be the
+    The target drives keelcheck in a child — so the measurement is non-zero and the floor cannot be the
     thing that refuses — and then fails. Coverage above the floor must not turn a red suite green:
     exit 1, the reason says the suite did not pass, and the JSON carries `suite {exit, passed}`.
     `--min 0.0` is passed deliberately, so a floor of zero cannot mask it either.

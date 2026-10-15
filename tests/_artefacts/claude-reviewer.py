@@ -1,12 +1,12 @@
-"""The demonstration's reviewer: Claude Code in print mode, wrapped to keep keel's contract honest.
+"""The demonstration's reviewer: Claude Code in print mode, wrapped to keep keelcheck's contract honest.
 
-`keel review` hands the prompt on stdin and accepts **exactly one JSON object** on stdout. `claude -p`
+`keelcheck review` hands the prompt on stdin and accepts **exactly one JSON object** on stdout. `claude -p`
 prints prose and may fence the JSON in a code block. This wrapper runs the CLI, extracts the first
 balanced JSON object from its output, prints that object and nothing else, and exits non-zero with the
-raw output on stderr when there is none — so keel's `malformed` verdict still means malformed and not
+raw output on stderr when there is none — so keelcheck's `malformed` verdict still means malformed and not
 "the wrapper guessed".
 
-Usage (the reviewer command string keel is given):
+Usage (the reviewer command string keelcheck is given):
 
     "<python>" "<this file>"
 

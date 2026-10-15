@@ -1,6 +1,6 @@
 """Configuration the suite depends on, pinned where the configuration file can carry it.
 
-Folio measured it at `fa6fb87`: two `pytest-cache-files-*` directories left in keel's root made
+Folio measured it at `fa6fb87`: two `pytest-cache-files-*` directories left in keelcheck's root made
 `pytest -q` exit 2 with two collection errors in the worktree, while the same revision from
 `git archive` was **93 passed, 6 skipped**. The coverage gate's whole job is to run this suite, so a
 stray directory that breaks collection breaks the gate.

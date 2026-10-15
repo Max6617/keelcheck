@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Line coverage for keel, using only the standard library — the suite-and-coverage gate (R8, D19).
+"""Line coverage for keelcheck, using only the standard library — the suite-and-coverage gate (R8, D19).
 
     python tools/coverage.py                      # measure, compare against the floor
     python tools/coverage.py --min 0.99           # fail below 99% instead of the recorded floor
@@ -12,24 +12,24 @@ the number matters more than the tooling. `sys.settrace` records the lines that 
 `trace._find_executable_linenos` says which lines were executable — the same measurement rentguard's
 `tools/coverage.py` takes, with no dependency to install.
 
-**The children count, or the number is a lie.** The suite drives keel from outside (D3: the CLI is the
+**The children count, or the number is a lie.** The suite drives keelcheck from outside (D3: the CLI is the
 observable), so a tracer in this process sees almost nothing: measured 2026-10-14, `audit.py`,
 `gate.py`, `review.py` and `export.py` all read 0.0% while 101 tests passed against them. So the gate
-puts `tools/_child_trace.py` on `PYTHONPATH` behind a flag only *it* sets, and every `python -m keel`
+puts `tools/_child_trace.py` on `PYTHONPATH` behind a flag only *it* sets, and every `python -m keelcheck`
 the suite starts records its own lines; the gate merges them. A normal `pytest` run is untouched.
-`KEEL_COVERAGE_DIR` is a `pathsep` list, because the suite runs this script and so the gate runs
+`KEELCHECK_COVERAGE_DIR` is a `pathsep` list, because the suite runs this script and so the gate runs
 itself: a nested run prepends its own directory, each child writes every hit into every directory, and
 the nested gate then measures only its own run while the outer measurement still receives those lines.
 Both other shapes were measured and are wrong — see `_child_setup`.
 
 **The floor is an argument, never ambient state** (D19). Not an environment variable: that is state a
-test cannot pin, and `keel gate run` passes no arguments to a gate, so the gate's floor has to be the
+test cannot pin, and `keelcheck gate run` passes no arguments to a gate, so the gate's floor has to be the
 script's own default anyway. Not a floor file either: a second artefact whose honesty has to be
 maintained. `DEFAULT_FLOOR` is a **ratchet** inside this script, which puts it inside the gate hash:
 raising it changes the file, so it needs re-ratification (R2). Raise it in the commit that earns the
 rise, never on a round number.
 
-**The failing side is forced with `--min 0.99`** while the suite is green — `keel gate run` always runs
+**The failing side is forced with `--min 0.99`** while the suite is green — `keelcheck gate run` always runs
 the ratified default, so a red that only proves the gate passes would prove nothing.
 
 **A suite that does not pass is not a coverage result.** `pytest.main` returns a count, not a verdict,
@@ -38,7 +38,7 @@ gate therefore fails on the suite's own exit code before it compares anything, a
 two failed — a green number over a red suite is exactly the shape the audit exists to catch.
 
 Exit codes: **0** at or above the floor with the suite passing, **1** below the floor or with the
-suite failing, **2** when nothing could be measured honestly — no keel module reached at all, or the
+suite failing, **2** when nothing could be measured honestly — no keelcheck module reached at all, or the
 CLI modules untouched while the suite passed, which is the blind measurement a working tracer is
 supposed to remove and the check that has to survive it.
 
@@ -71,7 +71,7 @@ from trace import _find_executable_linenos
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
-PACKAGE = REPO / "keel"
+PACKAGE = REPO / "keelcheck"
 TOOLS = REPO / "tools"
 DEFAULT_ARGS = ["tests", "-q", "-p", "no:cacheprovider"]
 #: Measured on 2026-10-15 with the suite of `9f2deed`, every CLI module measured through the child
@@ -83,21 +83,21 @@ DEFAULT_FLOOR = 0.83
 TARGET = 0.94
 
 #: The flag the gate sets for the run it starts. `tools/_child_trace.py` does nothing without it.
-CHILD_FLAG = "KEEL_COVERAGE_CHILD"
-CHILD_DIR = "KEEL_COVERAGE_DIR"
-CHILD_PACKAGE = "KEEL_COVERAGE_PACKAGE"
+CHILD_FLAG = "KEELCHECK_COVERAGE_CHILD"
+CHILD_DIR = "KEELCHECK_COVERAGE_DIR"
+CHILD_PACKAGE = "KEELCHECK_COVERAGE_PACKAGE"
 SITECUSTOMIZE = "import _child_trace\n_child_trace.activate()\n"
 
 #: Modules that only ever run in a child process when the suite drives the CLI. All of them at zero
 #: means the measurement is blind, whatever the total says.
-CLI_MODULES = ["keel/cli.py", "keel/audit.py", "keel/gate.py", "keel/review.py"]
+CLI_MODULES = ["keelcheck/cli.py", "keelcheck/audit.py", "keelcheck/gate.py", "keelcheck/review.py"]
 
 BLIND_EXPLANATION = (
     "coverage cannot be measured honestly from this process: the suite drives the CLI through child "
     "processes (D3), and this tracer cannot see them. A floor set from this number would be a lie."
 )
 UNREACHED_EXPLANATION = (
-    "no coverage measured — the tracer reached no module of the keel package in this checkout. "
+    "no coverage measured — the tracer reached no module of the keelcheck package in this checkout. "
     "This is a measurement failure, not a coverage result."
 )
 
@@ -144,7 +144,7 @@ def _child_setup() -> Path:
     # mode 0700, and a chmod afterwards does not lift it — the same trap that makes `TemporaryDirectory`
     # unusable in the suite, and the same one that makes pytest's own cache directory fail. A plain
     # `mkdir` inherits the parent's permissions and is writable.
-    directory = Path(tempfile.gettempdir()) / f"keel-coverage-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    directory = Path(tempfile.gettempdir()) / f"keelcheck-coverage-{os.getpid()}-{uuid.uuid4().hex[:8]}"
     directory.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(TOOLS / "_child_trace.py", directory / "_child_trace.py")
     (directory / "sitecustomize.py").write_text(SITECUSTOMIZE, encoding="utf-8")
@@ -236,7 +236,7 @@ def _percentages(rows: dict[str, tuple[int, int]]) -> dict[str, float]:
 
 
 def _emit_json(document: dict) -> None:
-    """UTF-8 to stdout whatever the console code page is, like the rest of keel's output (D8)."""
+    """UTF-8 to stdout whatever the console code page is, like the rest of keelcheck's output (D8)."""
     text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
     buffer = getattr(sys.stdout, "buffer", None)
     if buffer is None:  # pragma: no cover - a captured stdout with no buffer
@@ -250,7 +250,7 @@ def _emit_json(document: dict) -> None:
 def _refusal(found: dict, args: argparse.Namespace, reason: str) -> int:
     """A measurement the gate will not dress up: no number in either output, and exit 2."""
     if args.json:
-        _emit_json({"keel": "coverage/1", "total": None, "files": {}, "exit": 2,
+        _emit_json({"keelcheck": "coverage/1", "total": None, "files": {}, "exit": 2,
                     "provenance": found, "floor": args.min, "target": args.target,
                     "reason": reason})
     return 2
@@ -326,7 +326,7 @@ def main() -> int:
     exit_code = 1 if suite_reason else (1 if overall < args.min else 0)
 
     if args.json:
-        _emit_json({"keel": "coverage/1", "total": round(overall * 100, 1),
+        _emit_json({"keelcheck": "coverage/1", "total": round(overall * 100, 1),
                     "files": percentages, "exit": exit_code, "provenance": found,
                     "floor": args.min, "target": args.target, "reason": suite_reason,
                     "lines": {"total": total_lines, "hit": total_hit},

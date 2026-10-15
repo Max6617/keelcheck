@@ -31,7 +31,7 @@ stub.write_text("import json,sys\nsys.stdin.read()\nprint(json.dumps("
                 "'coverage':{'files_seen':1,'files_total':1}}))\n", encoding="utf-8")
 sys.path.insert(0, str(WS / "keel"))
 proc = subprocess.run(
-    [sys.executable, "-m", "keel", "review", str(r), "--reviewer",
+    [sys.executable, "-m", "keelcheck", "review", str(r), "--reviewer",
      f'"{sys.executable}" "{stub}"', "--json", "--prompt", str(r / "review-prompt.md")],
     cwd=str(WS / "keel"), capture_output=True, text=True, encoding="utf-8",
     env={**os.environ, "PYTHONIOENCODING": "utf-8"})

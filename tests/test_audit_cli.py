@@ -1,10 +1,10 @@
 """The adversarial set for the audit (R2, R3, R4), written against the contract Gilbert ruled in D3
 and corrected in D8.
 
-**Red against the landed code.** `keel audit` is not in `HEAD`; the set was written to land before
+**Red against the landed code.** `keelcheck audit` is not in `HEAD`; the set was written to land before
 the implementation and turn green on Mason's fix commit. The contract is the CLI only — exit 0 clean
 with at least one ratified gate, exit 1 divergence, exit 2 could not run honestly — plus
-`.keel/runs.jsonl` and `.keel/review-context.json`. Never `keel/` internals.
+`.keel/runs.jsonl` and `.keel/review-context.json`. Never `keelcheck/` internals.
 
 A1–A3 were assumptions in `_support.py` when these tests were written; **D8 ruled them**, so the test
 shapes here are the ruled ones (vacuity is a divergence, the report prints all four columns, the
@@ -26,7 +26,7 @@ def test_the_audit_command_exists_and_help_succeeds():
     """Without this, every "exit 1" test below would pass while `audit` is an unknown command.
     A missing command is not a passing audit."""
     proc = _support.audit("--help")
-    assert proc.returncode == 0, f"`keel audit --help` failed: {_support.combined(proc)[-400:]}"
+    assert proc.returncode == 0, f"`keelcheck audit --help` failed: {_support.combined(proc)[-400:]}"
     assert "audit" in _support.combined(proc).lower()
 
 
@@ -162,7 +162,7 @@ def test_editing_the_recommendation_moves_the_frozen_original(scratch):
     The observable is the report line, not the exit code: with zero ratified gates this repository is
     divergent anyway (D8 vacuity), so `[original]` is what distinguishes a moved anchor.
     """
-    source = _support.KEEL_CHARTER.read_text(encoding="utf-8")
+    source = _support.KEELCHECK_CHARTER.read_text(encoding="utf-8")
     assert "narrow to the join" in source, "precondition: the recommendation line is gone"
 
     # A copy, per D11: keel/CHARTER.md itself is never the test's scratch. The copy must point at
@@ -170,7 +170,7 @@ def test_editing_the_recommendation_moves_the_frozen_original(scratch):
     _support.write(scratch / "CHARTER.md", source)
     sha = _support.init_repo(scratch)
     text = (scratch / "CHARTER.md").read_text(encoding="utf-8")
-    # D12: the canonical pointer is a plain `Ratified at: <sha>`; keel's own charter still writes the
+    # D12: the canonical pointer is a plain `Ratified at: <sha>`; keelcheck's own charter still writes the
     # sha in backticks, so match the label and take the sha wherever it sits, not one spelling.
     text, replaced = re.subn(r"(Ratified at:?\s*`?)([0-9a-f]{7,40})", rf"\g<1>{sha}", text, count=1)
     assert replaced == 1, "the copy has no `Ratified at:` line to repoint"

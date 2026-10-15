@@ -10,7 +10,7 @@ named here as the finding. The one property that keeps them honest is that the t
 its exit code from a verdict: the presence of a review for the current state is mechanical, what it
 says is not.
 
-Every observable is the CLI (`keel review`, `keel audit`) and `runs.jsonl`, never `keel/` internals.
+Every observable is the CLI (`keelcheck review`, `keelcheck audit`) and `runs.jsonl`, never `keelcheck/` internals.
 """
 
 from __future__ import annotations
@@ -64,7 +64,7 @@ def _repo(scratch, *, gate: bool = True, prompt: bool = True, review_required: b
                            review_required=review_required)
     _support.commit_all(scratch, "ratified")
     if gate:
-        _support.keel("gate", "run", str(scratch), "--timeout", "10")  # so the audit is clean apart from the review
+        _support.keelcheck("gate", "run", str(scratch), "--timeout", "10")  # so the audit is clean apart from the review
     return scratch
 
 
@@ -86,7 +86,7 @@ def _review(scratch, command: str, *extra):
     extra = tuple(extra)
     if "--timeout" not in extra:
         extra = (*extra, "--timeout", "20")
-    return _support.keel("review", str(scratch), "--reviewer", command, "--json", *extra)
+    return _support.keelcheck("review", str(scratch), "--reviewer", command, "--json", *extra)
 
 
 def _audit_json(scratch, *extra):
@@ -188,7 +188,7 @@ def test_evidence_is_checked_against_the_export_and_the_charter(scratch, label, 
      "evidence": "CHARTER.md", "why": "x", "confidence": "low"}]}}, "malformed"),
     ("output that is not JSON", {"raw": "print('nope')\n"}, "malformed"),
     ("a non-zero exit", {"code": "import sys\nsys.exit(3)\n"}, "error"),
-    ("a command that cannot start", {"command": '"/nonexistent/keel-stub-does-not-exist"'}, "error"),
+    ("a command that cannot start", {"command": '"/nonexistent/keelcheck-stub-does-not-exist"'}, "error"),
     ("a timeout", {"code": "import time\ntime.sleep(30)\n", "extra": ("--timeout", "1")}, "timeout"),
 ])
 def test_a_failed_review_is_recorded_and_exits_2(scratch, label, stub_kwargs, expected_result):
@@ -358,7 +358,7 @@ def test_only_gate_rows_defeat_vacuity(scratch):
     """A prompt row is not a runnable gate: it does not satisfy the hash half, and it is not run."""
     _repo(scratch, gate=False, prompt=True)
 
-    run = _support.keel("gate", "run", str(scratch), "--json")
+    run = _support.keelcheck("gate", "run", str(scratch), "--json")
     proc, doc = _audit_json(scratch)
 
     assert run.returncode == 1, "a prompt row was treated as a runnable gate"
@@ -407,12 +407,12 @@ def test_the_export_has_no_history_and_no_secrets(scratch):
 
 def test_the_export_carries_the_prompt_the_reviewer_was_told_to_follow(scratch):
     """D15 names the export's contents: the current state "plus `REVIEW-PROMPT.md`,
-    `FROZEN-ORIGINAL.md`, `MECHANICAL-FINDINGS.txt` and `KEEL-MANIFEST.json`", and §2 says the prompt
+    `FROZEN-ORIGINAL.md`, `MECHANICAL-FINDINGS.txt` and `KEELCHECK-MANIFEST.json`", and §2 says the prompt
     "is *in the export*, so what the reviewer was told is part of what was handed over".
 
     The prompt here lives **outside** the repository, so the only way it can be in the export is if
     the runner writes it. Measured at `117ac7c`: the export has `FROZEN-ORIGINAL.md`,
-    `MECHANICAL-FINDINGS.txt` and `KEEL-MANIFEST.json`, and no `REVIEW-PROMPT.md` — the instruction
+    `MECHANICAL-FINDINGS.txt` and `KEELCHECK-MANIFEST.json`, and no `REVIEW-PROMPT.md` — the instruction
     reaches the reviewer on stdin and is not part of what was handed over.
     """
     _repo(scratch, gate=False, prompt=False)
@@ -444,7 +444,7 @@ def test_a_committed_record_directory_is_never_exported(scratch):
     assert proc.returncode == 0, _support.combined(proc)
     line = _review_lines(scratch, record=outside / "runs.jsonl")[-1]
     tree = Path(line["export"])
-    manifest = (tree / "KEEL-MANIFEST.json").read_text(encoding="utf-8")
+    manifest = (tree / "KEELCHECK-MANIFEST.json").read_text(encoding="utf-8")
 
     assert not (tree / ".keel" / "runs.jsonl").exists(), (
         "the export ships a committed prior run record — the reviewer can read the history it is "
@@ -454,7 +454,7 @@ def test_a_committed_record_directory_is_never_exported(scratch):
 
 
 def test_the_vacuity_message_names_what_was_actually_tested(scratch):
-    """Gilbert's requirement on `18023d9`: assert the **message**, not only the exit code. keel's own
+    """Gilbert's requirement on `18023d9`: assert the **message**, not only the exit code. keelcheck's own
     audit printed `gates ratified: 1` and `no gate is declared or ratified` in the same report, so a
     reader could not tell what the hash half had actually checked."""
     _repo(scratch, gate=False, prompt=True)  # the ratified table holds a prompt row and no gate
@@ -486,7 +486,7 @@ def test_the_vacuity_message_names_what_was_actually_tested(scratch):
 
 
 def test_a_prompt_can_be_taken_from_another_repositorys_ratified_table(scratch):
-    """R7: a review of the read-only rentguard input can name keel's own ratified prompt, and the
+    """R7: a review of the read-only rentguard input can name keelcheck's own ratified prompt, and the
     record says which repository and anchor the prompt was verified against — an unlocked instruction
     is for the case where nothing is ratified, not for this one."""
     source = scratch.parent / f"{scratch.name}-prompt-source"
@@ -637,7 +637,7 @@ def test_a_path_a_gate_row_names_is_never_silently_absent_from_the_export(scratc
     proc = _review(scratch, _stub(scratch, "clean", CLEAN), "--prompt", str(outside))
     assert proc.returncode == 0, _support.combined(proc)
     tree = Path(_review_lines(scratch)[-1]["export"])
-    manifest = json.loads((tree / "KEEL-MANIFEST.json").read_text(encoding="utf-8"))
+    manifest = json.loads((tree / "KEELCHECK-MANIFEST.json").read_text(encoding="utf-8"))
     named = "gates/check.sh"
 
     assert named in manifest.get("always", []), (
@@ -656,7 +656,7 @@ def test_a_review_of_an_unratified_charter_records_a_null_anchor(scratch):
     unanchored **review** runs and records `ratified: null` — the prompt's own ratification is
     independent of the audited charter's anchor, and freshness is the manifest, not the anchor.
 
-    Measured at `bcf4bf5`: `keel review ../rentguard` exits 2 in 0 s, so the demonstration's own
+    Measured at `bcf4bf5`: `keelcheck review ../rentguard` exits 2 in 0 s, so the demonstration's own
     frozen input cannot be reviewed at all. The faithful copy was the interim evidence; this is the
     fix.
     """
@@ -680,7 +680,7 @@ def test_the_record_does_not_claim_a_history_free_reviewer(scratch):
     """Sift's finding 5 and Gilbert's ruling for the demonstration: §1 promised `none | git | unknown`
     and the field was a literal `none`.
 
-    What keel can prove is that the **export** has no `.git`. It cannot observe what a command the
+    What keelcheck can prove is that the **export** has no `.git`. It cannot observe what a command the
     caller names loads from its own harness — the demonstration's reviewer is Claude Code, which reads
     the user's configuration and may carry user-level memory or project files. So the record must say
     `unknown`, or `none` reads as a measurement and is a constant.

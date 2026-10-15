@@ -1,4 +1,4 @@
-"""Probe `keel review` / `keel audit --require-review` from outside, with stub reviewers.
+"""Probe `keelcheck review` / `keelcheck audit --require-review` from outside, with stub reviewers.
 
 Scratch measurement. Run: python .assay-tmp/review-probe.py
 """
@@ -20,7 +20,7 @@ CLEAN = {"verdict": "clean", "items": [], "unreviewed": [],
 
 
 def cli(*args):
-    return subprocess.run([sys.executable, "-m", "keel", *args], cwd=str(KEEL),
+    return subprocess.run([sys.executable, "-m", "keelcheck", *args], cwd=str(KEEL),
                           capture_output=True, text=True, encoding="utf-8",
                           env={**os.environ, "PYTHONIOENCODING": "utf-8"})
 
@@ -83,7 +83,7 @@ def audit_state(label, root, *extra):
     return proc
 
 
-print(f"# review probe - keel@{subprocess.run(['git','-C',str(KEEL),'rev-parse','--short','HEAD'],capture_output=True,text=True).stdout.strip()}")
+print(f"# review probe - keelcheck@{subprocess.run(['git','-C',str(KEEL),'rev-parse','--short','HEAD'],capture_output=True,text=True).stdout.strip()}")
 ROOT.mkdir(parents=True, exist_ok=True)
 
 print("\n## 1. the baseline: a clean repo with no review, not required")

@@ -19,7 +19,7 @@ REQ_OK = [("R1", "the parser exists", "code: the charter parser", "—", "**met*
 
 
 def cli(*args):
-    return subprocess.run([sys.executable, "-m", "keel", *args], cwd=str(KEEL),
+    return subprocess.run([sys.executable, "-m", "keelcheck", *args], cwd=str(KEEL),
                           capture_output=True, text=True, encoding="utf-8",
                           env={**os.environ, "PYTHONIOENCODING": "utf-8"})
 
@@ -55,7 +55,7 @@ def gated(root_name, body="print('ok')\n", *, gate="coverage", path="tools/gate.
     return root, digest
 
 
-print(f"# D12/D13 + gate-result probe - keel@"
+print(f"# D12/D13 + gate-result probe - keelcheck@"
       f"{subprocess.run(['git','-C',str(KEEL),'rev-parse','--short','HEAD'],capture_output=True,text=True).stdout.strip()}")
 ROOT.mkdir(parents=True, exist_ok=True)
 (ROOT / 'notacharter.md').write_text('# just a heading\n', encoding='utf-8')
@@ -138,7 +138,7 @@ report("--record elsewhere", cli("audit", str(r), "--record", str(d2)),
        f"files elsewhere={sorted(p.name for p in d2.iterdir())}  "
        f".keel exists={(r / '.keel').exists()}")
 
-print("\n## 5. keel charter exit codes (D12)")
+print("\n## 5. keelcheck charter exit codes (D12)")
 print(f"  clean charter        exit {cli('charter', str(ROOT / 'pass' / 'CHARTER.md')).returncode}")
 print(f"  wish (rentguard)     exit {cli('charter', str(WS / 'rentguard' / 'CHARTER.md')).returncode}")
 print(f"  not a charter        exit {cli('charter', str(ROOT / 'nopointer' / 'CHARTER.md' if False else ROOT / 'notacharter.md')).returncode}")

@@ -10,9 +10,9 @@ Three things make the installed hook honest:
 - **It resolves the interpreter at install time** (an absolute path) and puts the package's import
   root on ``PYTHONPATH``. Git for Windows runs hooks through its own ``sh`` with the caller's PATH,
   and a hook that cannot start blocks *every* commit -- including one whose gates pass.
-- **It carries a marker** (``# keel-hook v1``). Without one, a second install would have to choose
+- **It carries a marker** (``# keelcheck-hook v1``). Without one, a second install would have to choose
   between overwriting a hook it did not write and refusing its own; the marker is what lets a foreign
-  hook be refused and keel's own be idempotent.
+  hook be refused and keelcheck's own be idempotent.
 - **It refuses to install where the charter names no ratification commit.** A repository that cannot
   be audited gets no hook, because a hook that pretends to enforce is worse than none.
 
@@ -29,7 +29,7 @@ import shutil
 import sys
 from pathlib import Path
 
-import keel
+import keelcheck
 
 from . import gitcmd
 from .audit import AuditError, load_charter
@@ -37,7 +37,7 @@ from .output import emit, emit_err
 
 __all__ = ["HOOK_NAMES", "INSTALLABLE", "MARKER", "hook_body", "hooks_dir", "install", "main", "status"]
 
-MARKER = "# keel-hook v1"
+MARKER = "# keelcheck-hook v1"
 HOOK_NAMES = ("pre-commit", "pre-push")
 #: Pre-push blocks a *push* on audit divergence; it is deliberately its own build and its own red
 #: test, so this surface installs pre-commit only and says so rather than half-doing both.
@@ -60,18 +60,18 @@ def _sh(path: Path | str) -> str:
 
 def hook_body(repo: Path | str, hook: str) -> str:
     """The installed script. Deterministic: the same repo and hook produce the same bytes."""
-    root = Path(keel.__file__).resolve().parents[1]
+    root = Path(keelcheck.__file__).resolve().parents[1]
     python = Path(sys.executable).resolve()
     command = "gate run" if hook == "pre-commit" else "audit"
     return (
         "#!/bin/sh\n"
-        f"{MARKER} -- installed by keel hook install. The lock is the charter's gate table, not\n"
+        f"{MARKER} -- installed by keelcheck hook install. The lock is the charter's gate table, not\n"
         "# this file: change a gate by re-ratifying it, never by editing this hook.\n"
         "# The interpreter and the import root are resolved at install time, because git's sh has\n"
         "# no PATH of its own and a hook that cannot start blocks every commit.\n"
         f'PYTHONPATH="{_sh(root)}"${{PYTHONPATH:+:$PYTHONPATH}}\n'
         "export PYTHONPATH\n"
-        f'exec "{_sh(python)}" -m keel {command} "{_sh(repo)}"\n'
+        f'exec "{_sh(python)}" -m keelcheck {command} "{_sh(repo)}"\n'
     )
 
 
@@ -115,7 +115,7 @@ def install(repo: Path | str, *, hook: str = "pre-commit", force: bool = False) 
         return result
 
     target = hooks_dir(repo) / hook
-    backup = target.with_name(target.name + ".keel-backup")
+    backup = target.with_name(target.name + ".keelcheck-backup")
     body = hook_body(repo, hook)
     result["path"] = str(target)
     if target.exists():
@@ -126,7 +126,7 @@ def install(repo: Path | str, *, hook: str = "pre-commit", force: bool = False) 
                     exit=1,
                     action="refused",
                     error=(
-                        f"{target} already exists and was not written by keel; it was not touched. "
+                        f"{target} already exists and was not written by keelcheck; it was not touched. "
                         f"Rerun with --force to keep it beside the new hook as {backup.name} (R5)"
                     ),
                 )
@@ -153,7 +153,7 @@ def status(repo: Path | str) -> dict:
     hooks: dict[str, dict] = {}
     for name in HOOK_NAMES:
         target = directory / name
-        backup = target.with_name(target.name + ".keel-backup")
+        backup = target.with_name(target.name + ".keelcheck-backup")
         if not target.exists():
             state = "not-installed"
         elif MARKER.encode("utf-8") in target.read_bytes():
@@ -171,7 +171,7 @@ def status(repo: Path | str) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="keel hook",
+        prog="keelcheck hook",
         description="install the git hook that runs the ratified gates, or report what is installed (R5)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -187,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     installer.add_argument(
         "--force",
         action="store_true",
-        help="keep an existing hook beside the new one as <hook>.keel-backup instead of refusing",
+        help="keep an existing hook beside the new one as <hook>.keelcheck-backup instead of refusing",
     )
     installer.add_argument("--json", action="store_true", help="machine-readable output")
 
@@ -205,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
             emit(f"hooks: {report['hooks_path']}")
             for name, entry in report["hooks"].items():
                 if entry["state"] == "installed":
-                    emit(f"  {name}: installed (keel-hook v1) -> {entry['path']}")
+                    emit(f"  {name}: installed (keelcheck-hook v1) -> {entry['path']}")
                 elif entry["state"] == "foreign":
                     emit(f"  {name}: foreign hook present -> {entry['path']}")
                 else:
@@ -219,7 +219,7 @@ def main(argv: list[str] | None = None) -> int:
         emit(json.dumps(report, indent=2, ensure_ascii=False))
         return report["exit"]
     if report["error"]:
-        emit_err(f"keel hook install: {report['error']}")
+        emit_err(f"keelcheck hook install: {report['error']}")
         return report["exit"]
     action = report["action"]
     if action == "unchanged":

@@ -1,9 +1,9 @@
-"""Scratch directories for the keel suite: where they live, and how a run cleans up after itself.
+"""Scratch directories for the keelcheck suite: where they live, and how a run cleans up after itself.
 
 Same policy as rentguard's suite, for the same measured reason (see ``conftest.py``): on this host a
 ``tempfile`` directory is created mode 0700 and the platform sandbox, not the ACL, refuses writes
 inside it, so ``mkdtemp``/``TemporaryDirectory`` fail wherever they are created. An explicit
-``KEEL_SCRATCH`` wins; otherwise the platform temp dir when it is genuinely writable; otherwise a
+``KEELCHECK_SCRATCH`` wins; otherwise the platform temp dir when it is genuinely writable; otherwise a
 sibling of the checkout.
 
 Every run gets one ``run-<pid>-<random>`` directory, removed at exit, so the suite is idempotent in
@@ -23,8 +23,8 @@ from typing import Callable, Mapping
 #: tests/_scratch.py -> tests/ -> repo root
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SIBLING_FALLBACK = REPO_ROOT.parent / ".keel-test-tmp"
-ENV_VAR = "KEEL_SCRATCH"
-TEMP_SUBDIR = "keel-tests"
+ENV_VAR = "KEELCHECK_SCRATCH"
+TEMP_SUBDIR = "keelcheck-tests"
 RUN_PREFIX = "run-"
 
 

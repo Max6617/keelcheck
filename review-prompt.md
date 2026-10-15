@@ -13,7 +13,7 @@ Everything you are given is inside this directory. Nothing else is yours to read
 - `MECHANICAL-FINDINGS.txt` — what the deterministic half of the audit already found (missing
   sections, gate hashes, the wishes). Do not repeat these; they are already reported.
 - the rest of the tree — the current state of the project.
-- `KEEL-MANIFEST.json` — every file you were handed, with its size and hash.
+- `KEELCHECK-MANIFEST.json` — every file you were handed, with its size and hash.
 
 ## What to report
 

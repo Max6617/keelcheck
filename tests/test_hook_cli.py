@@ -1,10 +1,10 @@
-"""R5, the git hook installer, driven from outside. **Red first at `7371668`** — `keel hook` does not
+"""R5, the git hook installer, driven from outside. **Red first at `7371668`** — `keelcheck hook` does not
 exist yet, so every test here fails at the guard.
 
 The contract these are written against is Mason's, stated before the code (2026-10-14):
 
-    keel hook install [repo] [--hook pre-commit|pre-push|both] [--force]
-    keel hook status  [repo]
+    keelcheck hook install [repo] [--hook pre-commit|pre-push|both] [--force]
+    keelcheck hook status  [repo]
 
 Pre-commit only in this file. Pre-push is a separate red: it has to block a *push* on audit
 divergence, which needs a local bare remote, and one test does not get to cover two mechanisms.
@@ -63,7 +63,7 @@ def _git_sh_works() -> bool:
     broken installer cannot make this return False and skip its own tests.
     """
     try:
-        root = Path(tempfile.mkdtemp(prefix="keel-sh-probe-"))
+        root = Path(tempfile.mkdtemp(prefix="keelcheck-sh-probe-"))
     except OSError:  # pragma: no cover - the writable-root policy in conftest owns this
         return False
     try:
@@ -117,10 +117,10 @@ def _head(repo) -> str:
 def test_the_hook_command_exists(scratch):
     """Without this, a 'commit was blocked' assertion could pass because git refused for its own
     reason, and a 'commit landed' assertion could pass because no hook was ever installed."""
-    proc = _support.keel("hook", "--help")
-    assert proc.returncode == 0, f"`keel hook --help` failed: {_support.combined(proc)[-400:]}"
+    proc = _support.keelcheck("hook", "--help")
+    assert proc.returncode == 0, f"`keelcheck hook --help` failed: {_support.combined(proc)[-400:]}"
     assert "hook" in _support.combined(proc).lower()
-    assert _support.keel("hook", "install", "--help").returncode == 0
+    assert _support.keelcheck("hook", "install", "--help").returncode == 0
 
 
 # --- 1. the hook does something -----------------------------------------------
@@ -129,7 +129,7 @@ def test_the_hook_command_exists(scratch):
 @needs_git_sh
 def test_the_installed_hook_blocks_a_commit_when_a_ratified_gate_fails(scratch):
     repo, _ = _hook_repo(scratch, "import sys\nprint('bad')\nsys.exit(1)\n")
-    installed = _support.keel("hook", "install", str(repo))
+    installed = _support.keelcheck("hook", "install", str(repo))
     assert installed.returncode == 0, f"install failed:\n{_support.combined(installed)}"
     before = _head(repo)
 
@@ -145,7 +145,7 @@ def test_the_installed_hook_lets_a_commit_land_when_the_gate_passes(scratch):
     """The control for the test above: same fixture, passing gate. If this fails too, the block was
     git's and not the hook's."""
     repo, _ = _hook_repo(scratch, "print('ok')\n")
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
     before = _head(repo)
 
     commit = _support.git(repo, "commit", "-m", "should land")
@@ -163,7 +163,7 @@ def test_a_hook_run_satisfies_the_audits_run_record_check(scratch):
     """The hook must leave a `kind: gate` line with `result: pass`, or the audit reads the tool's own
     hook as a bypass. The observable is the audit's exit code, not the record's contents."""
     repo, _ = _hook_repo(scratch, "print('ok')\n")
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
     assert _support.git(repo, "commit", "-m", "through the hook").returncode == 0
 
     lines = [json.loads(l) for l in (repo / ".keel" / "runs.jsonl").read_text(
@@ -188,7 +188,7 @@ def test_an_existing_hook_is_never_clobbered(scratch):
     _support.write(existing, "#!/bin/sh\necho mine\n")
     before = existing.read_bytes()
 
-    proc = _support.keel("hook", "install", str(repo))
+    proc = _support.keelcheck("hook", "install", str(repo))
 
     assert proc.returncode == 1, f"the install did not refuse:\n{_support.combined(proc)}"
     assert "pre-commit" in _support.combined(proc), "the refusal does not name the file"
@@ -202,10 +202,10 @@ def test_force_keeps_the_old_hook_beside_the_new_one(scratch):
     _support.write(existing, "#!/bin/sh\necho mine\n")
     before = existing.read_bytes()
 
-    proc = _support.keel("hook", "install", str(repo), "--force")
+    proc = _support.keelcheck("hook", "install", str(repo), "--force")
 
     assert proc.returncode == 0, f"--force failed:\n{_support.combined(proc)}"
-    backup = repo / (HOOK + ".keel-backup")
+    backup = repo / (HOOK + ".keelcheck-backup")
     assert backup.is_file(), "the old hook was not kept"
     assert backup.read_bytes() == before, "the backup is not the old hook"
     assert existing.read_bytes() != before, "the new hook was not installed"
@@ -217,7 +217,7 @@ def test_force_keeps_the_old_hook_beside_the_new_one(scratch):
 def test_a_repo_with_no_anchor_installs_nothing_and_exits_2(scratch):
     repo, _ = _hook_repo(scratch, anchor=False)
 
-    proc = _support.keel("hook", "install", str(repo))
+    proc = _support.keelcheck("hook", "install", str(repo))
 
     assert proc.returncode == 2, f"exit {proc.returncode}, wanted 2\n{_support.combined(proc)}"
     assert not (repo / HOOK).exists(), "a hook was installed into a repository that cannot be audited"
@@ -228,11 +228,11 @@ def test_a_repo_with_no_anchor_installs_nothing_and_exits_2(scratch):
 
 def test_installing_twice_changes_no_byte(scratch):
     repo, _ = _hook_repo(scratch)
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
     hook = repo / HOOK
     first = hashlib.sha256(hook.read_bytes()).hexdigest()
 
-    proc = _support.keel("hook", "install", str(repo))
+    proc = _support.keelcheck("hook", "install", str(repo))
 
     assert proc.returncode == 0, f"the second install failed:\n{_support.combined(proc)}"
     assert hashlib.sha256(hook.read_bytes()).hexdigest() == first, "the second install rewrote the hook"
@@ -243,7 +243,7 @@ def test_the_installed_hook_is_a_posix_script_without_crlf(scratch):
     """git for Windows runs hooks through its own `sh`: a CRLF after the shebang makes the interpreter
     path `/bin/sh\\r`, and the hook silently never runs."""
     repo, _ = _hook_repo(scratch)
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
 
     raw = (repo / HOOK).read_bytes()
 
@@ -256,7 +256,7 @@ def test_the_hook_runs_when_the_commit_is_made_from_a_subdirectory(scratch):
     """A hook that assumes the invoking cwd is the repository root blocks or misrecords commits made
     from anywhere else."""
     repo, _ = _hook_repo(scratch, "import sys\nsys.exit(1)\n")
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
     sub = repo / "sub"
     _support.write(sub / "file.txt", "x\n")
     _support.git(repo, "add", "-A")
@@ -272,7 +272,7 @@ def test_the_hook_runs_when_the_commit_is_made_from_a_subdirectory(scratch):
 @needs_git_sh
 def test_a_passing_commit_lands_when_python_is_not_on_the_path(scratch):
     """git for Windows runs hooks through its own `sh` with whatever PATH it inherits. A hook that
-    invokes a bare `python`/`keel` then fails to start, and a failing hook blocks **every** commit —
+    invokes a bare `python`/`keelcheck` then fails to start, and a failing hook blocks **every** commit —
     including one in a repo whose gates pass. The observable is the passing case: a stripped PATH must
     still let the commit land, which means the installer resolved the interpreter at install time.
 
@@ -280,7 +280,7 @@ def test_a_passing_commit_lands_when_python_is_not_on_the_path(scratch):
     next to `test_the_installed_hook_blocks_a_commit_when_a_ratified_gate_fails`.
     """
     repo, _ = _hook_repo(scratch, "print('ok')\n")
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
     before = _head(repo)
     path = os.pathsep.join(
         p for p in os.environ.get("PATH", "").split(os.pathsep) if p and "python" not in p.lower())
@@ -330,7 +330,7 @@ def test_the_hook_command_runs_the_gates_and_records_them(scratch):
     git makes on it. Passing → 0 and a `kind: gate` record with `result: pass`, which is what makes
     the audit clean afterwards."""
     repo, _ = _hook_repo(scratch, "print('ok')\n")
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
 
     proc = _run_hook_body(repo)
 
@@ -344,7 +344,7 @@ def test_the_hook_command_runs_the_gates_and_records_them(scratch):
 
 def test_the_hook_command_exits_non_zero_on_a_failing_gate(scratch):
     repo, _ = _hook_repo(scratch, "import sys\nsys.exit(1)\n")
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
 
     proc = _run_hook_body(repo)
 
@@ -354,7 +354,7 @@ def test_the_hook_command_exits_non_zero_on_a_failing_gate(scratch):
 def test_the_hook_command_does_not_need_python_on_the_path(scratch):
     """The PATH hazard without git: the interpreter and the import root are absolute in the body."""
     repo, _ = _hook_repo(scratch, "print('ok')\n")
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
     path = os.pathsep.join(
         p for p in os.environ.get("PATH", "").split(os.pathsep) if p and "python" not in p.lower())
 
@@ -369,12 +369,12 @@ def test_the_hook_body_carries_the_marker_and_absolute_paths(scratch):
     """The marker is what makes idempotence and never-clobber compatible at all; the absolute paths
     are what make the hook independent of git's environment."""
     repo, _ = _hook_repo(scratch)
-    assert _support.keel("hook", "install", str(repo)).returncode == 0
+    assert _support.keelcheck("hook", "install", str(repo)).returncode == 0
 
     text = (repo / HOOK).read_text(encoding="utf-8")
     argv, pythonpath = _hook_argv(repo)
 
-    assert "# keel-hook v1" in text, (
+    assert "# keelcheck-hook v1" in text, (
         "the hook has no marker, so a second install cannot tell its own hook from a foreign one")
     assert argv and Path(argv[0]).is_absolute(), f"no absolute interpreter: {argv[:1]}"
     assert pythonpath and Path(pythonpath).is_absolute(), f"no absolute import root: {pythonpath!r}"
@@ -386,7 +386,7 @@ def test_the_installer_honours_core_hookspath(scratch):
     repo, _ = _hook_repo(scratch)
     _support.git(repo, "config", "core.hooksPath", ".githooks")
 
-    proc = _support.keel("hook", "install", str(repo))
+    proc = _support.keelcheck("hook", "install", str(repo))
 
     assert proc.returncode == 0, _support.combined(proc)
     assert (repo / ".githooks" / "pre-commit").is_file(), (

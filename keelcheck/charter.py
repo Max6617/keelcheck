@@ -300,7 +300,7 @@ class Charter:
 
     @property
     def gate_rows(self) -> list[Gate]:
-        """Rows that are executable gates: what `keel gate run` runs and what defeats vacuity."""
+        """Rows that are executable gates: what `keelcheck gate run` runs and what defeats vacuity."""
         return [g for g in self.gates if g.kind == "gate"]
 
     @property
@@ -761,7 +761,7 @@ def render(charter: Charter) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """``python -m keel.charter <path> [--json]``.
+    """``python -m keelcheck.charter <path> [--json]``.
 
     Exit 0 whether or not wishes were found: a wish is the output, not an error.
     Exit 2 when the file is not a charter at all -- unreadable or unparseable, the one meaning
@@ -770,7 +770,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     import argparse
 
-    parser = argparse.ArgumentParser(prog="keel charter", description="parse a charter (R1)")
+    parser = argparse.ArgumentParser(prog="keelcheck charter", description="parse a charter (R1)")
     parser.add_argument("path", help="path to CHARTER.md")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument(
@@ -783,10 +783,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         charter = parse_file(args.path)
     except FileNotFoundError:
-        emit_err(f"keel: no such file: {args.path}")
+        emit_err(f"keelcheck: no such file: {args.path}")
         return 2
     except CharterFormatError as exc:
-        emit_err(f"keel: not a charter: {exc}")
+        emit_err(f"keelcheck: not a charter: {exc}")
         return 2
 
     if args.json:

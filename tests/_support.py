@@ -1,6 +1,6 @@
 """Shared builders for the tests. Not product code, not collected by pytest.
 
-**D3 says the tests use only the CLI observables, never `keel/` internals.** This file exists so the
+**D3 says the tests use only the CLI observables, never `keelcheck/` internals.** This file exists so the
 few things that are *not* yet ruled live in exactly one place: see ``ASSUMPTIONS`` below. When
 Gilbert rules them, this is the only file that changes.
 """
@@ -13,10 +13,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-#: keel/tests/_support.py -> keel/tests -> keel/ -> workspace/
+#: keel/tests/_support.py -> keel/tests -> keelcheck/ -> workspace/
 REPO = Path(__file__).resolve().parents[1]
 WORKSPACE = REPO.parent
-KEEL_CHARTER = REPO / "CHARTER.md"
+KEELCHECK_CHARTER = REPO / "CHARTER.md"
 
 #: The demonstration input. `rentguard/CHARTER.md` is D4's read-only evidence and lives outside this
 #: repository, so the suite cannot read it in a clone: the byte-identical snapshot below is what the
@@ -32,7 +32,7 @@ FROZEN_SENTINEL = "FROZEN-ORIGINAL-SENTINEL"
 #:   A2  the ratification commit is named in the charter's living state as
 #:       "Ratified at: `<sha>`", and again as the record's first line; the audit exits 1 if the two
 #:       disagree. The reference block is read with `git show <sha>:CHARTER.md` (D1, D8).
-#:   A3  `keel audit <repo>` writes `.keel/runs.jsonl` (append-only) and `.keel/review-context.json`;
+#:   A3  `keelcheck audit <repo>` writes `.keel/runs.jsonl` (append-only) and `.keel/review-context.json`;
 #:       `--record <path>` moves the record (needed because D4 keeps rentguard/ read-only).
 ASSUMPTIONS = ("A1 gates table", "A2 ratification pointer, named twice", "A3 record paths")
 
@@ -165,15 +165,15 @@ def commit_all(root, message: str) -> str:
 
 
 def audit(root, *extra, env_extra: dict | None = None) -> subprocess.CompletedProcess:
-    """Run `python -m keel audit <root>` the way a user would, capturing both streams as UTF-8."""
-    return keel("audit", str(root), *extra, env_extra=env_extra)
+    """Run `python -m keelcheck audit <root>` the way a user would, capturing both streams as UTF-8."""
+    return keelcheck("audit", str(root), *extra, env_extra=env_extra)
 
 
-def keel(*args, env_extra: dict | None = None) -> subprocess.CompletedProcess:
-    """Run any `python -m keel ...` command the way a user would, with UTF-8 stdio pinned."""
+def keelcheck(*args, env_extra: dict | None = None) -> subprocess.CompletedProcess:
+    """Run any `python -m keelcheck ...` command the way a user would, with UTF-8 stdio pinned."""
     env = {**os.environ, "PYTHONIOENCODING": "utf-8", **(env_extra or {})}
     return subprocess.run(
-        [sys.executable, "-m", "keel", *args],
+        [sys.executable, "-m", "keelcheck", *args],
         cwd=REPO, capture_output=True, text=True, encoding="utf-8", env=env,
     )
 
@@ -186,7 +186,7 @@ def combined(proc: subprocess.CompletedProcess) -> str:
 
 
 def charter_cli(path, *, json_out: bool = True, env_extra: dict | None = None) -> subprocess.CompletedProcess:
-    """Run `python -m keel.charter <path>` the way a user would (R1's own surface, no internals)."""
+    """Run `python -m keelcheck.charter <path>` the way a user would (R1's own surface, no internals)."""
     env = {**os.environ, "PYTHONIOENCODING": "utf-8", **(env_extra or {})}
-    args = [sys.executable, "-m", "keel.charter", str(path)] + (["--json"] if json_out else [])
+    args = [sys.executable, "-m", "keelcheck.charter", str(path)] + (["--json"] if json_out else [])
     return subprocess.run(args, cwd=REPO, capture_output=True, text=True, encoding="utf-8", env=env)

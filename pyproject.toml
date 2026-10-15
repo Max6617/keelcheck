@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "keel"
+name = "keelcheck"
 version = "0.0.1"
 description = "One frozen human-approved original; requirements that name their mechanism or are marked wishes; hashed gates; an audit that reports divergence."
 requires-python = ">=3.10"
@@ -19,13 +19,13 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-keel = "keel.cli:main"
+keelcheck = "keelcheck.cli:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
 
 [tool.setuptools]
-packages = ["keel"]
+packages = ["keelcheck"]
 
 [tool.pytest.ini_options]
 # pytest's transient cache directories (`pytest-cache-files-*`) were created in the repository root

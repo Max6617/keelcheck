@@ -44,7 +44,7 @@ RECORD_NAME = "runs.jsonl"
 REVIEW_CONTEXT_NAME = "review-context.json"
 DEFAULT_DIR = ".keel"
 HEADER_KIND = "header"
-RECORD_ID = "keel/runs"
+RECORD_ID = "keelcheck/runs"
 VERSION = 1
 
 

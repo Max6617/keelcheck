@@ -50,7 +50,7 @@ __all__ = [
 ]
 
 MANIFEST_KIND = "review/manifest/1"
-MANIFEST_NAME = "KEEL-MANIFEST.json"
+MANIFEST_NAME = "KEELCHECK-MANIFEST.json"
 GENERATED = ("REVIEW-PROMPT.md", "FROZEN-ORIGINAL.md", "MECHANICAL-FINDINGS.txt")
 
 #: Bound on what is handed to a third party, and on what this tool spends hashing it.
@@ -70,9 +70,11 @@ DENIED = {
 #: review verdicts -- the history it exists to be denied.
 RECORD_SEGMENTS = {".keel"}
 
-#: What a keel record's first line says it is. A record under any other name or directory is still a
+#: What a keelcheck record's first line says it is. A record under any other name or directory is still a
 #: record, and "the record is out of reach" has to be true for every location the tool supports.
-RECORD_MARKERS = ("keel/runs", "review-context/1")
+#: `keel/runs` is the pre-rename identifier: a record written while the product was called `keel` is
+#: still a record, and renaming must not quietly stop denying it to the reviewer.
+RECORD_MARKERS = ("keelcheck/runs", "keel/runs", "review-context/1")
 
 #: The names a record has by default. A file with one of these names that cannot be identified by
 #: content is exported and *named* in the manifest's `warnings` rather than excluded on a guess.
@@ -95,7 +97,7 @@ def deny_reason(rel: str) -> str | None:
 
 
 def is_keel_record(data: bytes) -> bool:
-    """True when these bytes are a keel run record or a reviewer's context file, wherever they live."""
+    """True when these bytes are a keelcheck run record or a reviewer's context file, wherever they live."""
     first = data.split(b"\n", 1)[0].strip()
     if not first.startswith(b"{"):
         return False
@@ -105,7 +107,11 @@ def is_keel_record(data: bytes) -> bool:
         return False
     if not isinstance(obj, dict):
         return False
-    return obj.get("record") in RECORD_MARKERS or obj.get("keel") in RECORD_MARKERS
+    return (
+        obj.get("record") in RECORD_MARKERS
+        or obj.get("keelcheck") in RECORD_MARKERS
+        or obj.get("keel") in RECORD_MARKERS  # the key the documents carried before the rename
+    )
 
 
 def _repo_paths(repo: Path) -> tuple[list[str], list[str]]:
@@ -241,7 +247,7 @@ def build_manifest(audit) -> dict:
             skipped.append({"path": rel, "reason": f"unreadable: {exc}"})
             continue
         if is_keel_record(data):
-            skipped.append({"path": rel, "reason": "denied: a keel run record, wherever it lives"})
+            skipped.append({"path": rel, "reason": "denied: a keelcheck run record, wherever it lives"})
             continue
         stored = normalize.normalize_path(repo, rel, data, autocrlf=autocrlf)
         normalized[rel] = stored
@@ -270,13 +276,13 @@ def build_manifest(audit) -> dict:
     # cannot be identified by content, so it is exported and named here instead of being excluded on
     # a guess. A record with a first line is excluded above, wherever it lives.
     warnings = [
-        {"path": entry["path"], "reason": f"a file named like a keel record ({RECORD_NAMES}): check "
+        {"path": entry["path"], "reason": f"a file named like a keelcheck record ({RECORD_NAMES}): check "
                                           "whether the reviewer was handed prior runs"}
         for entry in files
         if entry["path"].rsplit("/", 1)[-1] in RECORD_NAMES
     ]
     return {
-        "keel": MANIFEST_KIND,
+        "keelcheck": MANIFEST_KIND,
         "files": files,
         "skipped": skipped,
         "warnings": warnings,

@@ -1,7 +1,7 @@
 """UTF-8 output for the CLI (D8).
 
 The machine-readable report must not depend on the console code page. Measured at
-`489f47d`: ``python -m keel charter ../rentguard/CHARTER.md --json`` exited 1 with
+`489f47d`: ``python -m keelcheck charter ../rentguard/CHARTER.md --json`` exited 1 with
 ``UnicodeEncodeError: 'charmap' codec can't encode character '\\u2192'`` on a cp1252
 console, because the arrow in rentguard R5's text cannot be encoded there. The record
 consumes that path, so it is a defect and not a cosmetic one.

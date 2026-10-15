@@ -31,6 +31,7 @@ import _support
 GATE = _support.REPO / "tools" / "coverage.py"
 BLIND_TARGET = "tests/_artefacts/blind_target.py"
 CHILD_TARGET = "tests/_artefacts/child_trace_target.py"
+FAILING_TARGET = "tests/_artefacts/failing_target.py"
 
 
 def _gate(*args: str) -> subprocess.CompletedProcess:
@@ -94,3 +95,26 @@ def test_the_tracer_reaches_the_cli_modules_through_child_processes():
     provenance = doc.get("provenance") or {}
     assert provenance.get("sha") and provenance.get("worktree") in ("clean", "dirty"), (
         f"the document carries no provenance line (D19): {provenance!r}")
+
+
+def test_a_red_suite_is_not_masked_by_the_coverage_number():
+    """Mason's red-suite branch, pinned.
+
+    The target drives keel in a child — so the measurement is non-zero and the floor cannot be the
+    thing that refuses — and then fails. Coverage above the floor must not turn a red suite green:
+    exit 1, the reason says the suite did not pass, and the JSON carries `suite {exit, passed}`.
+    `--min 0.0` is passed deliberately, so a floor of zero cannot mask it either.
+    """
+    proc = _gate("--min", "0.0", "--json", FAILING_TARGET)
+
+    assert proc.stdout.strip().startswith("{"), (
+        f"the gate printed no JSON document:\n{_support.combined(proc)[:400]}")
+    doc = json.loads(proc.stdout)
+
+    assert proc.returncode == 1, (
+        f"a failing suite exited {proc.returncode}; coverage is not a verdict on the tests:\n"
+        f"{_support.combined(proc)[-400:]}")
+    assert doc["suite"]["passed"] is False and doc["suite"]["exit"] == 1, (
+        f"the document does not report the failing suite: {doc.get('suite')!r}")
+    assert "did not pass" in (doc.get("reason") or ""), (
+        f"the reason does not say the suite failed: {doc.get('reason')!r}")

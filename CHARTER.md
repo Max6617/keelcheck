@@ -1,4 +1,4 @@
-# Charter — keel (working name)
+# Charter — keelcheck
 
 The one file a human reads. Drafted by an agent from the opening conversation on 2026-10-14, read and
 **approved by the user** the same evening, in their words:
@@ -24,14 +24,14 @@ And the recommendation those words accept, as written in `ECC-ASSESSMENT.md` bef
 ## Ratification
 
 Ratified at: `117ac7c` — the ratification commit, and the reference side of every comparison (D1, D8). Moved
-from the freeze commit `ae375c6` at the user's word on 2026-10-14 so that keel's first gate counts as
+from the freeze commit `ae375c6` at the user's word on 2026-10-14 so that keelcheck's first gate counts as
 ratified (D17); the frozen-original block is byte-identical at both commits (553 bytes, sha256
 `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`), so the move changes only which gate
 table is the reference.
 
-- **Gates ratified: one** — `review-prompt`, a `kind: prompt` row hashed over git-normalized bytes (D15). It is
-  a locked instruction, not an *executable* check, so the mechanical half's vacuity line still fires and says
-  so; the cure for that is keel's own coverage gate (R8), not this row.
+- **Gates ratified: two** — `review-prompt`, a `kind: prompt` row hashed over git-normalized bytes (D15), and
+  `suite`, the coverage gate, a `kind: gate` row the audit executes (floor 0.83; decisions D19 and D20). With an executable
+  gate ratified beside the prompt row, the mechanical half's vacuity line has nothing left to report.
 
 ## What it is for
 
@@ -93,21 +93,24 @@ impossible, fatal or recoverable. `checked-by:` = a human judges it, or a demo m
 | R1 | The charter format is fixed: purpose, strengths, agreed problems, requirements, permissions, scopes; a requirement with neither `enforced-by` nor `checked-by` is a wish and the parser says so | code: the charter parser | — | draft |
 | R2 | Gates are locked code: a gate is a script recorded in the charter with a content hash, and the audit fails when a hash differs from the ratified one | code: hash comparison | — | draft |
 | R3 | The audit reports divergence from the frozen original in three classes — **missing / unrequested / shifted** — plus the wishes, readable in two minutes | code: the frozen-original block is diffed against the charter at the ratification anchor (the `Ratified at:` line — never a literal sha, which goes stale when the anchor moves, D18); the drift review (clean context) classifies the rest | the human reads it | draft |
-| R4 | The drift review runs with **clean context**: a fresh agent holding only the frozen original and the current state, never the history that produced it | — | the drift report names `.keel/review-context.json`, written under the record root | **checked, not enforced** — `keel/audit.py` writes the reviewer's inputs today; the runner that starts the reviewer is not built (design: `keel/research/drift-review-design.md`) |
+| R4 | The drift review runs with **clean context**: a fresh agent holding only the frozen original and the current state, never the history that produced it | — | the drift report names `.keel/review-context.json`, written under the record root | **checked, not enforced** — `keelcheck/audit.py` writes the reviewer's inputs today; the runner that starts the reviewer is not built (design: `keel/research/drift-review-design.md`) |
 | R5 | Integration surfaces in this order: git hook first, CLI second, MCP third, harness hook adapter last | code: the hook installer | — | draft |
 | R6 | No daemon and no server: a bounded CLI run, and an MCP call that returns | code: no long-lived process, no listening socket | — | draft |
 | R7 | The tool proves itself on **rentguard**: the audit — mechanical half plus clean-context drift review — names the five defects the by-hand audit found, each attributed to the half that finds it, and reports a gate-less input as **vacuous**, never clean | — | the audit run at `bd63920`, `ce69cea`, `c512125` and `310f449`, and the human reads the report | draft |
-| R8 | 94% of the code and 100% of the surface exercised; one writer per file; every count names a commit; red tests before fixes | code: keel's coverage gate and the suite — **neither is built, so this is unbacked until they are** | the CI run | draft |
+| R8 | 94% of the code and 100% of the surface exercised; one writer per file; every count names a commit; red tests before fixes | code: `tools/coverage.py` (the coverage gate, ratified — floor 0.83, decisions D19 and D20) and the suite; the gate refuses a blind measurement rather than printing a number | the suite and the gate run on this checkout — **no CI is configured in this repo** | draft |
 | R9 | Nothing is published without the user's explicit word | — | the user's explicit word before any push | checked, not enforced |
 
 ## Gates
 
 | gate | path | hash | kind |
 |---|---|---|---|
-| review-prompt | review-prompt.md | sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1 | prompt |
+| review-prompt | review-prompt.md | sha256:90df6ebca467f5a196c7c2a912297ffcf3cafb147fdc040ba3ce101eb0aff7f2 | prompt |
+| suite | tools/coverage.py | sha256:c0b4c4ca1f2161ad9accef9ca9ff882c74c64e3c32a962ccd5fa1228e3c2b634 | gate |
 
 The first ratified gate, and the one that is not a script: the review prompt is the reviewer's whole
-instruction, so weakening it is a gate change like any other (D15). The hash is over the file's
+instruction, so weakening it is a gate change like any other (D15). The second row is the executable half:
+`tools/coverage.py`, whose floor is a constant inside the script (D19) and whose measurement refuses rather
+than prints when the tracer reaches no module of the package. Both hashes are over the files'
 git-normalized bytes (D9), verified against `git cat-file blob` rather than a working-tree read.
 
 ## The wishes
@@ -126,7 +129,7 @@ outside the runner can verify that the reviewer really had no history. The stron
 that the runner records what it handed the reviewer.
 
 **Struck before freezing, 2026-10-14, at the user's word:** the wish *"nothing is published is a promise,
-not a lock"*. Publishing keel is the user's decision and they are content with that; it is a human check,
+not a lock"*. Publishing keelcheck is the user's decision and they are content with that; it is a human check,
 so it belongs in R9 as `checked-by` rather than as a wish, and the "no remote configured" observation went
 with it. A wish removed on purpose leaves that trace rather than disappearing.
 
@@ -134,7 +137,10 @@ with it. A wish removed on purpose leaves that trace rather than disappearing.
 
 - **Money:** none needed yet. A GPU or any spend needs the Main Bot's approval first.
 - **Publishing:** the user's decision alone, for the tool and for its name.
-- **The name `keel` is a working name** and may change; the user decides.
+- **The name is a working name** and may change; the user decides. **Exercised 2026-10-15:** the product
+  publishes as `keelcheck` (registry shortlist by Sift, the user's word), and the working tree carries it from
+  `6ff67e8`. `keel` survives only as history — the `keel/` checkout directory, the `.keel/` record root, and
+  records written before the rename, which the record marker still recognises.
 
 ## Scopes
 

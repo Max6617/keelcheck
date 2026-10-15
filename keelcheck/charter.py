@@ -208,7 +208,14 @@ class Gate:
 
     @property
     def known_kind(self) -> bool:
-        return self.kind in ("gate", "prompt")
+        """`gate` and `prompt` are the kinds this build acts on; `reviewer` pins an accepted command.
+
+        A `reviewer` row names the wrapper file a review must have been run by (R4, D15). `gate run`
+        never executes it -- a reviewer command needs arguments a row cannot carry -- but its content
+        hash is checked like any other row's, and the audit compares each recorded review's command
+        against it.
+        """
+        return self.kind in ("gate", "prompt", "reviewer")
 
     def as_dict(self) -> dict:
         return {

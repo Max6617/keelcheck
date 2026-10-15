@@ -173,6 +173,12 @@ class Audit:
             for item in line.get("claims", []):
                 flag = "" if item.get("verified") else "  [evidence-missing]"
                 out.append(f"    {item.get('class')}: {item.get('subject')} -- {item.get('why')}{flag}")
+        elif status == "unratified":
+            out.append(
+                f"  the recorded review was run by `{_command_text(line)}`, which the ratified table "
+                "does not name: R4 asks for the command the charter accepts, so this is not a review "
+                "of the required kind (D15)"
+            )
         elif status == "inconsistent":
             mismatch = line.get("coverage_mismatch") or {}
             out.append(
@@ -414,6 +420,34 @@ def _check_run_record(audit: Audit, gate: Gate, name: str) -> None:
     )
 
 
+def _ratified_reviewers(audit: Audit) -> list[str]:
+    """The reviewer wrappers the ratified table names (`kind: reviewer`), repo-relative (R4, D15)."""
+    if audit.reference is None:
+        return []
+    return [g.path for g in audit.reference.gates if g.kind == "reviewer" and g.path]
+
+
+def _command_text(line: dict) -> str:
+    """The command a review line records, as text, in one spelling for comparison."""
+    command = line.get("command")
+    if isinstance(command, list):
+        return " ".join(str(part) for part in command)
+    return str(command or "(no command recorded)")
+
+
+def _names_ratified_reviewer(line: dict, ratified: list[str]) -> bool:
+    """Does this review's command name a reviewer the ratified table accepts?
+
+    No ratified row means no comparison to make, and every command passes: the check pins a command the
+    charter names, it does not invent one. Comparison is by containment, because a command is a program
+    plus arguments (`"<python>" "<repo>/tools/reviewer.py"`) while a row names a repo-relative file.
+    """
+    if not ratified:
+        return True
+    command = _command_text(line).replace("\\", "/")
+    return any(path.replace("\\", "/") in command for path in ratified)
+
+
 def _review_state(audit: Audit) -> dict:
     """Does a clean-context review cover the current state? (R4, D15.)
 
@@ -427,13 +461,30 @@ def _review_state(audit: Audit) -> dict:
     lines = [obj for obj in audit.record_objects if obj.get("kind") == "review"]
     if not lines:
         return {"status": "missing", "line": None, "manifest": None, "recorded": None}
+    ratified = _ratified_reviewers(audit)
     usable = [
         obj
         for obj in lines
-        if obj.get("result") == "pass" and obj.get("verdict") != "inconsistent"
+        if obj.get("result") == "pass"
+        and obj.get("verdict") != "inconsistent"
+        and _names_ratified_reviewer(obj, ratified)
     ]
     if not usable:
         last = lines[-1]
+        if ratified and not _names_ratified_reviewer(last, ratified):
+            audit.add(
+                "reviewer-unratified",
+                "review",
+                f"the recorded review was run by `{_command_text(last)}` while the ratified table "
+                f"names `{', '.join(ratified)}`; R4 asks for a review by the command the charter "
+                "accepts, and a row that names none would be a fiction (D15)",
+            )
+            return {
+                "status": "unratified",
+                "line": last,
+                "manifest": None,
+                "recorded": last.get("manifest"),
+            }
         if last.get("verdict") == "inconsistent":
             return {
                 "status": "inconsistent",

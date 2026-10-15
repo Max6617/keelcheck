@@ -50,8 +50,13 @@ Rules:
    unverified item is a claim, not a finding.
 2. `unreviewed` is mandatory, even when empty. A clean verdict with entries in `unreviewed` is
    recorded as **partial**, not clean.
-3. `coverage.files_seen` and `coverage.files_total` are mandatory. A clean verdict with
-   `files_seen < files_total` is recorded as partial.
+3. `coverage.files_seen` and `coverage.files_total` are mandatory, and both count **the files listed in
+   `KEELCHECK-MANIFEST.json`** — that list is exactly the state you were handed. The four files the
+   runner puts beside it are the runner's own and are not part of the state you are judging; do not
+   count them: `REVIEW-PROMPT.md`, `FROZEN-ORIGINAL.md`, `MECHANICAL-FINDINGS.txt`,
+   `KEELCHECK-MANIFEST.json`. `files_seen` is how many of the listed files you actually read: a clean
+   verdict with `files_seen < files_total` is recorded as partial, and a `files_total` that disagrees
+   with the manifest is recorded as **inconsistent** rather than believed.
 4. Do not invent work to seem thorough. An empty `items` list with `verdict: clean` and an empty
    `unreviewed` list is a legitimate answer when the state matches the original.
 5. You may read any file in this directory. You may not reach outside it, and you should assume that

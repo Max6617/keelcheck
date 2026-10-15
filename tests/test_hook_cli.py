@@ -314,12 +314,56 @@ def _hook_argv(repo) -> tuple[list[str], str | None]:
     return argv, pythonpath
 
 
-def _run_hook_body(repo, *, path: str | None = None):
-    argv, pythonpath = _hook_argv(repo)
+def _hook_launch(repo, env: dict) -> list[str]:
+    """The command the installed hook would `exec`, after applying its own variable lines to `env`.
+
+    A stand-in for `sh`, which cannot run this on every host: git for Windows starts hooks through msys
+    `sh.exe`, and under the DSH sandbox that binary dies with `couldn't create signal pipe, Win32
+    error 5` before it executes a line — measured 2026-10-15 on this host and on Mason's. Only the
+    line shapes the installer writes are understood, and each is asserted present, so a change to the
+    script's shape fails here loudly instead of quietly testing nothing. The two things this cannot
+    cover — the real shell, and git's own environment — are `tests/_artefacts/hook_under_gate_target.py`,
+    which the coverage gate runs on a host where `sh` starts.
+
+    **The `${PYTHONPATH:+:$PYTHONPATH}` join is applied as written, with POSIX `:`**, because that join
+    was the defect: the interpreter the hook execs is native Windows python, which splits PYTHONPATH on
+    `;` only, so under the coverage gate — the one caller that always has a PYTHONPATH set — the old
+    line produced the single unresolvable entry `"<root>:<child dir>"` and `python -m keelcheck` died
+    with `No module named keelcheck`. With no inherited PYTHONPATH the same line is just `"<root>"` and
+    works, which is why a plain run passed while two gate runs disagreed.
+    """
+    text = (repo / HOOK).read_text(encoding="utf-8")
+    argv: list[str] = []
+    saw_pythonpath = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("unset "):
+            for name in line.split()[1:]:
+                env.pop(name, None)
+        elif line.startswith("PYTHONPATH="):
+            saw_pythonpath = True
+            value = line.split("=", 1)[1]
+            literal, marker, rest = value.partition("${PYTHONPATH")
+            literal = literal.strip().strip('"')
+            inherited = env.get("PYTHONPATH", "") if (marker and rest.startswith(":+:")) else ""
+            env["PYTHONPATH"] = literal + (":" + inherited if inherited else "")
+        elif line.startswith("export "):
+            continue
+        elif line.startswith("exec "):
+            argv = shlex.split(line[len("exec "):])
+        else:
+            raise AssertionError(
+                f"the installed hook has a line this runner does not understand: {line!r}")
     assert argv, "the installed hook has no `exec` line"
+    assert saw_pythonpath, "the installed hook sets no PYTHONPATH line"
+    return argv
+
+
+def _run_hook_body(repo, *, path: str | None = None):
     env = {**os.environ}
-    if pythonpath:
-        env["PYTHONPATH"] = pythonpath
+    argv = _hook_launch(repo, env)
     if path is not None:
         env["PATH"] = path
     return subprocess.run(argv, cwd=repo, capture_output=True, text=True, encoding="utf-8", env=env)
@@ -363,6 +407,59 @@ def test_the_hook_command_does_not_need_python_on_the_path(scratch):
     assert proc.returncode == 0, (
         "the hook command needs python on PATH, so it would block every commit:\n"
         f"{_support.combined(proc)}")
+
+
+def test_the_hook_starts_the_tool_whose_import_the_callers_environment_must_not_decide(scratch):
+    """The version that runs anywhere, with no git and no `sh` (Gilbert, 2026-10-15).
+
+    A hook that cannot start blocks **every** commit, so the caller's shell must not get a vote on
+    whether keelcheck can be imported. Three hostile facts at once, each of which the old launch lost to:
+
+    - `PYTHONHOME` pointing at nothing: the old launch passed it straight to python, which refuses to
+      start at all (`Python path configuration`);
+    - a `PYTHONPATH` already set — which is the coverage gate, every run: the old line joined with POSIX
+      `:` and native Windows python splits on `;`, so the import root was unreachable and
+      `python -m keelcheck` printed `No module named keelcheck`. Measured 2026-10-15 with the exact
+      string the old hook produced, cwd at a repository that is not the checkout: exit 1 with that
+      message, and exit 0 once the join is `;`. That is the cause of the 3-of-116 failures at
+      `041689b`, and of a plain run passing where a gate run failed;
+    - a decoy `keelcheck` package in the hook's own cwd, where `-m` searches first, and the same package
+      earlier on the caller's `PYTHONPATH`: whatever runs must be the tool the hook was installed from.
+
+    Green at `2ac1aec`, red before it. Driven through `_hook_launch`, which applies the script's own
+    lines the way `sh` would — the stated limit being the real shell, which is
+    `tests/_artefacts/hook_under_gate_target.py`'s job on a host where msys `sh` starts.
+    """
+    repo, _ = _hook_repo(scratch, "print('ok')\n")
+    installed = _support.keelcheck("hook", "install", str(repo))
+    assert installed.returncode == 0, f"install failed:\n{_support.combined(installed)}"
+
+    decoy = {
+        "__init__.py": "MARKER = 'decoy'\n",
+        "__main__.py": "print('DECOY-KEELCHECK-WON')\nraise SystemExit(97)\n",
+    }
+    for name, body in decoy.items():
+        _support.write(repo / "keelcheck" / name, body)
+        _support.write(scratch / "elsewhere" / "keelcheck" / name, body)
+
+    env = {
+        **os.environ,
+        "PYTHONHOME": str(scratch / "no-such-python-home"),
+        "PYTHONPATH": str(scratch / "elsewhere"),
+    }
+    argv = _hook_launch(repo, env)
+    proc = subprocess.run(argv, cwd=repo, capture_output=True, text=True, encoding="utf-8", env=env)
+    out = _support.combined(proc)
+
+    assert "DECOY-KEELCHECK-WON" not in out, (
+        f"the hook ran a foreign `keelcheck` package instead of the tool it was installed from:\n{out}")
+    assert proc.returncode == 0, (
+        "the hook could not start the tool under the caller's environment, so it would block every "
+        f"commit:\n{out}")
+    lines = [json.loads(l) for l in (repo / ".keel" / "runs.jsonl").read_text(
+        encoding="utf-8").splitlines() if l.strip()]
+    assert any(o.get("kind") == "gate" and o.get("result") == "pass" for o in lines), (
+        "the launch exited 0 but ran no gate, so nothing about the environment was proven")
 
 
 def test_the_hook_body_carries_the_marker_and_absolute_paths(scratch):

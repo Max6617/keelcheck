@@ -26,6 +26,8 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 import _support
 
 GATE = _support.REPO / "tools" / "coverage.py"
@@ -33,6 +35,7 @@ BLIND_TARGET = "tests/_artefacts/blind_target.py"
 CHILD_TARGET = "tests/_artefacts/child_trace_target.py"
 FAILING_TARGET = "tests/_artefacts/failing_target.py"
 NESTED_TARGET = "tests/_artefacts/nested_target.py"
+HOOK_TARGET = "tests/_artefacts/hook_under_gate_target.py"
 
 
 def _gate(*args: str, env_extra: dict | None = None) -> subprocess.CompletedProcess:
@@ -156,3 +159,49 @@ def test_a_nested_run_measures_only_itself_and_keeps_the_parents_path(scratch):
     assert not missing, (
         "the gate replaced the parent's PYTHONPATH instead of extending it, so a child cannot "
         f"import what the parent could: {missing} (child saw {inherited})")
+
+
+def test_a_commit_through_the_installed_hook_lands_inside_a_gate_run(scratch):
+    """The child that actually failed: `gate -> pytest -> target -> git -> sh -> python -m keelcheck`.
+
+    The nested test above measures `gate -> pytest -> target` and says so; it cannot reach the hook,
+    whose script resolves its own import root at *install* time and is then started by git's `sh`.
+    On 2026-10-15 two runs of this gate over this suite at the same commit disagreed (exit 0 and exit
+    1), and the failing one died here with `No module named keelcheck` — every commit blocked,
+    including one whose gates pass. Nothing pinned that shape until now.
+
+    Two properties make it the regression test rather than a rerun (Gilbert, 2026-10-15):
+
+    1. the hook is **installed from the tree under test** inside the gate run, so install-time
+       resolution is exercised rather than inherited;
+    2. the commit is made **inside the gate run**, and the target records the gate's own child-process
+       variables — the outer assertion checks `KEELCHECK_COVERAGE_CHILD` was set for the process that
+       made the commit, so a commit made outside a gate cannot pass as if it had been inside one.
+
+    Asserted on the target's recorded document, not on the exit code alone: a skipped or uncollected
+    target also exits 0, and "the gate passed" must not be satisfiable by a gate that never ran.
+    """
+    out = scratch / "hook-under-gate.json"
+    proc = _gate("--min", "0.0", HOOK_TARGET, env_extra={"KEEL_HOOK_GATE_OUT": str(out)})
+
+    assert out.exists(), (
+        "the target recorded nothing, so it did not reach the end of its own fixture:\n"
+        f"{_support.combined(proc)[-800:]}")
+    doc = json.loads(out.read_text(encoding="utf-8"))
+
+    if not doc.get("git_sh_works"):
+        pytest.skip(f"git cannot start a hook on this host: {doc.get('git_sh_reason')!r}")
+
+    inside = doc.get("inside_gate") or {}
+    assert inside.get("KEELCHECK_COVERAGE_CHILD") == "1", (
+        "the commit was not made inside a gate run, so this shape could have passed without "
+        f"reproducing it: {inside!r}")
+    assert doc.get("hook_installed"), (
+        f"no hook was installed into the fixture repo:\n{doc.get('install_output')}")
+    assert doc.get("commit_returncode") == 0, (
+        "the installed hook blocked a commit whose gate passes; a hook that cannot start blocks "
+        f"*every* commit:\n{doc.get('commit_output')}")
+    assert doc.get("head_after") != doc.get("head_before"), (
+        "the commit did not land, so the hook was reached but nothing was verified")
+    assert proc.returncode == 0, (
+        f"the gate did not pass the target that did all of the above:\n{_support.combined(proc)[-400:]}")

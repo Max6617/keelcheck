@@ -13,7 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-#: keel/tests/_support.py -> keel/tests -> keelcheck/ -> workspace/
+#: keel/tests/_support.py -> keel/tests -> keel/ (the checkout, which keeps its name) -> workspace/
 REPO = Path(__file__).resolve().parents[1]
 WORKSPACE = REPO.parent
 KEELCHECK_CHARTER = REPO / "CHARTER.md"

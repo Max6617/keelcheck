@@ -465,7 +465,7 @@ mechanism or are marked wishes, hashed gates, and an audit that reports divergen
     "prompt_path", "prompt_ratified", "command", "exit", "result", "verdict", "items", "unreviewed",
     "coverage", "claims", "history_reachable", "export", "files", "bytes", "truncated"}` — one JSON object
     per line in `runs.jsonl`, appended after the reviewer returns. It carries the anchor it used, so
-    `[anchor-moved]` compares the previous entry **of any kind that carries an anchor** (D12 amended):
+    `[anchor-moved]` compares the previous entry **whose kind is `audit` or `review`**, an explicit allowlist in `_anchor_moved` (`audit.py:467`) — amended in place 2026-10-15 after Sift read the code: the earlier wording, "any kind that carries an anchor", described a broader rule than the tool implements, and a new kind would have been inert without the sentence saying so (D12 amended):
     D10's `[gate-table]` still compares the last `audit` entry, because only audits carry a gate array.
     `history_reachable` is **`unknown`**, not `none` (amended 2026-10-14 after Sift's finding 5 and
     Gilbert's ruling for the demonstration): what the tool can prove is that the export holds no `.git`, no

@@ -574,3 +574,36 @@ machine and could stop a healthy pod, a cap that exists only while `watch` runs,
 publishing, and an unexercised volume path. Every one became a closed defect with a commit and a test. If
 the tool reproduces that on the first run, R7 is met and the README has its demo; if it does not, the
 shortfall is the finding.
+
+## 2026-10-15 — the rename, the anchor, and R7's drift column (written by Gilbert, 23:2x)
+
+- **The product is `keelcheck`.** Renamed end to end in `6ff67e8` (43 files plus the package directory) with
+  two deliberate legacies so nothing narrows: the record marker still recognises pre-rename records, and a
+  hook installed under the old name needs `hook install --force`. The `keel/` checkout directory and the
+  `.keel/` record root keep their names on purpose.
+- **The anchor moved to `688fce8` in `041689b`**, at Max's word on 2026-10-15, carrying two changes: the
+  rename in the charter's prose, and the **coverage gate as the second ratified row**
+  (`| suite | tools/coverage.py | sha256:c0b4c4ca… | gate |`, floor **0.83** from the first honest measurement,
+  2031/2419, rounded down). The review prompt's hash moved with the rename (its manifest line), and the
+  frozen-original block is byte-identical at 553 bytes. The audit now reads `gates ratified: 2 (1 executable)`,
+  which is what ended the vacuity line.
+- **The gate's suite timeout is a bound against a hang, not against slowness**: `8f6f8ed` raised it
+  600 → 1800 s, because every run on this host recorded `timeout` while the suite was merely slow. The run
+  record still has to be written on a **clean** tree — my own runs refused to start on a dirty one, on purpose.
+- **R7's drift column is complete.** The two held reviews ran at `ce69cea` and `c512125` on Max's released
+  calls: **2 of 5 by-hand defects named at each of the three pre-fix revisions**, every finding quoted to its
+  revision, while the same reviewer on the current state names none of them. R7 reads: the mechanical pair
+  gives identical divergences at both ends; drift is not met as written on the current state; **met in part at
+  the pre-fix revisions** — the difference between those two readings is the demonstration.
+- **The largest gap, found by Sift and measured** (`research/gap-review-half.md`): a four-line stub satisfied
+  R4's presence check — it claimed 999,999 files in a 76-file export — because `validate_output` took the file
+  counts from the reviewer's own JSON. Being closed by (i) comparing against the runner's manifest count and
+  recording a disagreement as **inconsistent**, and (ii) a `kind: reviewer` gate row naming the accepted
+  reviewer command, so a review from a different command is `[reviewer-unratified]` and satisfies nothing.
+- **Next item taken: the MCP surface** — R5's third, absent until now: `python -m keelcheck mcp`, a stdlib
+  stdio JSON-RPC server the client spawns, one call per invocation, exposing `audit`; no socket, and no gate
+  hash moves. Reds first: the process exits on stdin EOF, and a diverging fixture returns as a tool *result*
+  carrying exit 1 rather than as an MCP error.
+- **Open, and stated as such:** the drift column names **2 of the 5** by-hand defects, not 5 of 5 — that is
+  the result rather than a run to be re-cut; and the review half's prior-context and deliberate-escape
+  residuals stay named rather than closed.

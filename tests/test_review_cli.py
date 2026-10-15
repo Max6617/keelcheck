@@ -33,12 +33,35 @@ CLEAN = {"verdict": "clean", "items": [], "unreviewed": [],
 
 
 def _stub(scratch, name: str, payload=None, *, raw: str | None = None, code: str | None = None) -> str:
-    """A reviewer command string. Stubs live outside the repo so they never enter the export."""
+    """A reviewer command string. Stubs live outside the repo so they never enter the export.
+
+    **`payload is CLEAN` means "a clean review of whatever this stub was handed", not "four files".**
+    The runner checks the reviewer's `coverage.files_total` against the export it handed over (Sift's
+    finding, 2026-10-15), so a literal count in a shared fixture is a claim about a fixture the stub
+    does not control: seven tests here carried `4` while their export held two or three files, and
+    went `inconsistent` for a reason that had nothing to do with what each of them tests. So the
+    shared payload counts the files it can actually see, which is what a reviewer does. A *copy*
+    (`{**CLEAN, ...}`, as the short-count case below builds) keeps its literal, deliberately.
+    """
     path = scratch.parent / f"{scratch.name}-stub-{name}.py"
     if raw is not None:
         body = raw
     elif code is not None:
         body = code
+    elif payload is CLEAN:
+        body = (
+            "import json,sys\n"
+            "from pathlib import Path\n"
+            "sys.stdin.read()\n"
+            "# The reviewer's cwd is the handed-over tree, and the runner parks four of its own files\n"
+            "# in it: the prompt, the frozen original, the mechanical findings and the manifest. The\n"
+            "# number the runner checks against is the repository files, so count those.\n"
+            "RUNNER_FILES = {'REVIEW-PROMPT.md', 'FROZEN-ORIGINAL.md', 'MECHANICAL-FINDINGS.txt',\n"
+            "                'KEELCHECK-MANIFEST.json'}\n"
+            "n = sum(1 for p in Path('.').rglob('*') if p.is_file() and p.name not in RUNNER_FILES)\n"
+            "print(json.dumps({'verdict': 'clean', 'items': [], 'unreviewed': [],\n"
+            "                  'coverage': {'files_seen': n, 'files_total': n}}))\n"
+        )
     else:
         body = ("import json,sys\nsys.stdin.read()\n"
                 f"print(json.dumps({json.dumps(payload)}))\n")
@@ -755,3 +778,77 @@ def test_the_manifest_is_the_same_for_one_state_under_both_autocrlf_configs(scra
         f"one state yields two manifest hashes ({manifests[0][:16]} vs {manifests[1][:16]}), so a "
         "review is stale on any checkout with the other line-ending configuration — D9's class, and "
         "the false red that re-running cannot clear")
+
+
+# --- the runner's count against the reviewer's claim (Sift's finding, 2026-10-15) ---------------
+#
+# These two are **red-first**, unlike the rest of this file: Sift found the defect before the fix.
+
+#: What `_repo()` hands over: `tracked.txt`, `tools/gate.py`, `review-prompt.md`, `CHARTER.md`.
+#: **Named here rather than read back out of the tool's own report**, because a test that compares the
+#: report with itself cannot fail — and the whole finding is that the runner believed the reviewer's
+#: number instead of knowing its own.
+HANDED_FILES = 4
+
+#: A four-line stub that claims a hundred thousand times more files than the export contains.
+OVERCLAIM = {"verdict": "clean", "items": [], "unreviewed": [],
+             "coverage": {"files_seen": 999999, "files_total": 999999}}
+
+
+def test_a_reviewer_claiming_more_files_than_it_was_handed_is_inconsistent(scratch):
+    """Sift, 2026-10-15: a stub claiming 999,999 files in a four-file export was recorded `clean`,
+    exit 0, and satisfied R4's presence check, because `validate_output` read the reviewer's own
+    `coverage.files_seen/files_total` and only asked whether `seen < total` — so a reviewer that
+    inflated both numbers agreed with itself and was believed.
+
+    The runner *knows* the handover count. A claim that disagrees with it is not a review of this
+    state: the record says `inconsistent`, the audit reports `inconsistent`, and a charter declaring
+    `Review: required` is **not** satisfied by it.
+    """
+    repo = _repo(scratch, review_required=True)
+    stub = _stub(scratch, "overclaim", OVERCLAIM)
+
+    proc = _review(repo, stub)
+    doc = json.loads(proc.stdout)
+
+    assert doc["review"]["verdict"] == "inconsistent", (
+        "a reviewer that claims more files than the export held was believed: "
+        f"{json.dumps(doc['review'])[:400]}")
+    assert doc["review"]["coverage_mismatch"] == {
+        "handed": HANDED_FILES, "claimed": 999999, "seen": 999999}, (
+        f"the mismatch is not recorded against the runner's own count of {HANDED_FILES}: "
+        f"{doc['review'].get('coverage_mismatch')!r}")
+    assert proc.returncode == 1, f"an inconsistent review exited {proc.returncode}, not 1"
+
+    lines = _review_lines(repo)
+    assert lines and lines[-1]["verdict"] == "inconsistent", (
+        f"the record line the audit reads does not say inconsistent: {lines[-1:]!r}")
+
+    audit_proc, audit = _audit_json(repo)
+    assert audit["review"]["status"] == "inconsistent", (
+        f"the audit does not report the review as inconsistent: {audit['review']!r}")
+    assert audit_proc.returncode != 0, (
+        "an inflated claim satisfied a charter that declares `Review: required` — the exact defect "
+        f"Sift found:\n{_support.combined(audit_proc)[-400:]}")
+
+
+def test_a_faithful_count_is_clean_and_still_satisfies_a_required_review(scratch):
+    """The control for the test above, and what keeps it from being merely a stricter check: a
+    reviewer whose count agrees with the handover must still be recorded `clean` and still satisfy
+    R4. Without this, `inconsistent` could be made to pass by refusing every review.
+    """
+    repo = _repo(scratch, review_required=True)
+    stub = _stub(scratch, "faithful", CLEAN)
+
+    proc = _review(repo, stub)
+    doc = json.loads(proc.stdout)
+
+    assert doc["review"]["verdict"] == "clean", (
+        f"a reviewer that agrees with the handover was not believed: {json.dumps(doc['review'])[:300]}")
+    assert doc["review"].get("coverage_mismatch") is None, (
+        f"an agreeing count was reported as a mismatch: {doc['review'].get('coverage_mismatch')!r}")
+
+    audit_proc, audit = _audit_json(repo)
+    assert audit["review"]["status"] == "fresh", (
+        f"the audit does not accept a review whose count agrees: {audit['review']!r}")
+    assert audit_proc.returncode == 0, _support.combined(audit_proc)[-400:]

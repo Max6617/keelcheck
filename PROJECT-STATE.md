@@ -674,10 +674,21 @@ shortfall is the finding.
   two-file export read as six and an honest reviewer counting the directory was recorded `inconsistent` by
   `validate_output`'s `total != handed` check. The instruction gets stricter, and the row is a **proposal**
   until the anchor names it.
-- **Still pending, in order:** Mason commits the filter (tree clean); my gate run under B15, with its claim
-  line written before it starts; then the one charter pass — the two new hashes, R4's stale workspace
-  citation (`keel/research/drift-review-design.md` no longer resolves as written), the adapter's two
-  permissions — held **uncommitted as a plan** rather than left in the tree, because a dirty tree is what my
-  own run rule refuses and because a row under an old anchor would read as ratified when it is not; then
-  Max's word; then two audits. A lane's in-flight edit (this minute: `README.md`, Folio) dirties the tree
-  the same way, which is the one honest reason my run has not started yet.
+- **It happened, in the tool's own order — and the tool enforced the order (23:0x).** Mason's filter landed as
+  `5b22dd1`; my charter pass landed as **`488c0e1`** — the two rows recomputed from the files rather than copied
+  (`review-prompt` → `0e4b5764…`, `suite` → `b4a8ae1e…`), R4's citation made repo-relative with the adapter
+  design named beside it, the adapter's two permissions written into Permissions — and `Ratified at:`
+  **deliberately still names `688fce8`**, which is the content-then-word order that `688fce8` → `041689b`
+  established. **My gate run was then refused, and the refusal is the finding:**
+  `keelcheck gate run .` returned `gate suite: locked` — *"the gate's content does not match the ratified hash,
+  and keelcheck does not run code that is not the ratified code (R2)"* — because the runner takes its gates from
+  the charter **at `Ratified at:`**, not from the working tree. So the run cannot be taken early to make the
+  word cheap; the word comes first, by construction. The audit at `488c0e1` reads **five divergences**, every
+  one of them the pending ratification and one of them in D1's own words ("editing the working-tree hash does
+  not re-ratify a gate") — the honest state to leave a night in: landed, unratified, and loud about it.
+- **What closes the milestone, in order, on Max's word:** an anchor-move commit (`Ratified at: 688fce8 ->` the
+  content commit, plus the sentence that records the move, nothing else — `041689b`'s shape), then
+  `keelcheck gate run .` (~21 min quiet: 1274.59 s measured by Mason, 3600 s bound, and the forty-minute runs
+  were three tracer suites contending rather than the suite's shape), then two audits — the first names the move
+  once as `[anchor-moved]` plus one `[gate-table]` per moved row, the second should read zero divergences.
+  Nothing else on this repository waits on anything.

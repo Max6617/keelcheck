@@ -33,15 +33,14 @@ from .output import emit, emit_err
 
 __all__ = ["main", "run_gate_command", "hash_command"]
 
-#: Seconds per gate, overridable with `--timeout`. **It protects against a gate that never returns,
-#: not against slowness**, because the hook runs these gates on every commit: a hang must become a
-#: recorded failure rather than a committer staring at a shell. It was 600 s, and that turned a slow
-#: machine into a false red -- measured 2026-10-15 on one host, the coverage gate ran the suite under
-#: the tracer in 451.84 s in one run (3 failed, 113 passed) and exceeded 600 s in the next, so the
-#: bound sat inside the noise of the thing it bounds. The slowest gate here is the suite under a
-#: tracer, and a machine twice as slow as this one is not misbehaving; `--timeout` is for tightening
-#: it deliberately.
-DEFAULT_TIMEOUT = 1800.0
+#: Seconds per gate, overridable with `--timeout` (so a slow machine raises it without touching this
+#: file). **It protects against a gate that never returns, not against slowness**, because the hook
+#: runs these gates on every commit: a hang must become a recorded failure rather than a committer
+#: staring at a shell. History, all measured on this host: 600 s was the first value and sat inside
+#: the noise of the suite it bounds (451.84 s in one run, then over 600 s in the next); 1800 s was the
+#: second, and a full suite under the tracer was measured at 632 s at `af85c71`. 3600 s is ~5.7x that
+#: measurement, which is room for a loaded machine without turning the bound into decoration.
+DEFAULT_TIMEOUT = 3600.0
 PASS = "pass"
 FAIL = "fail"
 LOCKED = "locked"

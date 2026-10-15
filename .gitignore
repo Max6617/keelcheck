@@ -9,3 +9,9 @@ pytest-cache-files-*/
 # record (`runs.jsonl`, and `review-context.json` beside it) showed up as untracked noise in every
 # repository that ran `keelcheck gate run`. Records are the tool's own history, not source.
 .keel/
+# Scratch the lanes actually create inside the checked-out repo. Untracked paths count as dirt to a
+# `git status --porcelain` check, so a scratch directory beside the code made `gate run` refuse to
+# start: `.assay-tmp/` is Sift's probe root, and `.keel-*/` is the prefix the suite's own scratch
+# helper uses (`.keel-test-tmp`, `.keel-write-probe-*`).
+.assay-tmp/
+.keel-*/

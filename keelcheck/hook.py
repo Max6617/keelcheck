@@ -59,19 +59,40 @@ def _sh(path: Path | str) -> str:
 
 
 def hook_body(repo: Path | str, hook: str) -> str:
-    """The installed script. Deterministic: the same repo and hook produce the same bytes."""
+    """The installed script. Deterministic: the same repo and hook produce the same bytes.
+
+    **The launch is hermetic, and that is measured rather than assumed.** 2026-10-15: two runs of the
+    same gate over the same suite at the same commit disagreed (exit 0 and exit 1), and the failing
+    one died inside this hook with `No module named keelcheck`. Probed directly: with `PYTHONHOME`
+    set in the caller's environment, `python -m keelcheck` cannot start at all (`Python path
+    configuration`, `PYTHONHOME = …`); with a foreign `keelcheck` earlier on `PYTHONPATH`, `python -m
+    keelcheck` runs *that* package instead. The hook's failure mode is "every commit is blocked", so
+    the caller's shell must not get a vote: `-E` ignores every `PYTHON*` variable, `-X utf8` replaces
+    `PYTHONIOENCODING`, and the import root is pinned inside the command (`sys.path.insert(0, …)`)
+    instead of reaching it through the environment. `PYTHONHOME` is unset, because it stops every
+    python the hook starts -- the gate's own children included, which no flag on the hook's launch can
+    reach. `PYTHONPATH` is still exported, for those children: the hook's *own* import no longer
+    depends on it.
+    """
     root = Path(keelcheck.__file__).resolve().parents[1]
     python = Path(sys.executable).resolve()
     command = "gate run" if hook == "pre-commit" else "audit"
+    launch = (
+        "import runpy, sys; "
+        f"sys.path.insert(0, r'{_sh(root)}'); "
+        "runpy.run_module('keelcheck', run_name='__main__')"
+    )
     return (
         "#!/bin/sh\n"
         f"{MARKER} -- installed by keelcheck hook install. The lock is the charter's gate table, not\n"
         "# this file: change a gate by re-ratifying it, never by editing this hook.\n"
-        "# The interpreter and the import root are resolved at install time, because git's sh has\n"
-        "# no PATH of its own and a hook that cannot start blocks every commit.\n"
+        "# The interpreter, the import root and the encoding are pinned in this command: a PYTHON*\n"
+        "# variable in the caller's shell must not decide whether a commit is possible. PYTHONHOME is\n"
+        "# unset because it stops *every* python this hook starts, its gate children included.\n"
+        "unset PYTHONHOME\n"
         f'PYTHONPATH="{_sh(root)}"${{PYTHONPATH:+:$PYTHONPATH}}\n'
         "export PYTHONPATH\n"
-        f'exec "{_sh(python)}" -m keelcheck {command} "{_sh(repo)}"\n'
+        f'exec "{_sh(python)}" -E -X utf8 -c "{launch}" {command} "{_sh(repo)}"\n'
     )
 
 

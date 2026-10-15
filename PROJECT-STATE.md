@@ -701,3 +701,11 @@ shortfall is the finding.
   `suite` row is still a proposal at `488c0e1` with the anchor at `688fce8`, so the row is updated once to
   whatever the final file hashes to; landing it after Max's word would spend a second re-ratification on one
   line. Mason owns it, with the before/after measurement named rather than a total alone.
+- **The gap nobody has listed: there is no publish path for `keelcheck`.** Rentguard has a checklist, a
+  sequence, a credential and a verify-the-ref-back step; this repository has the name decided (the registry
+  shortlist, the user's word), the wheel building and installing into a clean venv (Scribe's measurement,
+  `1274510`), and R9 saying the decision is the user's alone. What is missing is the same page rentguard has —
+  preconditions, the exact commands, the credential (`$DSH_SECRET_<...>`, never in the chat), and the
+  verification — and two things would make the README's claims true rather than aspirational before it is
+  written: R5's third surface (the MCP call) and R7's demonstration closing. **Next user-facing artefact after
+  those land, Scribe's shape**, not now: written today it would be stale by morning.

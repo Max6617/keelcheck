@@ -5,4 +5,7 @@ build/
 dist/
 *.egg-info/
 pytest-cache-files-*/
-.keel/review/
+# The record root, whole: `.keel/review/` was narrowed to the export directory, so the default run
+# record (`runs.jsonl`, and `review-context.json` beside it) showed up as untracked noise in every
+# repository that ran `keelcheck gate run`. Records are the tool's own history, not source.
+.keel/

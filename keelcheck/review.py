@@ -10,12 +10,19 @@ bypassed hook, and only the audit turns that into divergence -- and only when a 
 Exit codes:
 
     0   a review was recorded and its verdict was clean
-    1   a review was recorded and its verdict was divergence, partial or unverified; or the
+    1   a review was recorded and its verdict was divergence, partial, unverified or inconsistent; or the
         ratified prompt's content no longer matches its hash (a weakened instruction is not a
         review)
     2   the review could not run honestly: no charter, no anchor, no prompt, the export could not
         be written, the record could not be written, or the reviewer failed, timed out, or did not
         return a usable object
+
+**`inconsistent` is the runner's own verdict, not the reviewer's.** The reviewer asserts how many files
+it saw; the runner *knows* how many it handed over (`manifest["count"]`). When the two disagree the
+review is evidence that the reviewer was not looking at this export, so it is recorded as
+inconsistent, printed as such, and does **not** satisfy a required review. Before this, the count came
+from the reviewer's own JSON and only `seen < total` was compared -- so a stub reporting
+`999999/999999` was recorded clean, exit 0, and satisfied R4's presence check (Sift, 2026-10-15).
 
 The design is `research/drift-review-design.md`; the contract is D15.
 """
@@ -368,8 +375,15 @@ def _evidence_resolves(tree: Path, evidence: str, requirement_ids: set[str]) -> 
     return target.exists()
 
 
-def validate_output(stdout: str, tree: Path, requirement_ids: set[str]) -> dict:
-    """Validate the reviewer's one JSON object. Returns a record dict, or {'error': ...}."""
+def validate_output(
+    stdout: str, tree: Path, requirement_ids: set[str], handed: int | None = None
+) -> dict:
+    """Validate the reviewer's one JSON object. Returns a record dict, or {'error': ...}.
+
+    ``handed`` is the count the *runner* knows, not the one the reviewer claims: how many files the
+    export actually contained. The reviewer's ``coverage.files_total`` is an assertion, and a review
+    whose total disagrees with what it was handed is recorded as ``inconsistent`` rather than believed.
+    """
     if len(stdout) > MAX_STDOUT:
         return {"error": f"the reviewer's output is over {MAX_STDOUT} bytes"}
     text = stdout.strip()
@@ -421,10 +435,19 @@ def validate_output(stdout: str, tree: Path, requirement_ids: set[str]) -> dict:
     if not isinstance(coverage, dict):
         return {"error": "coverage must be an object with files_seen and files_total"}
     seen, total = coverage.get("files_seen"), coverage.get("files_total")
+    # The runner's count against the reviewer's claim. `total != handed` covers the missing case too:
+    # a review that does not say how many files it saw cannot be anchored to the export it was handed.
+    mismatch = (
+        {"handed": handed, "claimed": total, "seen": seen}
+        if handed is not None and total != handed
+        else None
+    )
     partial = bool(unreviewed) or (
         isinstance(seen, int) and isinstance(total, int) and seen < total
     )
-    if verdict == "clean" and partial:
+    if mismatch is not None:
+        verdict = "inconsistent"
+    elif verdict == "clean" and partial:
         verdict = "partial"
     elif verdict == "divergence" and counts["verified"] == 0:
         verdict = "unverified"
@@ -434,6 +457,7 @@ def validate_output(stdout: str, tree: Path, requirement_ids: set[str]) -> dict:
         "counts": counts,
         "unreviewed": [str(entry) for entry in unreviewed],
         "coverage": {"files_seen": seen, "files_total": total},
+        "coverage_mismatch": mismatch,
     }
 
 
@@ -506,7 +530,7 @@ def run_review(
     review: dict | None = None
     requirement_ids = {r.id for r in charter.requirements}
     if run["result"] == "pass":
-        review = validate_output(run["stdout"], tree, requirement_ids)
+        review = validate_output(run["stdout"], tree, requirement_ids, manifest["count"])
         if "error" in review:
             run["result"] = "malformed"
             run["reason"] = review["error"]
@@ -553,6 +577,10 @@ def run_review(
                 "claims": review["items"],
             }
         )
+        if review.get("coverage_mismatch"):
+            # Named on the line, beside `files:` (the count the runner handed over), so a reader sees
+            # both numbers rather than a verdict they have to trust.
+            line["coverage_mismatch"] = review["coverage_mismatch"]
     try:
         record.ensure_header(runs)
         record.append(runs, line)

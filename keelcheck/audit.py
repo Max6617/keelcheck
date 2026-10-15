@@ -153,7 +153,7 @@ class Audit:
         return "\n".join(out)
 
     def _review_lines(self) -> list[str]:
-        """The review half, always reported: fresh, stale, failed or missing (D15).
+        """The review half, always reported: fresh, stale, inconsistent, failed or missing (D15).
 
         Always printed, even when a review is not required: the reader has to be able to see that
         the drift half did not run, and a report that omits it reads as if it had.
@@ -173,6 +173,13 @@ class Audit:
             for item in line.get("claims", []):
                 flag = "" if item.get("verified") else "  [evidence-missing]"
                 out.append(f"    {item.get('class')}: {item.get('subject')} -- {item.get('why')}{flag}")
+        elif status == "inconsistent":
+            mismatch = line.get("coverage_mismatch") or {}
+            out.append(
+                f"  the recorded review claims {mismatch.get('claimed')!r} files where it was handed "
+                f"{mismatch.get('handed')!r}, so it is not a review of this state: a verdict from a "
+                "reviewer that was not looking at the export does not satisfy R4 (D15)"
+            )
         elif status == "stale":
             out.append(
                 f"  the recorded review covers {state.get('recorded')}; the state now hashes "
@@ -407,14 +414,27 @@ def _review_state(audit: Audit) -> dict:
     Always reported, fatal only when a review is required. Freshness is the export *manifest*: the
     review records the manifest it handed over and the audit recomputes it with the same function
     (one function, both sides -- Proctor, design item 9). A line whose reviewer failed, timed out or
-    returned something unusable is not a review, so `result` must be `pass`.
+    returned something unusable is not a review, so `result` must be `pass`; and a line whose claimed
+    file count disagrees with what the runner handed over is `inconsistent` -- recorded, printed, and
+    not a review of this state (Sift's finding, 2026-10-15).
     """
     lines = [obj for obj in audit.record_objects if obj.get("kind") == "review"]
     if not lines:
         return {"status": "missing", "line": None, "manifest": None, "recorded": None}
-    usable = [obj for obj in lines if obj.get("result") == "pass"]
+    usable = [
+        obj
+        for obj in lines
+        if obj.get("result") == "pass" and obj.get("verdict") != "inconsistent"
+    ]
     if not usable:
         last = lines[-1]
+        if last.get("verdict") == "inconsistent":
+            return {
+                "status": "inconsistent",
+                "line": last,
+                "manifest": None,
+                "recorded": last.get("manifest"),
+            }
         return {
             "status": "failed",
             "line": last,

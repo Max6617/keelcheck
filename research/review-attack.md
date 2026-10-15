@@ -1,9 +1,17 @@
 # Attack from the outside on `keel review` — Sift, 2026-10-14
 
-A falsification attempt against `keel/research/drift-review-design.md` §7–8 (Proctor's attacks and
+A falsification attempt against `research/drift-review-design.md` §7–8 (Proctor's attacks and
 Gilbert's rulings, contract D15) and against the code that landed for it. Not a review of the
 project's *own* claims about itself: the question is which of the design's claims about the review
 half were false **as implemented**, and which are simply unproven.
+
+**Erratum, 2026-10-15 (Sift) — two path conventions in this file, on purpose.** The pointer to the
+design note now reads `research/drift-review-design.md`: that file moved inside the repository on
+2026-10-15 (D6's corollary), and in-repo paths are quoted relative to the repo root. The
+`keel/review.py` and `keel/export.py` spellings inside the dated findings are **correct as of the
+revisions they name** — the package directory really was `keel/` then; the rename to `keelcheck`
+landed at `6ff67e8`, after both `218c444` and `5442a90`. They are left as written, because rewriting
+a dated record to match today's tree is the drift this project exists to catch.
 
 **Two revisions in this file, and both are named.**
 

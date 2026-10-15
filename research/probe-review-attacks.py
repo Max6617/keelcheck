@@ -2,7 +2,7 @@
 
 Not product code and not a test: this probe reads ``keel/`` internals deliberately, which D3
 forbids in ``tests/`` and nowhere else. It tests the claims in
-``keel/research/drift-review-design.md`` sections 7-8 and in D15 against the code that landed
+``research/drift-review-design.md`` sections 7-8 and in D15 against the code that landed
 at ``6810818`` (plus the export fixes at ``e9ec9a1``/``8a63e68``).
 
 Run from anywhere::

@@ -1,6 +1,6 @@
 # Naming risk: is `keel` already used by a developer tool?
 
-**See also:** `keel/research/name-shortlist.md` (2026-10-15) — the candidate shortlist, each name
+**See also:** `research/name-shortlist.md` (2026-10-15) — the candidate shortlist, each name
 checked on PyPI, npm and crates.io with dated evidence. This file records why `keel` itself fails.
 
 Deliverable 3 for keel. Written by Sift, 2026-10-14. The user decides the name; this is a risk

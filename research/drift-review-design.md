@@ -263,7 +263,10 @@ All three questions this document left open are answered, and the shapes above m
   of this; the strong one keeps R4's honesty claim where it belongs: what is mechanical is the *presence*
   of a review for the current state, never its verdict.
 - **The review line shares `runs.jsonl`**, so a bypass and a missing review are the same shape of absence,
-  and `[anchor-moved]` compares the previous entry of any kind that carries an anchor.
+  and `[anchor-moved]` compares the previous **audit or review** entry — an explicit allowlist in the
+  code (`audit.py:467`), so a record kind is inert for this check unless it is deliberately added to
+  that list. The adapter line carries no anchor by design (section 8, adapter note), so the narrowness
+  is invisible today and observable the moment a new kind does (Sift, 2026-10-15; Gilbert's ruling).
 
 Two constraints restated, because they are what makes the half buildable without a model in the loop: the
 reviewer is a command the caller names, and the tool never decides exit 0 from a model. The residual in

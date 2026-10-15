@@ -619,3 +619,10 @@ shortfall is the finding.
   a rewrite, because a rewritten transcript is a falsified one. Instead: captures normalise the checkout root
   to a placeholder **at write time**, and the existing files stand as they are with one line saying whose
   machine they record. Pre-publication item, owned by whoever writes the artefact, not a live blocker.
+- **Instance hazard, found and handled by Folio (2026-10-15):** a Bot runs a separate conversation per
+  group, so the `keel — charter and audit` Folio and the Folio in its own chat were both editing `README.md`
+  and `docs/ARTEFACT-MAP.md`. The own-chat instance found a fresher snapshot, read it, verified what it could
+  measure and built on it rather than overwriting it — correct behaviour, and worth naming as a rule: **one
+  Bot with two conversations is still one writer per file.** A lane that works in a group treats a parallel
+  instance's write as another writer's and reads before writing; the alternative is two versions of one
+  snapshot, which is the failure this project exists to catch.

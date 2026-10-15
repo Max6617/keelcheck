@@ -212,7 +212,14 @@ def measure(argv: list[str], *, quiet: bool = False) -> tuple[dict[str, tuple[in
     result: dict[str, tuple[int, int]] = {}
     for path in sorted(PACKAGE.rglob("*.py")):
         try:
-            executable = set(_find_executable_linenos(str(path)))
+            # `isinstance(n, int)` is not defensive coding: 3.13's `dis.findlinestarts` yields a `None`
+            # entry per code object where 3.12's skips it, so an unfiltered denominator gains one
+            # entry per file that no line can ever hit and the rate reads permanently low. Assay
+            # measured it on CI: zero executable line numbers differ between 3.12 and 3.13, the whole
+            # delta is those `None` keys, and on an unchanged hit count the rate moved 98.2% ->
+            # 97.9%. A per-interpreter floor would enshrine that artefact; the filter removes it
+            # (Assay's measurement, 2026-10-15).
+            executable = {n for n in _find_executable_linenos(str(path)) if isinstance(n, int)}
         except Exception:  # noqa: BLE001 - an unreadable module must not hide the others
             continue
         hit = len(executable & executed.get(str(path), set()))

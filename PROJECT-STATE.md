@@ -692,3 +692,12 @@ shortfall is the finding.
   were three tracer suites contending rather than the suite's shape), then two audits — the first names the move
   once as `[anchor-moved]` plus one `[gate-table]` per moved row, the second should read zero divergences.
   Nothing else on this repository waits on anything.
+- **Found by comparing our gate with rentguard's fix (`f832596`): a tracer sees only the thread that installed
+  it.** `tools/coverage.py:189` and `tools/_child_trace.py:67` call `sys.settrace(tracer)` and nothing else,
+  while `keelcheck/review.py:308-309` runs `_drain` on two daemon threads — package lines counted in the
+  denominator that can never be hit, wrong in the direction nobody notices. Rentguard's gate carried the same
+  bug and now calls `threading.settrace(tracer)` beside it, its own comment naming the threaded callers (the
+  guard's stop, `run`'s session reader). **Ruling: the fix lands before the ratification, not after** — the
+  `suite` row is still a proposal at `488c0e1` with the anchor at `688fce8`, so the row is updated once to
+  whatever the final file hashes to; landing it after Max's word would spend a second re-ratification on one
+  line. Mason owns it, with the before/after measurement named rather than a total alone.

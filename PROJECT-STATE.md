@@ -692,6 +692,17 @@ shortfall is the finding.
   were three tracer suites contending rather than the suite's shape), then two audits — the first names the move
   once as `[anchor-moved]` plus one `[gate-table]` per moved row, the second should read zero divergences.
   Nothing else on this repository waits on anything.
+- **The pass is final at three rows (`3d04f31`), and the audit says exactly what is left.** `review-prompt`
+  `0e4b5764…`, `suite` **`973d639a…`** (Mason's thread fix `cc2b319`, the last thing that touches that file),
+  and a third row — `reviewer`, `tests/_artefacts/claude-reviewer.py`, `8d5e6a5e…` — which landed *with* the code
+  that reads it (`e3fee48`), because a row the audit could not act on would have been a fiction. The audit at the
+  pass reads **six divergences, every one the pending ratification**: two rows declared but not ratified, two
+  files whose content changed since ratification, the gate record whose newest run did not pass, and
+  `[gate-unratified] reviewer: declared in the working charter but not ratified at 688fce8` — a check I did not
+  know the tool had, and the one that makes the whole state fail-closed rather than silent. R4's cell now says
+  which half is enforced (the command identity) and which is not (the runner that starts one).
+  **So the word closes it**: an anchor-move commit naming `3d04f31`, then one gate run whose pass row is the only
+  one at `973d639a…` and therefore the newest, then two audits.
 - **Found by comparing our gate with rentguard's fix (`f832596`): a tracer sees only the thread that installed
   it.** `tools/coverage.py:189` and `tools/_child_trace.py:67` call `sys.settrace(tracer)` and nothing else,
   while `keelcheck/review.py:308-309` runs `_drain` on two daemon threads — package lines counted in the

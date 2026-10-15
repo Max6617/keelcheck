@@ -395,16 +395,22 @@ def _check_run_record(audit: Audit, gate: Gate, name: str) -> None:
             "wrong one (D1, D3)",
         )
         return
-    if any(run.get("result") == "pass" for run in runs):
-        return
+    # The **latest** run speaks for the present state. `any(result == "pass")` read the history and
+    # ignored the present, so a gate that passed once and fails now was reported clean: a pass is
+    # evidence about the moment it ran, not about the state this audit is looking at (Sift's red,
+    # 2026-10-15, `tests/test_gate_record_latest.py`). `_gate_runs` is oldest first, and its match on
+    # the ratified hash means a run of *this* content.
     last = runs[-1]
-    seen = ", ".join(sorted({str(run.get("result")) for run in runs}))
+    if last.get("result") == "pass":
+        return
     exit_note = f", exit {last.get('exit')}" if last.get("exit") is not None else ""
     audit.add(
         "gate-record",
         name,
-        f"the recorded run of this gate did not pass (result: {seen}{exit_note}) in "
-        f"{audit.record_path.name}; a record proves the gate executed, not that it passed",
+        f"the most recent recorded run of this gate did not pass "
+        f"(result: {last.get('result')}{exit_note}, {last.get('at') or 'unknown time'}) in "
+        f"{audit.record_path.name}; an earlier pass is evidence about that moment, not about the "
+        "state this audit is looking at (D1, D3)",
     )
 
 

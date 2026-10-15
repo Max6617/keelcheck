@@ -33,7 +33,15 @@ from .output import emit, emit_err
 
 __all__ = ["main", "run_gate_command", "hash_command"]
 
-DEFAULT_TIMEOUT = 600.0
+#: Seconds per gate, overridable with `--timeout`. **It protects against a gate that never returns,
+#: not against slowness**, because the hook runs these gates on every commit: a hang must become a
+#: recorded failure rather than a committer staring at a shell. It was 600 s, and that turned a slow
+#: machine into a false red -- measured 2026-10-15 on one host, the coverage gate ran the suite under
+#: the tracer in 451.84 s in one run (3 failed, 113 passed) and exceeded 600 s in the next, so the
+#: bound sat inside the noise of the thing it bounds. The slowest gate here is the suite under a
+#: tracer, and a machine twice as slow as this one is not misbehaving; `--timeout` is for tightening
+#: it deliberately.
+DEFAULT_TIMEOUT = 1800.0
 PASS = "pass"
 FAIL = "fail"
 LOCKED = "locked"
@@ -194,7 +202,8 @@ def main(argv: list[str] | None = None) -> int:
     run = sub.add_parser("run", help="run every ratified gate and record the run")
     run.add_argument("repo", nargs="?", default=".", help="repository (default: .)")
     run.add_argument("--record", default=None, help="where the run record goes (default: <repo>/.keel/runs.jsonl)")
-    run.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="seconds per gate (default: 600)")
+    run.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
+                     help=f"seconds per gate (default: {DEFAULT_TIMEOUT:g})")
     run.add_argument("--json", action="store_true", help="machine-readable output")
 
     digest = sub.add_parser("hash", help="print the recorded content hash of a script")

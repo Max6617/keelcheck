@@ -16,6 +16,12 @@ a claim about the tree now; re-measure before quoting.
 
 - **Status** is `on disk`, `in progress` or `missing`; committed vs untracked is part of it. At this
   stamp the worktree carries ` M tests/test_review_cli.py` and the untracked `.assay-tmp/`.
+- **Paths are relative to this repository's root** — `CHARTER.md`, `keelcheck/audit.py`,
+  `tests/_artefacts/…`, `pyproject.toml`. An earlier revision cited them in the workspace form
+  `keel/<path>`, which does not resolve inside the repo: D6's corollary, the class F8 was about, and the
+  one thing the rename's blind substitution could not fix. The **survivors of the rename are named as
+  survivors** where they appear: the checkout directory `keel/`, the record root `.keel/`, and records
+  written before it.
 - **`external:`** marks a cited path outside the repository, per D6 (`PROJECT-STATE.md` lines 180–187).
 - Counts are bytes and newline lines counted with Python. D11 F7 (lines 328–330) records the caution:
   PowerShell's `Measure-Object -Line` drops blank lines and undercounted an earlier map revision.
@@ -28,35 +34,35 @@ a claim about the tree now; re-measure before quoting.
 
 | # | quantity | file that holds it | status | how it was measured |
 |---|---|---|---|---|
-| A1 | The charter — the one file a human reads | `keel/CHARTER.md`, 10850 bytes, 150 lines | on disk, committed | `keelcheck charter CHARTER.md`; was 9735 B / 142 L at the previous map stamp |
-| A2 | The frozen original — the user's words **and** the recommendation they accepted | `keel/CHARTER.md` lines 12–22 | on disk, committed; **never edited** | prints **553 bytes**, sha256 `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`, byte-identical at `ae375c6`, `117ac7c` and `688fce8` (D17, D12) |
-| A3 | The approval, in the user's words | `keel/CHARTER.md` line 6 | on disk, committed | quoted there; `PROJECT-STATE.md` lines 36–40 |
-| A4 | Requirements R1–R9 with `enforced-by` / `checked-by` / state | `keel/CHARTER.md` lines 91–103 | on disk, committed | `keelcheck charter`: 9 requirements, 0 wishes, **3 human checks**, 0 asserted enforcement |
-| A5 | Wishes W1–W2, the struck wish, its trace | `keel/CHARTER.md` lines 118–136 | on disk, committed | strike trace at lines 133–136 |
-| A6 | The ratification line — the single anchor | `keel/CHARTER.md` line 26: `Ratified at: \`688fce8\`` | on disk, committed; **moved twice, each at the user's word** | `keelcheck charter` prints `ratified at: 688fce8`; the moves are D17 (lines 486–506) and the 2026-10-15 section (lines 584–589); **was:** `117ac7c` |
-| A7 | Decisions D1–D21, the rule set, the lanes, the revision of record | `keel/PROJECT-STATE.md`, 54052 bytes, 609 lines | on disk, committed | D11 F6 lines 274–287, D19/D20 lines 516–555, the 2026-10-15 section lines 578–609; **was** 46453 B / 531 L |
-| A8 | `enforced-by` / `checked-by` / neither = wish semantics | `keel/CHARTER.md` lines 87–89 and `external:INTENT-LOOP.md` lines 29–40 | on disk, in the repo and in an external input | D6's `external:` form |
+| A1 | The charter — the one file a human reads | `CHARTER.md`, 10850 bytes, 150 lines | on disk, committed | `keelcheck charter CHARTER.md`; was 9735 B / 142 L at the previous map stamp |
+| A2 | The frozen original — the user's words **and** the recommendation they accepted | `CHARTER.md` lines 12–22 | on disk, committed; **never edited** | prints **553 bytes**, sha256 `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`, byte-identical at `ae375c6`, `117ac7c` and `688fce8` (D17, D12) |
+| A3 | The approval, in the user's words | `CHARTER.md` line 6 | on disk, committed | quoted there; `PROJECT-STATE.md` lines 36–40 |
+| A4 | Requirements R1–R9 with `enforced-by` / `checked-by` / state | `CHARTER.md` lines 91–103 | on disk, committed | `keelcheck charter`: 9 requirements, 0 wishes, **3 human checks**, 0 asserted enforcement |
+| A5 | Wishes W1–W2, the struck wish, its trace | `CHARTER.md` lines 118–136 | on disk, committed | strike trace at lines 133–136 |
+| A6 | The ratification line — the single anchor | `CHARTER.md` line 26: `Ratified at: \`688fce8\`` | on disk, committed; **moved twice, each at the user's word** | `keelcheck charter` prints `ratified at: 688fce8`; the moves are D17 (lines 486–506) and the 2026-10-15 section (lines 584–589); **was:** `117ac7c` |
+| A7 | Decisions D1–D21, the rule set, the lanes, the revision of record | `PROJECT-STATE.md`, 54052 bytes, 609 lines | on disk, committed | D11 F6 lines 274–287, D19/D20 lines 516–555, the 2026-10-15 section lines 578–609; **was** 46453 B / 531 L |
+| A8 | `enforced-by` / `checked-by` / neither = wish semantics | `CHARTER.md` lines 87–89 and `external:INTENT-LOOP.md` lines 29–40 | on disk, in the repo and in an external input | D6's `external:` form |
 | A9 | Prior-art record (ECC, Spec Kit; why the claim is "the join") | `external:ECC-ASSESSMENT.md`, 65 lines, workspace root | on disk, outside the repository | D6 |
-| A10 | The charter parser (R1) | `keel/keelcheck/charter.py`, 31866 bytes, 806 lines | on disk, committed, runs | output in §3 |
-| A11 | The audit (R2, R3) | `keel/keelcheck/audit.py`, 34565 bytes, 865 lines | on disk, **one file modified in the worktree**, runs — exit 0/1/2 | `_check_run_record` (lines 381–408) requires a **passing** record, not merely a recorded run; output in §3 |
-| A12 | The gate runner and the hash authoring half (R2) | `keel/keelcheck/gate.py`, 10117 bytes, 251 lines | on disk, committed, runs | `gate run` executes `kind: gate` rows only; `gate hash` prints the hash over git-normalized bytes (D9) |
-| A13 | The run record and the reviewer's input | `keel/keelcheck/record.py`, 5861 bytes, 155 lines | on disk, committed | the record's real content in §2 |
-| A14 | Git-normalized hashing (D9), git plumbing | `keel/keelcheck/normalize.py` 10865 B / 281 L, `gitcmd.py` 4488 B / 127 L | on disk, committed | `gate hash` matches the gate table |
-| A15 | The clean-context review half (R3, R4, D15, D21) | `keel/keelcheck/review.py` 29045 B / 682 L, `export.py` 14043 B / 328 L, `keel/review-prompt.md` 2661 B / 58 L | on disk, committed, runs | `keelcheck review --help` exit 0; the prompt is gate row 1; **was:** 19353 B / 9598 B / 2656 B, with a different prompt hash |
-| A16 | The git hook installer (R5) | `keel/keelcheck/hook.py`, 11269 bytes, 258 lines | on disk, committed, runs | `hook install` / `hook status`; the R5 tests still skip on this host (git's `sh`) |
-| A17 | The CLI surface (R6) | `keel/keelcheck/cli.py`, 2347 bytes, 68 lines | on disk, committed | `keelcheck --help` exit 0 — seven commands, **no `mcp`** |
-| A18 | The ratified gate table | `keel/CHARTER.md` lines 107–110 — **two rows**: `review-prompt` → `review-prompt.md` → `sha256:90df6ebc…` (`kind: prompt`); `suite` → `tools/coverage.py` → `sha256:c0b4c4ca…` (`kind: gate`) | on disk, committed, **2 ratified (1 executable)** | `keelcheck charter`: `gates: 2 declared`; **was:** one prompt row at `117ac7c` |
-| A19 | Research and design notes | `keel/research/`: `prior-art-join.md` 29336 B, `gates-per-harness.md` 28878 B, `review-attack.md` 19379 B, `drift-review-design.md` 18863 B, `name-keel.md` 13835 B, `name-shortlist.md` 10081 B, `gap-review-half.md` 5496 B | on disk, committed, **inside the repo** | `git ls-files research/`; `gates-per-harness.md` moved in from the workspace root (the D6 corollary) |
+| A10 | The charter parser (R1) | `keelcheck/charter.py`, 31866 bytes, 806 lines | on disk, committed, runs | output in §3 |
+| A11 | The audit (R2, R3) | `keelcheck/audit.py`, 34565 bytes, 865 lines | on disk, **one file modified in the worktree**, runs — exit 0/1/2 | `_check_run_record` (lines 381–408) requires a **passing** record, not merely a recorded run; output in §3 |
+| A12 | The gate runner and the hash authoring half (R2) | `keelcheck/gate.py`, 10117 bytes, 251 lines | on disk, committed, runs | `gate run` executes `kind: gate` rows only; `gate hash` prints the hash over git-normalized bytes (D9) |
+| A13 | The run record and the reviewer's input | `keelcheck/record.py`, 5861 bytes, 155 lines | on disk, committed | the record's real content in §2 |
+| A14 | Git-normalized hashing (D9), git plumbing | `keelcheck/normalize.py` 10865 B / 281 L, `gitcmd.py` 4488 B / 127 L | on disk, committed | `gate hash` matches the gate table |
+| A15 | The clean-context review half (R3, R4, D15, D21) | `keelcheck/review.py` 29045 B / 682 L, `export.py` 14043 B / 328 L, `review-prompt.md` 2661 B / 58 L | on disk, committed, runs | `keelcheck review --help` exit 0; the prompt is gate row 1; **was:** 19353 B / 9598 B / 2656 B, with a different prompt hash |
+| A16 | The git hook installer (R5) | `keelcheck/hook.py`, 11269 bytes, 258 lines | on disk, committed, runs | `hook install` / `hook status`; the installed hook carries the marker **`# keelcheck-hook v1`** (`keelcheck/hook.py` line 40), which is how a second install recognises its own work; the R5 tests still skip on this host (git's `sh`) |
+| A17 | The CLI surface (R6) | `keelcheck/cli.py`, 2347 bytes, 68 lines | on disk, committed | `keelcheck --help` exit 0 — seven commands, **no `mcp`** |
+| A18 | The ratified gate table | `CHARTER.md` lines 107–110 — **two rows**: `review-prompt` → `review-prompt.md` → `sha256:90df6ebc…` (`kind: prompt`); `suite` → `tools/coverage.py` → `sha256:c0b4c4ca…` (`kind: gate`) | on disk, committed, **2 ratified (1 executable)** | `keelcheck charter`: `gates: 2 declared`; **was:** one prompt row at `117ac7c` |
+| A19 | Research and design notes | `research/`: `prior-art-join.md` 29336 B, `gates-per-harness.md` 28878 B, `review-attack.md` 19379 B, `drift-review-design.md` 18863 B, `name-keel.md` 13835 B, `name-shortlist.md` 10081 B, `gap-review-half.md` 5496 B | on disk, committed, **inside the repo** | `git ls-files research/`; `gates-per-harness.md` moved in from the workspace root (the D6 corollary) |
 | A20 | MCP surface (R5's third, R6's bound) | — | **missing at this stamp** | not in `keelcheck --help`; **no `mcp` string in any `keelcheck/*.py`**; no `tests/test_mcp*`. `PROJECT-STATE.md` lines 603–606 record it as the next item taken, with reds first |
-| A21 | Tests | `keel/tests/`: **11** `test_*.py` (largest `test_review_cli.py` 42966 B / 831 L, `test_audit_cli.py` 27054 B / 552 L, `test_hook_cli.py` 23275 B / 491 L), plus `_support.py`, `conftest.py`, `_scratch.py`, `CONTRACT.md` 15951 B, `_artefacts/` | on disk, committed; **green verified outside the worktree** | `PROJECT-STATE.md` lines 56–58: at `866912b`, clean worktree, **106 passed, 1 skipped, 0 failed in 4:34**. `test_review_cli.py` is modified at this stamp, so a run now measures a dirty tree |
-| A22 | Coverage tool (R8) | `keel/tools/coverage.py`, 17747 bytes, 354 lines, plus `tools/_child_trace.py` 3562 B / 81 L | on disk, committed, ratified as the `suite` gate | **was missing.** Floor **0.83** from the first honest measurement, 2031/2419, rounded down (`PROJECT-STATE.md` lines 584–589) |
-| A23 | Packaging | `keel/pyproject.toml`, 2151 bytes, 46 lines | on disk, committed, **never installed** | entry point `keelcheck = "keelcheck.cli:main"`; **was** 795 B / 28 L |
-| A24 | README and this map | `keel/README.md` (13212 B / 199 L before this rewrite) and `keel/docs/ARTEFACT-MAP.md` (17198 B / 169 L before this rewrite) | on disk, tracked | neither revised size is asserted |
-| A25 | A git remote | `keel/.git/config` | **none configured** | `git remote -v` prints nothing; R9 keeps publishing a human check |
+| A21 | Tests | `tests/`: **11** `test_*.py` (largest `test_review_cli.py` 42966 B / 831 L, `test_audit_cli.py` 27054 B / 552 L, `test_hook_cli.py` 23275 B / 491 L), plus `_support.py`, `conftest.py`, `_scratch.py`, `CONTRACT.md` 15951 B, `_artefacts/` | on disk, committed; **green verified outside the worktree** | `PROJECT-STATE.md` lines 56–58: at `866912b`, clean worktree, **106 passed, 1 skipped, 0 failed in 4:34**. `test_review_cli.py` is modified at this stamp, so a run now measures a dirty tree |
+| A22 | Coverage tool (R8) | `tools/coverage.py`, 17747 bytes, 354 lines, plus `tools/_child_trace.py` 3562 B / 81 L | on disk, committed, ratified as the `suite` gate | **was missing.** Floor **0.83** from the first honest measurement, 2031/2419, rounded down (`PROJECT-STATE.md` lines 584–589); the child tracer is driven by `KEELCHECK_COVERAGE_CHILD`, `KEELCHECK_COVERAGE_DIR` and `KEELCHECK_COVERAGE_PACKAGE`, and a blind measurement is exit 2 rather than a number |
+| A23 | Packaging | `pyproject.toml`, 2151 bytes, 46 lines | on disk, committed, **never installed** | entry point `keelcheck = "keelcheck.cli:main"`; **was** 795 B / 28 L |
+| A24 | README and this map | `README.md` (13212 B / 199 L before this rewrite) and `docs/ARTEFACT-MAP.md` (17198 B / 169 L before this rewrite) | on disk, tracked | neither revised size is asserted |
+| A25 | A git remote | `.git/config` | **none configured** | `git remote -v` prints nothing; R9 keeps publishing a human check |
 
 ## 2. The record, and the demonstration's inputs
 
-`keel/.keel/runs.jsonl` (5805 B, **6 lines when I copied it** — it grew to 8 while I read it, another run
+`.keel/runs.jsonl` (5805 B, **6 lines when I copied it** — it grew to 8 while I read it, another run
 is writing to it): header, **three `gate` lines and two `audit` lines**; a later read of the same file
 shows **four** audit lines. The gate lines are the stable part:
 
@@ -75,7 +81,7 @@ assays under `tests/_artefacts/`, not here.
 | The demonstration repository | `rentguard/`, HEAD `449a339`, 106 commits, one modified file (`tests/_artefacts/missing_lines_2026-10-14.txt`) | on disk | `git -C rentguard log/status`; **was** `eef6bdb`, 82 commits |
 | rentguard's frozen original, R1–R10, W1–W4 | `rentguard/CHARTER.md`, 5821 bytes, 91 lines; frozen original **539 bytes** sha256 `0e96174d…` | on disk, committed; not auditable — **no `Ratified at:` line** | `keelcheck charter ../rentguard/CHARTER.md` → 5/6 sections, 10 requirements, 0 gates, 3 wishes, **exit 1** |
 | The numbers rentguard's charter pins | `rentguard/CHARTER.md` line 30 (*"Re-measured at `74b9f7a` (clean worktree, 189 passed / 0 failed, 45 subtests…)"*), coverage floor 90.2% line 44 | pinned revision exists | **quoted, not re-measured** |
-| The revisions R7 names, and the fixes they precede | `keel/CHARTER.md` line 101: `bd63920`, `ce69cea`, `c512125`, `310f449`; D7 pairs them with `590c58e`, `d5fdaea`, `da51005` | all seven exist in `rentguard` and are ancestors of its HEAD | `git cat-file -t`, `git merge-base --is-ancestor` |
+| The revisions R7 names, and the fixes they precede | `CHARTER.md` line 101: `bd63920`, `ce69cea`, `c512125`, `310f449`; D7 pairs them with `590c58e`, `d5fdaea`, `da51005` | all seven exist in `rentguard` and are ancestors of its HEAD | `git cat-file -t`, `git merge-base --is-ancestor` |
 | The by-hand catalogue | one catalogue, **all six names, the merge stated** (D11 F6, lines 278–287): R2; **R4 and W4 as one finding in two stages**; W1 (R9); W2 (R8); W3 | ruled | rentguard's own W4 (lines 67–74) is the authority for the merge |
 | **R7's result, both halves** | mechanical: `tests/_artefacts/R7-demonstration-mechanical-2026-10-14.md`; drift: the four assays `assay_r7_drift_*.json`; summary `PROJECT-STATE.md` lines 593–597 | **run** | **drift names 2 of the 5 at each of the three pre-fix revisions and none at the current state; mechanical gives identical divergence lists at `bd63920` and `310f449` and names the five only as state classes, with W4 and W3 invisible to it** |
 
@@ -112,10 +118,16 @@ repository is now `[gate-record]`.
 reference**: the demo names the four revisions in R7's cell, and later rentguard commits change nothing.
 Its `CHARTER.md` is still the 5821-byte file the snapshot holds.
 
-**F4 — collection from the repository root. A property of a dirty worktree on this host, named not
-patched.** Two mode-0700 `pytest-cache-files-*` directories under the root make `python -m pytest`
-fail to collect; a clean extraction of the same revision is green. `.gitignore` carries the pattern so
-`git status` stays clean.
+**F4 — collection from the repository root: measured, then unreproduced, then closed structurally.**
+Measured at `b81c374`: two mode-0700 `pytest-cache-files-*` directories at the root and
+`python -m pytest -q` → **2 collection errors, exit 2**. D11 F4 recorded it **unreproduced** — the
+directories were gone and **34 tests collected, exit 0** — and an earlier revision of this page wrongly
+restated the failure as current. Closed at `33720dc`, which put the rule in the config file
+(`testpaths = ["tests"]`, `norecursedirs` including `pytest-cache-files-*`; `af85c71` touched the file
+again for the coverage gate), pinned by
+`tests/test_suite_config.py::test_a_stray_pytest_cache_directory_cannot_break_collection`. Re-measured at
+this stamp with roughly ninety cache directories present: **plain `pytest --collect-only -q` → 122 tests
+collected, exit 0**. The litter is not a gate off.
 
 **F5 — the untracked docs. Closed** at `ec18e0c`.
 
@@ -138,14 +150,14 @@ rentguard `449a339`: `NOT AUDITABLE`, and **exit 2**, even with a missing sectio
 
 **F12 — the review half has run, but not into this repository's record. Half closed.** R7's three
 pre-fix reviews ran and are held as assays (D7's pair; §2, R7's result), and the drift half names 2 of
-the 5 by-hand defects at each pre-fix revision and none at the current state. But `keel/.keel/runs.jsonl`
+the 5 by-hand defects at each pre-fix revision and none at the current state. But `.keel/runs.jsonl`
 carries **no `kind: "review"` line**, so the project's own audit still reports `REVIEW … missing` about
 itself. That is honest rather than wrong — the R7 reviews were recorded elsewhere — and it is the reason
 `REVIEW: missing` appears on both §3 runs.
 
 **F13 — a prompt row cannot defeat vacuity. Closed** by the `suite` gate.
 
-**F14 — the suite gate has never passed.** `keel/.keel/runs.jsonl` holds three `suite` runs at the
+**F14 — the suite gate has never passed.** `.keel/runs.jsonl` holds three `suite` runs at the
 current ratified hash: **two `fail` (exit 1) and one `timeout`** (`2ac1aec`, 19:50Z), which is why
 `8f6f8ed` raised the gate's timeout 600 → 1800 s and titled it *a bound against a hang, not against
 slowness* (lines 590–592). A reader who sees `gates ratified: 2 (1 executable)` and stops there will
@@ -167,7 +179,7 @@ adapter) now has its first two and neither of its last two.
 
 ## 5. Not covered here
 
-- Whether a **stranger** would find it useful — W1 in `keel/CHARTER.md` lines 125–127; neither this map
+- Whether a **stranger** would find it useful — W1 in `CHARTER.md` lines 125–127; neither this map
   nor the README has a mechanism for it.
 - The review half's prior-context and deliberate-escape residuals, named rather than closed in
   `PROJECT-STATE.md` lines 607–609.

@@ -6,7 +6,12 @@
 > written** — and the demonstration repository rentguard from `449a339` (106) to `3287a4f` (108).
 > Every number below names the revision it was measured at; where the tree has moved since, the page
 > says so instead of rounding over it. Publication is the user's decision alone
-> (`keel/CHARTER.md` lines 138–145; R9 at line 103).
+> (`CHARTER.md` lines 138–145; R9 at line 103).
+
+**The name.** The product, the package and every command are `keelcheck`. `keel` survives in exactly
+three places, on purpose (`CHARTER.md` lines 142–145): the **checkout directory** `keel/`, the **record
+root** `.keel/`, and **records written before the rename**, which the export still recognises
+(`keelcheck/export.py`, `RECORD_MARKERS`). Everything a reader types is `keelcheck`.
 
 ## What it is
 
@@ -14,7 +19,7 @@ keelcheck keeps one **frozen, human-approved original** for a project — the ch
 requirement in it to name the mechanism that upholds it (`enforced-by:`) or the check that judges it
 (`checked-by:`); a requirement with neither is reported as a **wish**, and a mechanism that does not
 resolve in the repository is reported `[unbuilt]`, because that is a wish wearing a mechanism's name
-(`keel/CHARTER.md` lines 87–89; D13). The **audit** runs the enforced checks first — each gate's content
+(`CHARTER.md` lines 87–89; D13). The **audit** runs the enforced checks first — each gate's content
 hash against the table ratified at the anchor commit, the frozen original byte for byte, the run record —
 then a **clean-context review**, in which a reviewer holding only the frozen original and a `.git`-less
 export of the current state reports divergence as **missing / unrequested / shifted** (R3 at line 97, R4
@@ -24,7 +29,7 @@ adapter last* (R5 at line 99), and the core needs a git repository and nothing e
 
 ## Why a frozen original matters
 
-> An instruction does not get forgotten, it gets **moved**. (`keel/CHARTER.md` line 48)
+> An instruction does not get forgotten, it gets **moved**. (`CHARTER.md` line 48)
 
 Through sub-agents, summaries, compactions and rewrites each hop nudges the instruction a little, and
 nothing ever compares the current state against the original; the human notices at the end, if at all
@@ -49,14 +54,14 @@ The freeze is checkable, and two things about it are worth a stranger's attentio
 - Gates answer the same rule from the other side. An agent may propose one; once a human ratifies it,
   changing it needs a new approval and the audit fails on a hash mismatch. Two gates are ratified today:
   the review prompt (`kind: prompt`) and `tools/coverage.py`, the coverage gate (`kind: gate`,
-  `keel/CHARTER.md` lines 107–110).
+  `CHARTER.md` lines 107–110).
 
 ## The 60-second demo
 
 The audit runs today. Measured in the window above, against a copy of keelcheck's own run record:
 
 ```
-python -m keelcheck audit .            # in keel/, --record pointing at a copy of .keel/runs.jsonl
+python -m keelcheck audit .            # from the repository root, --record pointing at a copy of .keel/runs.jsonl
 
 keelcheck audit -- …\keel
 commit:   ec879771…
@@ -125,7 +130,7 @@ why both read as fine. The catalogue now prints all six.
 
 ## Install and run
 
-**Nothing is installable yet, and I did not install it here.** `keel/pyproject.toml` (2151 bytes, 46
+**Nothing is installable yet, and I did not install it here.** `pyproject.toml` (2151 bytes, 46
 lines) declares the entry point `keelcheck = "keelcheck.cli:main"`, `requires-python = ">=3.10"` and no
 dependencies — but installing it would mutate the shared interpreter environment other bots are using,
 so this page reports only the zero-install form, which I ran on Python 3.12.6 from the repository root:
@@ -163,7 +168,7 @@ in which a bypass appears as a **missing** line.
 ## What it deliberately does not do
 
 - **No daemon and no server.** A bounded CLI run that returns; no long-lived process, no listening socket
-  (R6, `keel/CHARTER.md` line 100).
+  (R6, `CHARTER.md` line 100).
 - **No harness of its own.** A git hook, a CLI and an optional adapter — not another agent runtime
   (lines 52–56).
 - **Not a spec-authoring suite.** Spec Kit makes *living* specs first-class, which is the opposite of
@@ -173,7 +178,7 @@ in which a bypass appears as a **missing** line.
   anchor, not the memory.
 - **Not a job runner.** It does not start, schedule or supervise work (line 56).
 - **No CI.** R8's own cell says so: the suite and the gate run on this checkout, not in a pipeline
-  (`keel/CHARTER.md` line 102).
+  (`CHARTER.md` line 102).
 - **Not published, not packaged, not pushed** — and publishing is the user's word alone (R9).
 
 ## Status of every number on this page
@@ -181,17 +186,17 @@ in which a bypass appears as a **missing** line.
 | claim | source | reproducible here? |
 |---|---|---|
 | the frozen-original block is 553 bytes, sha256 `376f11a4…`, byte-identical at `ae375c6`, `117ac7c` and `688fce8` | `keelcheck charter CHARTER.md`; `git show` of all three commits | yes |
-| the anchor is `688fce8` and lives once, in the charter's `Ratified at:` line | `keel/CHARTER.md` line 26; D17 and the 2026-10-15 record | yes |
-| two gates are ratified: `review-prompt` `sha256:90df6ebc…` and `suite` (coverage) `sha256:c0b4c4ca…` | `keel/CHARTER.md` lines 107–110; `keelcheck charter` | yes |
+| the anchor is `688fce8` and lives once, in the charter's `Ratified at:` line | `CHARTER.md` line 26; D17 and the 2026-10-15 record | yes |
+| two gates are ratified: `review-prompt` `sha256:90df6ebc…` and `suite` (coverage) `sha256:c0b4c4ca…` | `CHARTER.md` lines 107–110; `keelcheck charter` | yes |
 | the coverage gate's floor is **0.83**, from the first honest measurement 2031/2419 | `PROJECT-STATE.md` lines 584–589 | **no — quoted; re-measure with `gate run`** |
-| the record holds three `suite` runs at the ratified hash: two `fail`, one `timeout` — never a pass | `keel/.keel/runs.jsonl` (3 `gate` lines) | yes — code |
+| the record holds three `suite` runs at the ratified hash: two `fail`, one `timeout` — never a pass | `.keel/runs.jsonl` (3 `gate` lines) | yes — code |
 | the drift half names **2 of 5** by-hand defects at each of the three pre-fix revisions, none at the current state | `PROJECT-STATE.md` lines 593–597; `tests/_artefacts/assay_r7_drift_*.json` | yes — the assays are committed |
 | keelcheck: 77 commits at `c8778b4`, 88 at `574a44f`, 11 landed during this pass; 83 tracked files | `git rev-list --count`, `git ls-files`, measured 2026-10-15 | yes — commits |
 | rentguard: 106 commits at `449a339`, 108 at `3287a4f`; its `CHARTER.md` unchanged at 5821 bytes | `git -C rentguard log`; the file itself | yes |
 | rentguard: 189 passed / 0 failed, 45 subtests, coverage floor 90.2% | `rentguard/CHARTER.md` lines 30 and 44, pinned at `74b9f7a` | **no — quoted, not re-measured** |
 | the suite's last outside-worktree verification: 106 passed, 1 skipped, 0 failed in 4:34 | `PROJECT-STATE.md` lines 56–58 | **no — quoted; the suite has grown since** |
 | the seven demo revisions exist and are ancestors of rentguard's HEAD | `git cat-file -t`, `git merge-base --is-ancestor` | yes |
-| a `kind: "review"` line is absent from `keel/.keel/runs.jsonl`, so both audits print `REVIEW … missing` | the record, read directly | yes — code |
+| a `kind: "review"` line is absent from `.keel/runs.jsonl`, so both audits print `REVIEW … missing` | the record, read directly | yes — code |
 
 The full table — every artefact, its size, its revision, and the findings it carries — is
 [`docs/ARTEFACT-MAP.md`](docs/ARTEFACT-MAP.md).

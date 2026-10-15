@@ -32,21 +32,22 @@ GATE = _support.REPO / "tools" / "coverage.py"
 BLIND_TARGET = "tests/_artefacts/blind_target.py"
 CHILD_TARGET = "tests/_artefacts/child_trace_target.py"
 FAILING_TARGET = "tests/_artefacts/failing_target.py"
+NESTED_TARGET = "tests/_artefacts/nested_target.py"
 
 
-def _gate(*args: str) -> subprocess.CompletedProcess:
+def _gate(*args: str, env_extra: dict | None = None) -> subprocess.CompletedProcess:
     """Run the gate the way CI would, from the repository root.
 
-    **Only paths, no pytest flags.** `pytest_args` is a `nargs="*"` positional, so argparse refuses
-    anything starting with `-` (`unrecognized arguments: -q -p no:cacheprovider`) even though the
-    gate's own `DEFAULT_ARGS` carry exactly those flags. Passing a target replaces the defaults
-    wholesale, so a caller cannot add a flag without `--`; that is a finding for Mason, not something
-    this test papers over.
+    **Only paths, no pytest flags** — unless you pass `--` first. `pytest_args` is a `nargs="*"`
+    positional, so argparse refuses anything starting with `-` without the escape
+    (`unrecognized arguments: -q -p no:cacheprovider`), even though `DEFAULT_ARGS` carry exactly those
+    flags. Mason documented `--` as the supported path in `af85c71` and kept strict parsing on
+    purpose: a permissive parser would hand a typo'd gate flag to pytest silently.
     """
     return subprocess.run(
         [sys.executable, str(GATE), *args],
         cwd=str(_support.REPO), capture_output=True, text=True, encoding="utf-8",
-        env={**os.environ, "PYTHONIOENCODING": "utf-8"}, timeout=900,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8", **(env_extra or {})}, timeout=900,
     )
 
 
@@ -118,3 +119,40 @@ def test_a_red_suite_is_not_masked_by_the_coverage_number():
         f"the document does not report the failing suite: {doc.get('suite')!r}")
     assert "did not pass" in (doc.get("reason") or ""), (
         f"the reason does not say the suite failed: {doc.get('reason')!r}")
+
+
+def test_a_nested_run_measures_only_itself_and_keeps_the_parents_path(scratch):
+    """The nested gate, measured rather than argued.
+
+    The outer gate runs `nested_target.py`, which runs the inner gate over `child_trace_target.py`
+    and records that inner document plus its own inherited `PYTHONPATH`. Two properties:
+
+    1. **Isolation** — the inner total equals a standalone run of the same target, so a nested run
+       measures its own hits and does not read the outer run's. (Mason's construction: `measure()`
+       merges only the directory `_child_setup()` returned; inherited directories are written to,
+       never read.)
+    2. **The parent's `PYTHONPATH` survives** — the tracer may add a directory, never remove one.
+       Gilbert's assertion, and the class that broke the hook tests under the gate: they failed with
+       `No module named keelcheck` when the hook fired a commit, because a child could not import the
+       tool it was testing. A nested run that cannot import the tool is not a nested run.
+    """
+    out = scratch / "nested-measurement.json"
+    outer = _gate("--min", "0.0", "--json", NESTED_TARGET,
+                  env_extra={"KEEL_NESTED_OUT": str(out)})
+    recorded = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
+    standalone = _gate("--min", "0.0", "--json", CHILD_TARGET)
+
+    assert recorded, f"the nested target wrote no measurement:\n{_support.combined(outer)[-400:]}"
+    inner = json.loads(recorded["inner_stdout"])
+    reference = json.loads(standalone.stdout)
+
+    assert abs(inner["total"] - reference["total"]) < 1e-9, (
+        f"a nested run measured {inner['total']} where the same target alone measures "
+        f"{reference['total']}, so it is reading hits that are not its own")
+
+    inherited = [p for p in (recorded["inherited_pythonpath"] or "").split(os.pathsep) if p]
+    parent = [p for p in (os.environ.get("PYTHONPATH") or "").split(os.pathsep) if p]
+    missing = [p for p in parent if p not in inherited]
+    assert not missing, (
+        "the gate replaced the parent's PYTHONPATH instead of extending it, so a child cannot "
+        f"import what the parent could: {missing} (child saw {inherited})")

@@ -95,7 +95,7 @@ impossible, fatal or recoverable. `checked-by:` = a human judges it, or a demo m
 | R1 | The charter format is fixed: purpose, strengths, agreed problems, requirements, permissions, scopes; a requirement with neither `enforced-by` nor `checked-by` is a wish and the parser says so | code: the charter parser | — | draft |
 | R2 | Gates are locked code: a gate is a script recorded in the charter with a content hash, and the audit fails when a hash differs from the ratified one | code: hash comparison | — | draft |
 | R3 | The audit reports divergence from the frozen original in three classes — **missing / unrequested / shifted** — plus the wishes, readable in two minutes | code: the frozen-original block is diffed against the charter at the ratification anchor (the `Ratified at:` line — never a literal sha, which goes stale when the anchor moves, D18); the drift review (clean context) classifies the rest | the human reads it | draft |
-| R4 | The drift review runs with **clean context**: a fresh agent holding only the frozen original and the current state, never the history that produced it | — | the drift report names `.keel/review-context.json`, written under the record root | **checked, not enforced** — `keelcheck/audit.py` writes the reviewer's inputs today; the runner that starts the reviewer is not built (design: `keel/research/drift-review-design.md`) |
+| R4 | The drift review runs with **clean context**: a fresh agent holding only the frozen original and the current state, never the history that produced it | — | the drift report names `.keel/review-context.json`, written under the record root | **checked, not enforced** — `keelcheck/audit.py` writes the reviewer's inputs today; the runner that starts the reviewer is not built (design: `research/drift-review-design.md`; the harness adapter that would run it last in R5's order: `research/adapter-and-residuals.md`) |
 | R5 | Integration surfaces in this order: git hook first, CLI second, MCP third, harness hook adapter last | code: the hook installer | — | draft |
 | R6 | No daemon and no server: a bounded CLI run, and an MCP call that returns | code: no long-lived process, no listening socket | — | draft |
 | R7 | The tool proves itself on **rentguard**: the audit — mechanical half plus clean-context drift review — names the five defects the by-hand audit found, each attributed to the half that finds it, and reports a gate-less input as **vacuous**, never clean | — | the audit run at `bd63920`, `ce69cea`, `c512125` and `310f449`, and the human reads the report | draft |
@@ -106,8 +106,8 @@ impossible, fatal or recoverable. `checked-by:` = a human judges it, or a demo m
 
 | gate | path | hash | kind |
 |---|---|---|---|
-| review-prompt | review-prompt.md | sha256:90df6ebca467f5a196c7c2a912297ffcf3cafb147fdc040ba3ce101eb0aff7f2 | prompt |
-| suite | tools/coverage.py | sha256:c0b4c4ca1f2161ad9accef9ca9ff882c74c64e3c32a962ccd5fa1228e3c2b634 | gate |
+| review-prompt | review-prompt.md | sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91 | prompt |
+| suite | tools/coverage.py | sha256:b4a8ae1efbd35826a185abbd9b826baa19c3255873232667bed5db441d32fa73 | gate |
 
 The first ratified gate, and the one that is not a script: the review prompt is the reviewer's whole
 instruction, so weakening it is a gate change like any other (D15). The second row is the executable half:
@@ -143,6 +143,11 @@ with it. A wish removed on purpose leaves that trace rather than disappearing.
   publishes as `keelcheck` (registry shortlist by Sift, the user's word), and the working tree carries it from
   `6ff67e8`. `keel` survives only as history — the `keel/` checkout directory, the `.keel/` record root, and
   records written before the rename, which the record marker still recognises.
+- **The harness adapter (design: `research/adapter-and-residuals.md`) — two rules it may not break.** An
+  install writes **inside the audited tree** by default: `--global` is explicit, and the file it would touch
+  plus a one-line diff of the entry are printed before anything is written, so nothing ever edits
+  `~/.claude/settings.json` implicitly. And a denied edit is denied **before** anything is recorded: the
+  record append must never be the reason a deny fails.
 
 ## Scopes
 

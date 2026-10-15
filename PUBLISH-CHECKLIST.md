@@ -84,11 +84,14 @@ Each one names what settles it. Nothing here is a judgement call dressed as a ch
   `https://pypi.org/pypi/keelcheck/json` returning **404**, re-checked 2026-10-15. Re-check it on the
   day. The registry shortlist and Max's word put the product here (working tree from `6ff67e8`), and
   `keel` itself is taken three ways (`research/name-keel.md`).
-- [ ] **Packaging metadata says what a stranger needs.** Settled by reading `pyproject.toml`: name
-  `keelcheck`, version `0.0.1`, MIT, author Max Reischl, `requires-python >= 3.10`, no dependencies,
-  entry point `keelcheck = keelcheck.cli:main`, classifiers present. **Two things rentguard has and this
-  repository does not: a `LICENSE` file and a `CHANGELOG.md`.** `license = { text = "MIT" }` is a
-  metadata line, not a licence file, and it is the first thing a stranger looks for on a project page.
+- [x] **Packaging metadata, and the two files a stranger looks for first.** Settled by reading
+  `pyproject.toml`: name `keelcheck`, version `0.0.1`, MIT, author Max Reischl, `requires-python >= 3.10`,
+  no dependencies, entry point `keelcheck = keelcheck.cli:main`, classifiers present. The two files it
+  did **not** carry were added on 2026-10-15: **`LICENSE`**, MIT with
+  `Copyright (c) 2026 Max Reischl (github.com/Max6617)` — which materialises the `authors` line rather
+  than deciding anything — and **`CHANGELOG.md`**, headed `## 0.0.1 — unreleased`, naming what ships and
+  what does not. `license = { text = "MIT" }` is a metadata line, not a licence; the file is what a
+  stranger looks for first and the changelog is second.
 - [x] **The wheel builds and installs into a clean venv.** Measured, at `c5168d0`, by the route in §2:
   `python -m pip wheel . --no-deps --no-build-isolation -w dist` produced
   `keelcheck-0.0.1-py3-none-any.whl` (55,005 bytes, sha256 `c05efef8…`) in 27 s, the venv's
@@ -194,8 +197,8 @@ section in place of "not run here".
   is permanent history with `0.0.2` beside it.
 - **What becomes true that is not true today**: `pip install keelcheck` works; the README's install
   section can carry a real transcript from the index; the "not published" banner comes down. Everything
-  else on this page — the clean audit, R5's MCP surface, R7's drift half, the licence file — is a
-  precondition for the claim to be *honest*, not for the upload to succeed.
+  else on this page — the clean audit, R5's MCP surface, R7's drift half — is a precondition for the
+  claim to be *honest*, not for the upload to succeed.
 
 ## 7. The ask
 

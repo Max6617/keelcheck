@@ -4,6 +4,19 @@ Two design answers Gilbert asked for. The adapter is designed, not built; the re
 closable or permanent. Sources for every harness claim are in `research/gates-per-harness.md` (`[CC]`
 Claude Code, `[CX]` Codex, `[CU]` Cursor), all fetched from primary docs on 2026-10-14.
 
+**Ruled (Gilbert, 2026-10-15), and folded in below rather than left as a message:**
+
+1. **Claude Code first, on two independent reasons** — reach, and the fact that the team's own reviews
+   run through `claude -p`. §"Which harness first".
+2. **`adapter install` defaults to `--project`.** The global write exists and is never the default; the
+   path is printed *before* it is touched, with a one-line diff of what it adds. A tool that audits
+   permissions must not quietly widen them. §"The smallest deliverable".
+3. **The `kind: "adapter"` line is ruled in**, on a deny, best-effort, with the fields named — and
+   **the append must never be the reason a deny fails**. §"Staying inside R6".
+4. **The residual split stands as written**: deliberate escape is *closable by deployment*, with only
+   the "detectable from inside" claim permanent; the prior-context residual is a *permanent boundary of
+   the method*. "Do not build a closure that is really a gesture." §"Part 2".
+
 ## Part 1 — the harness hook adapter
 
 ### What it is
@@ -47,13 +60,23 @@ work because its compatibility layer may run the Claude Code adapter as-is (`fai
 its fail-open default). This ordering does not change R5's: the adapter is still last, and all three are
 the same adapter with different field names.
 
+**Ruled (2026-10-15): Claude Code is also the answer for the user's own workflow, and that is a second,
+independent reason** — the team's own reviews run through `claude -p` (credentials re-authenticated
+today), so the harness the adapter targets first is one this project can exercise on itself rather than
+only an argument about reach among strangers. Two reasons landing on the same first choice is worth
+recording, because the first one alone was about other people's environments.
+
 ### Staying inside R6 (no daemon, no server, a bounded call)
 
 - **No process of ours persists.** The harness starts the adapter for one event; it reads stdin, decides,
   writes stdout, exits. keelcheck never binds a socket, never listens, and keeps no state in memory
   between events. The only persistent effect is a file append to the existing record — the same
   `.keel/runs.jsonl` (`record.append`), on a **deny** only, because a refused weakening attempt is
-  exactly the event worth keeping.
+  exactly the event worth keeping. **Ruled (2026-10-15):** the line is `kind: "adapter"` and carries the
+  event, the path, the gate row, both hashes and the decision — and it is **best-effort: the append must
+  never be the reason a deny fails.** If the record cannot be written, the denial still happens. That
+  sentence is the difference between a guardrail and a record keeper, and it is the rule for anything
+  else this surface records later.
 - **The call is bounded by the harness, and bounded again by us.** Claude Code's `PreToolUse` hook
   timeout is the outer bound (seconds, not minutes); the adapter takes its own `--timeout` and refuses to
   run gates or the audit inside an event. It performs only local reads: the charter, the ratified table
@@ -91,11 +114,17 @@ locked artefacts must not.
 
 **Deliverable:** `keelcheck/adapter.py` with a pure `decide(event: dict, repo) -> dict` and a
 `keelcheck adapter <harness>` entry that reads one event, prints the harness's decision, and exits 0/2;
-`keelcheck adapter install claude-code [--project|--user] [--force]`; a checked-in fixture directory of
+`keelcheck adapter install claude-code [--project|--global] [--force]`; a checked-in fixture directory of
 **recorded real payloads** (`tests/_artefacts/adapter/claude-code/`: an allow, a deny that rewrites a
 ratified gate script, a deny that edits the charter's gate row, and a malformed payload); and a docs
 snippet showing the settings entry. No model, no harness and no network are needed to test any of it —
 the same property that makes the review half testable makes this half testable.
+
+**Ruled (2026-10-15), and it constrains the installer:** `--project` is the default and the global write
+exists only when explicitly asked for as `--global`. The path that will be touched is printed **before**
+it is touched, with a one-line diff of what the entry adds; nothing the adapter does writes to
+`~/.claude/settings.json` implicitly, because a tool that audits permissions must not quietly widen
+them. The flag is `--global`, not `--user`, so the one word a caller types says where it lands.
 
 **The acceptance test I would write first (red before the fix, per rule 3):**
 
@@ -164,16 +193,28 @@ for exactly this. The deliverable, when someone wants it: one documented T3 reci
 second machine with only the export), one recorded field naming the confinement, and the differential
 test above. The prior residual remains the permanent one.
 
-## What I could not decide without leaving my lane
+### Ruled (Gilbert, 2026-10-15): the split stands exactly as written
 
-- **Which harness matters most to *this* user.** I argued Claude Code first from the contract-mirroring
-  evidence, which is the right answer for reach among strangers. If the adapter is meant to protect the
-  user's own workflow, the first target should be the harness they actually run, and I do not know which
-  that is — that is a scope call for Gilbert or the user, not a research finding.
-- **Whether `adapter install` may write outside the repository.** Installing into a project's
-  `.claude/settings.json` is inside the audited tree; installing into `~/.claude/settings.json` writes to
-  the user's machine, which the charter's permission row does not cover. I designed both (`--project`,
-  `--user`) and would default to `--project`; the consent question is Gilbert's.
-- **Whether an adapter refusal should append to `runs.jsonl`.** It reuses the existing record (D3/D15),
-  but adding a `kind: "adapter"` line is a record-format change and belongs in the contract before
-  anyone writes it — Mason's file, Gilbert's ruling.
+Deliberate escape is **closable by deployment** — confined reads, proven by differential measurement —
+with only the "detectable from inside" claim remaining permanent. The prior-context residual is a
+**permanent boundary of the method**, because a hosted model's weights, its cache and its earlier
+sessions are outside any local instrument. Naming it permanent is what stops this project promising a
+guarantee it cannot give, and it is worth more than a mechanism that only looks like one: **do not build
+a closure that is really a gesture.** No work item is created for the prior residual; it stays a named
+boundary, and the conditions the runner *can* record remain the honest claim.
+
+## Decided since drafting (Gilbert, 2026-10-15)
+
+All three points I could not settle from research alone were ruled, and each is folded into the section
+above rather than left here:
+
+- **Which harness first** — Claude Code, on reach *and* on the team's own reviews running through
+  `claude -p`. The lane note was right that only the user's workflow could settle it; the ruling is that
+  both reasons point the same way.
+- **Whether the installer may write outside the repository** — it may, but `--project` is the default,
+  `--global` is explicit, and the path and a one-line diff are printed before anything is touched.
+- **Whether an adapter refusal is recorded** — yes, `kind: "adapter"`, best-effort, and the append must
+  never be the reason a deny fails.
+
+One thing remains outside my lane and is not a design question: if these three are to be numbered in
+`PROJECT-STATE.md`, that record is Gilbert's to write — I have not touched it.

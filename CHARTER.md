@@ -23,11 +23,13 @@ And the recommendation those words accept, as written in `ECC-ASSESSMENT.md` bef
 
 ## Ratification
 
-Ratified at: `117ac7c` — the ratification commit, and the reference side of every comparison (D1, D8). Moved
+Ratified at: `688fce8` — the ratification commit, and the reference side of every comparison (D1, D8). Moved
 from the freeze commit `ae375c6` at the user's word on 2026-10-14 so that keelcheck's first gate counts as
 ratified (D17); the frozen-original block is byte-identical at both commits (553 bytes, sha256
 `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`), so the move changes only which gate
-table is the reference.
+table is the reference. **Moved again to `688fce8` at the user's word on 2026-10-15**, for the rename to
+`keelcheck` and the coverage row; the same block is unchanged by it, and each move appears in the record once
+as `[anchor-moved]` — a named human event, not a re-measurement (D12).
 
 - **Gates ratified: two** — `review-prompt`, a `kind: prompt` row hashed over git-normalized bytes (D15), and
   `suite`, the coverage gate, a `kind: gate` row the audit executes (floor 0.83; decisions D19 and D20). With an executable

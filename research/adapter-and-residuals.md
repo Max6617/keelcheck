@@ -77,6 +77,14 @@ recording, because the first one alone was about other people's environments.
   never be the reason a deny fails.** If the record cannot be written, the denial still happens. That
   sentence is the difference between a guardrail and a record keeper, and it is the rule for anything
   else this surface records later.
+- **The adapter line cannot move the anchor, and that is already the code's answer rather than a new
+  rule.** `_anchor_moved` picks the previous entry with an explicit allowlist — `obj.get("kind") in
+  ("audit", "review")` (`keelcheck/audit.py:467`) — so a `kind: "adapter"` line is inert for
+  `[anchor-moved]` with or without a `ratified` field. The adapter line therefore carries **no anchor**;
+  the property to pin is a test (an adapter line between two audits produces no `[anchor-moved]`), not a
+  numbered decision. Noted for the charter pass: D15 and design §8 describe the comparison as "the
+  previous entry of *any kind that carries an anchor*", which is broader than the code's allowlist — the
+  code is the safer reading, and the sentence is Gilbert's file and Mason's respectively.
 - **The call is bounded by the harness, and bounded again by us.** Claude Code's `PreToolUse` hook
   timeout is the outer bound (seconds, not minutes); the adapter takes its own `--timeout` and refuses to
   run gates or the audit inside an event. It performs only local reads: the charter, the ratified table

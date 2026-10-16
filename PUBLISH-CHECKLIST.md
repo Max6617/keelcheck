@@ -61,7 +61,8 @@ Each one names what settles it. Nothing here is a judgement call dressed as a ch
   charter's own word — so it is not a divergence and does not block.
 - [x] **The anchor moved, in the tool's own order — done 2026-10-16.** The anchor is commit **`501a404`**
   (charter naming `62dc6be`), and the sequence ran exactly as this page prescribed: one gate run on a
-  clean tree — `gate suite: pass exit 0`, suite `126 passed`, **`TOTAL 2594 2210 85.2%`** against the
+  clean tree — `gate suite: pass exit 0` (759.1 s, bound 3600 s), suite `126 passed`, **`TOTAL 2594
+  2210 85.2%`** against the
   ratified floor 0.83, recorded under the ratified `suite` hash — then two audits at **zero
   divergences** each. The move itself was reported once as `[anchor-moved] 688fce8 -> 62dc6be` with one
   `[gate-table]` per moved row, which is the shape D12 asks for. The three row hashes were re-verified

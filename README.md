@@ -1,12 +1,21 @@
 # keelcheck
 
-> **Draft — nothing is published, nothing is installed anywhere, nothing has been pushed.** Written by
-> Folio. Measured during a **25-minute window on 2026-10-15** in which keelcheck went from `c8778b4`
-> (77 commits) to `574a44f` (**88 commits**) — **eleven commits landed while this page was being
-> written** — and the demonstration repository rentguard from `449a339` (106) to `3287a4f` (108).
-> Every number below names the revision it was measured at; where the tree has moved since, the page
-> says so instead of rounding over it. Publication is the user's decision alone
-> (`CHARTER.md` lines 138–145; R9 at line 103).
+> ## ⚠️ Work in progress
+>
+> **Not a dependency yet, and not published anywhere.** The source is public so the work can be read;
+> there is **no release**, `pip install keelcheck` does not work, and interfaces may change without
+> notice. Publishing a package is the user's decision alone (`CHARTER.md` lines 138–145; R9 at line 103).
+> What is solid is written down where it can be checked: three gates ratified at the anchor `501a404`,
+> two passing gate runs under the ratified `suite` hash, and an audit that reads **zero divergences** at
+> the tip. `.keel/` is gitignored, so the run record itself stays on the machine that produced it —
+> re-run `keelcheck audit .` to see the state for yourself.
+
+> **Draft, measured as it was written.** Written by Folio and corrected in place as the tree moved: the
+> MCP surface (R5's third) landed on 2026-10-16 with its tests independently verified, and this block's
+> earlier sentence *"nothing is published, nothing is installed anywhere, nothing has been pushed"* was
+> true when written and is corrected here rather than left standing — the source is now in a public
+> repository, while the package remains unpublished. Every number below names the revision it was
+> measured at; where the tree has moved since, the page says so instead of rounding over it.
 
 **The name.** The product, the package and every command are `keelcheck`. `keel` survives in exactly
 three places, on purpose (`CHARTER.md` lines 142–145): the **checkout directory** `keel/`, the **record
@@ -23,9 +32,9 @@ resolve in the repository is reported `[unbuilt]`, because that is a wish wearin
 hash against the table ratified at the anchor commit, the frozen original byte for byte, the run record —
 then a **clean-context review**, in which a reviewer holding only the frozen original and a `.git`-less
 export of the current state reports divergence as **missing / unrequested / shifted** (R3 at line 97, R4
-at line 98, the gate table at lines 105–116). It runs as a CLI, a git hook and a review runner
-(`keelcheck --help`, seven commands), in the charter's order *git hook first, CLI second, MCP third,
-adapter last* (R5 at line 99), and the core needs a git repository and nothing else.
+at line 98, the gate table at lines 105–116). It runs as a CLI, a git hook, an MCP call and a review
+runner (`keelcheck --help`, eight commands), in the charter's order *git hook first, CLI second, MCP
+third, adapter last* (R5 at line 99), and the core needs a git repository and nothing else.
 
 ## Why a frozen original matters
 

@@ -58,7 +58,7 @@ a claim about the tree now; re-measure before quoting.
 | A22 | Coverage tool (R8) | `tools/coverage.py`, 17747 bytes, 354 lines, plus `tools/_child_trace.py` 3562 B / 81 L | on disk, committed, ratified as the `suite` gate | **was missing.** Floor **0.83** from the first honest measurement, 2031/2419, rounded down (`PROJECT-STATE.md` lines 584–589); the child tracer is driven by `KEELCHECK_COVERAGE_CHILD`, `KEELCHECK_COVERAGE_DIR` and `KEELCHECK_COVERAGE_PACKAGE`, and a blind measurement is exit 2 rather than a number |
 | A23 | Packaging | `pyproject.toml`, 2151 bytes, 46 lines | on disk, committed, **never installed** | entry point `keelcheck = "keelcheck.cli:main"`; **was** 795 B / 28 L |
 | A24 | README and this map | `README.md` (13212 B / 199 L before this rewrite) and `docs/ARTEFACT-MAP.md` (17198 B / 169 L before this rewrite) | on disk, tracked | neither revised size is asserted |
-| A25 | A git remote | `.git/config` → `origin` = `https://github.com/Max6617/keelcheck` | **private remote, created 2026-10-16** | at Max's word, private for now; `git ls-remote --heads origin` answers `main` at `20ea4f6`; **a private repository is not a publication**, so R9 still keeps publishing a human check |
+| A25 | A git remote | `.git/config` → `origin` = `https://github.com/Max6617/keelcheck` | **public remote, created 2026-10-16** | created private and made public the same morning, both at Max's word; `git ls-remote --heads origin` answers `main`; the README opens with a **work-in-progress** banner; **a readable repository is not a package publication**, so R9 still keeps the release a human check |
 
 ## 2. The record, and the demonstration's inputs
 
@@ -197,6 +197,15 @@ therefore evidence held on the machine that produced it: a reader can re-run `ke
 the current state, but cannot read our runs, our gate output, or the review the demonstration used.
 Named, not patched: un-ignoring it is a design decision (ship the record with the source, or keep it
 local), and the private remote makes it cheap to revisit.
+
+**F19 — going public exposes local paths, and that is the whole of it.** With the repository readable, a
+scan over the tracked tree finds **19 absolute host-path matches in 5 files** (`tests/_artefacts/`: the
+four `assay_r7_drift_*` JSONs and `assay_gate_surface_53ea564.txt`), **43 mentions of the local
+username**, and **no credential material** (tokens, keys and PEM markers scanned by pattern). So the
+exposure is a machine layout and a username, not a secret. Named, not patched: those files are the
+recorded evidence for R7's demonstration, and rewriting recorded evidence to tidy a path would trade the
+demonstration's value for cosmetics — a scrub means re-recording, which is a decision rather than a
+cleanup.
 
 ## 5. Not covered here
 

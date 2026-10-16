@@ -21,13 +21,15 @@ that installs from the index rather than from a wheel path.
   `9cbaa378…`, install and console-script smoke included in §1 — and the earlier one (55,005 bytes,
   sha256 `c05efef8…`, at `c5168d0`) is kept as history. Both are recorded in the README's install section
   and in rentguard's `docs/VERIFICATION.md`.
-- **There is now a private git remote, and still no CI.** `origin` is
-  `https://github.com/Max6617/keelcheck` — created **private** at Max's word on 2026-10-16, carrying the
-  full history (`main` at `20ea4f6`, verified by `git ls-remote --heads origin` rather than by the push's
-  own message). **A private repository is not a publication:** R9 is untouched, the index is still what
-  this page prepares for, and nothing becomes public until Max says so. What changed is that there is
-  now a "push" half where there was none, so the code moves by `git push` rather than by hand.
-  `docs/ARTEFACT-MAP.md` A25 records it.
+- **There is now a public git remote, and still no CI.** `origin` is
+  `https://github.com/Max6617/keelcheck` — created **private** at Max's word on 2026-10-16 and made
+  **public** the same morning, also at his word. It carries the full history, verified by
+  `git ls-remote --heads origin` rather than by the push's own message. **A readable repository is not a
+  package publication:** R9 is untouched, no index carries `keelcheck`, and the README opens with a
+  work-in-progress banner precisely because a stranger can now find the source. What changed is that
+  there is a "push" half where there was none, so the code moves by `git push` rather than by hand.
+  `docs/ARTEFACT-MAP.md` A25 records it, and F19 records what publicness exposes (local paths, no
+  secrets).
 - **What the remote does *not* carry: the audit record.** `.keel/` is gitignored on purpose — *"records
   are the tool's own history, not source"* (`.gitignore` line 11) — so `runs.jsonl`,
   `review-context.json`, and every gate-pass and audit claim on these pages are evidence that lives on
@@ -200,10 +202,10 @@ section in place of "not run here".
 
 ## 5. What is not claimed
 
-- **Nothing is published.** The package is not on any index, nothing is installed anywhere, and the code
-  lives in a **private** repository (`github.com/Max6617/keelcheck`) — which is not a publication: a
-  stranger can reach neither the package nor the source until Max makes one of them public. That banner
-  in the README stays until the upload, or a deliberate decision, changes it.
+- **No package is published.** Nothing is on any index, and `pip install keelcheck` does not work. The
+  **source** is publicly readable — `github.com/Max6617/keelcheck`, private until 2026-10-16 and public
+  since, at Max's word — and its README opens with a work-in-progress banner saying exactly that. Source
+  is not a release: the version stays `0.0.1`, unreleased, until Max publishes.
 - **No CI, no badge.** R8's own cell says the suite and the gate run on a checkout, not in a pipeline.
   There is no published green badge to point at, and this page must not imply one.
 - **The MCP surface exists as of 2026-10-16** (§1: `python -m keelcheck mcp`, R5's third), and the
@@ -225,9 +227,9 @@ section in place of "not run here".
 ## 6. What Max's action would do, and what cannot be undone
 
 - **It would upload `keelcheck 0.0.1` to PyPI**, making `pip install keelcheck` work and printing the
-  README on the project page. The repository is **private** today, so the index would be the only
-  *public* copy of the package unless the repository is made public too — a separate decision, and none
-  of it is required for the index to work.
+  README on the project page. The **source** is already public, so the index adds the installable
+  artefact rather than revealing the code — and the README's work-in-progress banner travels to the
+  project page with it.
 - **The name stops being free at that moment.** `keelcheck` is one of the few names free on PyPI, npm
   and crates.io (§1); the first upload claims it, and a name is not released by deleting a release.
   A version can be **yanked**, never deleted, and its bytes can never be replaced: a mistake in `0.0.1`

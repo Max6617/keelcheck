@@ -60,14 +60,16 @@ Each one names what settles it. Nothing here is a judgement call dressed as a ch
   `REVIEW (clean context, R4): missing` is also printed, and it is **reported, not required** — the
   charter's own word — so it is not a divergence and does not block.
 - [x] **The anchor moved, in the tool's own order — done 2026-10-16.** The anchor is commit **`501a404`**
-  (charter naming `62dc6be`), and the sequence ran exactly as this page prescribed: one gate run on a
-  clean tree — `gate suite: pass exit 0` (759.1 s, bound 3600 s), suite `126 passed`, **`TOTAL 2594
-  2210 85.2%`** against the
-  ratified floor 0.83, recorded under the ratified `suite` hash — then two audits at **zero
-  divergences** each. The move itself was reported once as `[anchor-moved] 688fce8 -> 62dc6be` with one
-  `[gate-table]` per moved row, which is the shape D12 asks for. The three row hashes were re-verified
-  against the files this morning, and a script confirmed the frozen-original block is byte-identical at
-  the old and new anchor (**553 bytes, sha256 `376f11a44…`**).
+  (charter naming `62dc6be`), and the sequence ran exactly as this page prescribed: a gate run on a
+  clean tree, then two audits at **zero divergences** each. The move itself was reported once as
+  `[anchor-moved] 688fce8 -> 62dc6be` with one `[gate-table]` per moved row, which is the shape D12 asks
+  for. The three row hashes were re-verified against the files this morning, and a script confirmed the
+  frozen-original block is byte-identical at the old and new anchor (**553 bytes, sha256 `376f11a44…`**).
+  **Two gate runs have passed on clean trees, both under the ratified `suite` hash:**
+  - `35a2758` — `pass exit 0`, **759.1 s**, suite `126 passed`, `TOTAL 2594 2210 85.2%` (the milestone run);
+  - `c5b1092` — `pass exit 0`, **510.0 s**, suite **143 passed**, `keelcheck/mcp.py` **116/112/96.6%**,
+    `TOTAL 2601 2215 85.2%`. This is the newest row, and it is the one a publish from the current tip
+    would cite; the audit reads `DIVERGENCES: none` at both tips.
 
   Read from the code rather than assumed: a gate run is taken from the charter **at `Ratified at:`**, so
   the runner refuses to run the working tree's unratified gate (`gate suite: locked`) — the word comes

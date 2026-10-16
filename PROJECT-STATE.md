@@ -789,3 +789,10 @@ shortfall is the finding.
   3. **R6's `enforced-by` cell keeps its prose** â€” F17 stays open **by decision**, so a later reader does not re-open it as an oversight.
   **One consequence worth stating rather than discovering later:** `.keel/` is gitignored by design (*"records are the tool's own history, not source"*), so the remote does **not** carry the audit record â€” `runs.jsonl`, `review-context.json`, and every gate-pass and audit claim on the pages are evidence on the machine that produced them. A reader can re-run `keelcheck audit .` for the current state; they cannot read our runs. Recorded as **F18** in the artefact map, named and not patched.
 
+
+- **Update, 2026-10-16 11:2x, same morning â€” the repository is now public, with a work-in-progress banner.** Max's words: *"actually make the repo public but write at the top of the read me work in progress"*. So the entry above stands as what was decided then, and this is what changed:
+  - `https://github.com/Max6617/keelcheck` is **public** â€” the flip was made through the GitHub API and verified independently: the API reads `private: false, visibility: public`, and an **unauthenticated** fetch of `raw.githubusercontent.com/.../README.md` returns **HTTP 200** with the banner at the top, so a stranger can read it without a token.
+  - The README opens with a **work-in-progress** block: no release, `pip install keelcheck` does not work, interfaces may change, publishing remains Max's decision (R9). Its older sentence *"nothing has been pushed"* is corrected in place rather than left standing, and the command count reads **eight** (the `mcp` surface) where it said seven.
+  - **A readable repository is still not a package publication.** Nothing is on any index, the version stays `0.0.1` unreleased, and the publish checklist's shape is unchanged.
+  - **What publicness exposes, measured and recorded as F19 rather than tidied away:** **19 absolute host-path matches in 5 files** under `tests/_artefacts/` (the recorded R7 evidence), **43 mentions of the local username**, and **no credential material**. Scrubbing that means re-recording evidence, which is a decision, not a cleanup.
+

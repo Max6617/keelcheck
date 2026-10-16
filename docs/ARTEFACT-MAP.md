@@ -50,10 +50,10 @@ a claim about the tree now; re-measure before quoting.
 | A14 | Git-normalized hashing (D9), git plumbing | `keelcheck/normalize.py` 10865 B / 281 L, `gitcmd.py` 4488 B / 127 L | on disk, committed | `gate hash` matches the gate table |
 | A15 | The clean-context review half (R3, R4, D15, D21) | `keelcheck/review.py` 29045 B / 682 L, `export.py` 14043 B / 328 L, `review-prompt.md` 2661 B / 58 L | on disk, committed, runs | `keelcheck review --help` exit 0; the prompt is gate row 1; **was:** 19353 B / 9598 B / 2656 B, with a different prompt hash |
 | A16 | The git hook installer (R5) | `keelcheck/hook.py`, 11269 bytes, 258 lines | on disk, committed, runs | `hook install` / `hook status`; the installed hook carries the marker **`# keelcheck-hook v1`** (`keelcheck/hook.py` line 40), which is how a second install recognises its own work; the R5 tests still skip on this host (git's `sh`) |
-| A17 | The CLI surface (R6) | `keelcheck/cli.py`, 2347 bytes, 68 lines | on disk, committed | `keelcheck --help` exit 0 — seven commands, **no `mcp`** |
-| A18 | The ratified gate table | `CHARTER.md` lines 107–110 — **two rows**: `review-prompt` → `review-prompt.md` → `sha256:90df6ebc…` (`kind: prompt`); `suite` → `tools/coverage.py` → `sha256:c0b4c4ca…` (`kind: gate`) | on disk, committed, **2 ratified (1 executable)** | `keelcheck charter`: `gates: 2 declared`; **was:** one prompt row at `117ac7c` |
+| A17 | The CLI surface (R6) | `keelcheck/cli.py`, 2347 bytes, 68 lines | on disk, committed | `keelcheck --help` exit 0 — **eight** commands as of `35a2758`, including `mcp` |
+| A18 | The ratified gate table | `CHARTER.md` lines 112–116 — **three rows at `501a404`**: `review-prompt` → `review-prompt.md` → `sha256:0e4b5764…` (`kind: prompt`); `suite` → `tools/coverage.py` → `sha256:973d639a…` (`kind: gate`); `reviewer` → `tests/_artefacts/claude-reviewer.py` → `sha256:8d5e6a5e…` (`kind: reviewer`) | on disk, committed, **3 ratified (1 executable)** at the anchor `501a404` (charter naming `62dc6be`) | `keelcheck audit`: `gates ratified: 3 (1 executable)`, `DIVERGENCES: none` at `35a2758`; **was:** two rows at `688fce8` (`90df6ebc…`, `c0b4c4ca…`) |
 | A19 | Research and design notes | `research/`: `prior-art-join.md` 29336 B, `gates-per-harness.md` 28878 B, `review-attack.md` 19379 B, `drift-review-design.md` 18863 B, `name-keel.md` 13835 B, `name-shortlist.md` 10081 B, `gap-review-half.md` 5496 B | on disk, committed, **inside the repo** | `git ls-files research/`; `gates-per-harness.md` moved in from the workspace root (the D6 corollary) |
-| A20 | MCP surface (R5's third, R6's bound) | — | **missing at this stamp** | not in `keelcheck --help`; **no `mcp` string in any `keelcheck/*.py`**; no `tests/test_mcp*`. `PROJECT-STATE.md` lines 603–606 record it as the next item taken, with reds first |
+| A20 | MCP surface (R5's third, R6's bound) | `keelcheck/mcp.py` — **landed 2026-10-16** (`17e58ba`, then `35a2758`), plus `tests/test_mcp_surface.py` (13 tests, 292 lines) | on disk, committed, runs | `printf '{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n' \| python -m keelcheck mcp`; JSON-RPC 2.0 over stdio, one object per line, only `audit` exposed as a tool; module coverage **95.4%** (104/109) at `35a2758`; tests are Mason's and are queued for Proctor's verification |
 | A21 | Tests | `tests/`: **11** `test_*.py` (largest `test_review_cli.py` 42966 B / 831 L, `test_audit_cli.py` 27054 B / 552 L, `test_hook_cli.py` 23275 B / 491 L), plus `_support.py`, `conftest.py`, `_scratch.py`, `CONTRACT.md` 15951 B, `_artefacts/` | on disk, committed; **green verified outside the worktree** | `PROJECT-STATE.md` lines 56–58: at `866912b`, clean worktree, **106 passed, 1 skipped, 0 failed in 4:34**. `test_review_cli.py` is modified at this stamp, so a run now measures a dirty tree |
 | A22 | Coverage tool (R8) | `tools/coverage.py`, 17747 bytes, 354 lines, plus `tools/_child_trace.py` 3562 B / 81 L | on disk, committed, ratified as the `suite` gate | **was missing.** Floor **0.83** from the first honest measurement, 2031/2419, rounded down (`PROJECT-STATE.md` lines 584–589); the child tracer is driven by `KEELCHECK_COVERAGE_CHILD`, `KEELCHECK_COVERAGE_DIR` and `KEELCHECK_COVERAGE_PACKAGE`, and a blind measurement is exit 2 rather than a number |
 | A23 | Packaging | `pyproject.toml`, 2151 bytes, 46 lines | on disk, committed, **never installed** | entry point `keelcheck = "keelcheck.cli:main"`; **was** 795 B / 28 L |
@@ -157,13 +157,13 @@ itself. That is honest rather than wrong — the R7 reviews were recorded elsewh
 
 **F13 — a prompt row cannot defeat vacuity. Closed** by the `suite` gate.
 
-**F14 — the suite gate has never passed.** `.keel/runs.jsonl` holds three `suite` runs at the
-current ratified hash: **two `fail` (exit 1) and one `timeout`** (`2ac1aec`, 19:50Z), which is why
-`8f6f8ed` raised the gate's timeout 600 → 1800 s and titled it *a bound against a hang, not against
-slowness* (lines 590–592). A reader who sees `gates ratified: 2 (1 executable)` and stops there will
-think the mechanical half is satisfied; the record says it has never been green. The audit says the
-right sentence — *the recorded run of this gate did not pass* — and `_check_run_record`
-(`keelcheck/audit.py` lines 381–408) requires a **pass**, not merely an execution.
+**F14 — the suite gate has never passed. CLOSED 2026-10-16.** Was: `.keel/runs.jsonl` held three `suite`
+runs at the ratified hash — two `fail` and one `timeout` (`2ac1aec`, 19:50Z) — which is why `8f6f8ed`
+raised the gate's timeout 600 → 1800 s and titled it *a bound against a hang, not against slowness*.
+**Closed by the milestone run at `35a2758`:** `gate suite: pass exit 0`, `TOTAL 2594 2210 85.2%` against
+the floor 0.83, recorded under the ratified `suite` hash `sha256:973d639a…` (`.keel/runs.jsonl`
+`07:03:17Z`), with two audits at **zero divergences** after it. `_check_run_record`
+(`keelcheck/audit.py` lines 381–408) requires a **pass**, and it now has one.
 
 **F15 — a scratch directory is sitting untracked in the repository root.** `?? .assay-tmp/` — **eight
 files** at this stamp (`colon_diagnosis.py`, `commit-msg.txt`, `commit-msg2.txt`,
@@ -171,11 +171,23 @@ files** at this stamp (`colon_diagnosis.py`, `commit-msg.txt`, `commit-msg2.txt`
 visible in `git status` and is not covered by `.gitignore`, which does carry `pytest-cache-files-*/`.
 Named, not patched: `tests/` and the package are not my files.
 
-**F16 — R5's third surface is absent while the record calls it taken.** `PROJECT-STATE.md` lines 603–606
-record the MCP surface as the next item with reds first; at this stamp there is **no `mcp` string in any
-`keelcheck/*.py`**, no `mcp` in `--help`, and no `tests/test_mcp*`. So neither the red nor the code is
-in the tree — which is a normal mid-flight state, and worth naming because R5's order (hook, CLI, MCP,
-adapter) now has its first two and neither of its last two.
+**F16 — R5's third surface is absent while the record calls it taken. CLOSED 2026-10-16.** Was: the
+record named the MCP surface as the next item with reds first while no `mcp` string existed in any
+`keelcheck/*.py` and there was no `tests/test_mcp*` — a mid-flight state, named because R5's order
+(hook, CLI, MCP, adapter) had its first two and neither of its last two. **Closed by `17e58ba` +
+`35a2758`:** `keelcheck/mcp.py` exists, `python -m keelcheck --help` lists `mcp` among eight commands,
+and `tests/test_mcp_surface.py` (13 tests) covers it to **95.4%**. R5's fourth item — the harness
+adapter — remains **not due and not built**, which is the order's own last position, not a gap.
+
+**F17 — R6's `enforced-by` cell is prose while the mechanism is now checkable.** R6 reads *"No daemon
+and no server: a bounded CLI run, and an MCP call that returns"* with `enforced-by: code: no long-lived
+process, no listening socket` — a sentence, not an artefact. Mason's `tests/test_mcp_surface.py` now
+holds the check itself: one behavioural test that a session ends at EOF (a surface that outlived its
+stdin would fail by timeout rather than pass quietly) and one source-level test that asserts no
+`socket`, `listen`, `bind`, `socketserver` or `http.server` in `keelcheck/mcp.py`. So the cell could
+name `tests/test_mcp_surface.py` — **and that is a charter edit, which is a re-ratification (R2), not a
+code change.** Named, not done: the milestone is closed and a re-ratification for a cell's wording is
+Max's call to spend, not a lane's.
 
 ## 5. Not covered here
 

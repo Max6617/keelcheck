@@ -18,6 +18,7 @@ from .audit import main as audit_main
 from .charter import main as charter_main
 from .gate import main as gate_main
 from .hook import main as hook_main
+from .mcp import main as mcp_main
 from .output import emit, emit_err
 from .review import main as review_main
 
@@ -33,6 +34,7 @@ commands:
   review <repo>       start a reviewer with no history and record what it was handed (R4)
   hook install <repo> install the pre-commit hook that runs the ratified gates (R5)
   hook status <repo>  report which hooks are installed (R5)
+  mcp                 an MCP session on stdin/stdout: a bounded call that returns (R5, R6)
 
   keelcheck <command> --help   for that command's options
 """
@@ -58,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
         return review_main(rest)
     if command == "hook":
         return hook_main(rest)
+    if command == "mcp":
+        return mcp_main(rest)
 
     emit_err(f"keelcheck: unknown command: {command}\n")
     emit_err(USAGE)

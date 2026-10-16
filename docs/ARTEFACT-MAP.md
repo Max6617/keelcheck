@@ -58,7 +58,7 @@ a claim about the tree now; re-measure before quoting.
 | A22 | Coverage tool (R8) | `tools/coverage.py`, 17747 bytes, 354 lines, plus `tools/_child_trace.py` 3562 B / 81 L | on disk, committed, ratified as the `suite` gate | **was missing.** Floor **0.83** from the first honest measurement, 2031/2419, rounded down (`PROJECT-STATE.md` lines 584–589); the child tracer is driven by `KEELCHECK_COVERAGE_CHILD`, `KEELCHECK_COVERAGE_DIR` and `KEELCHECK_COVERAGE_PACKAGE`, and a blind measurement is exit 2 rather than a number |
 | A23 | Packaging | `pyproject.toml`, 2151 bytes, 46 lines | on disk, committed, **never installed** | entry point `keelcheck = "keelcheck.cli:main"`; **was** 795 B / 28 L |
 | A24 | README and this map | `README.md` (13212 B / 199 L before this rewrite) and `docs/ARTEFACT-MAP.md` (17198 B / 169 L before this rewrite) | on disk, tracked | neither revised size is asserted |
-| A25 | A git remote | `.git/config` | **none configured** | `git remote -v` prints nothing; R9 keeps publishing a human check |
+| A25 | A git remote | `.git/config` → `origin` = `https://github.com/Max6617/keelcheck` | **private remote, created 2026-10-16** | at Max's word, private for now; `git ls-remote --heads origin` answers `main` at `20ea4f6`; **a private repository is not a publication**, so R9 still keeps publishing a human check |
 
 ## 2. The record, and the demonstration's inputs
 
@@ -187,7 +187,16 @@ stdin would fail by timeout rather than pass quietly) and one source-level test 
 `socket`, `listen`, `bind`, `socketserver` or `http.server` in `keelcheck/mcp.py`. So the cell could
 name `tests/test_mcp_surface.py` — **and that is a charter edit, which is a re-ratification (R2), not a
 code change.** Named, not done: the milestone is closed and a re-ratification for a cell's wording is
-Max's call to spend, not a lane's.
+Max's call to spend, not a lane's. **Max's answer, 2026-10-16: leave it** — so the cell keeps its prose
+and this finding stays open by decision rather than by neglect.
+
+**F18 — the audit record is not in the repository.** `.keel/` is gitignored by design — `.gitignore`
+line 11, *"records are the tool's own history, not source"* — so `runs.jsonl`, `review-context.json` and
+the exported review context never reach the remote. Every gate-pass and audit claim on these pages is
+therefore evidence held on the machine that produced it: a reader can re-run `keelcheck audit .` and see
+the current state, but cannot read our runs, our gate output, or the review the demonstration used.
+Named, not patched: un-ignoring it is a design decision (ship the record with the source, or keep it
+local), and the private remote makes it cheap to revisit.
 
 ## 5. Not covered here
 

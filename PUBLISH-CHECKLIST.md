@@ -11,17 +11,23 @@ that installs from the index rather than from a wheel path.
 
 ## The revision this page describes
 
-- **`3d04f31` is the pass revision** — the content an anchor move would name — with package version
-  **`0.0.1`**. HEAD is one commit above it (`8e177fc`, `PROJECT-STATE.md` only), and the audit prints the
-  same six divergences at both.
+- **`3d04f31` was the pass revision** — the three-row gate table the anchor move was built on — with
+  package version **`0.0.1`**. **The anchor moved on 2026-10-16 to `501a404`** (charter naming
+  `62dc6be`), and the audit is now clean there; the content above it since then is Mason's R5 surface
+  (`17e58ba`, `35a2758`), which does not touch the three gate files — verified by
+  `git diff 501a404 35a2758 -- review-prompt.md tools/coverage.py tests/_artefacts/claude-reviewer.py`,
+  which prints nothing.
 - **The wheel measurement was taken at `c5168d0`** — `keelcheck-0.0.1-py3-none-any.whl`, 55,005 bytes,
   sha256 `c05efef8…` — and is recorded in the README's install section and in rentguard's
-  `docs/VERIFICATION.md`. A rebuild at the current HEAD produces a different file.
+  `docs/VERIFICATION.md`. A rebuild at the current revision produces a different file: the package now
+  carries `keelcheck/mcp.py` and the CLI lists an eighth command, so the wheel a publish would upload is
+  not the wheel that was measured, and the install evidence has to be re-taken before the ask.
 - **There is no git remote and no CI in this repository.** `git remote -v` prints nothing and
   `docs/ARTEFACT-MAP.md` A25 records it. So there is no "push" half to this page at all: **the upload
   is the publication**, and the only thing to verify afterwards is the index.
 
-Everything below was read or run at `3d04f31` unless it says otherwise.
+The measurements below that say `3d04f31` were read or run at that revision, before the anchor moved;
+where a number has been re-taken since, it says so and names its own revision.
 
 ## 1. Preconditions
 
@@ -31,8 +37,11 @@ Each one names what settles it. Nothing here is a judgement call dressed as a ch
   explicit word"*, `checked-by` *"the user's explicit word before any push"*, state *checked, not
   enforced*. Nothing else on this page substitutes for it, and no Bot may take it as given.
 - [ ] **The audit is clean.** Settled by `keelcheck audit .` printing **zero divergences** and exiting 0.
-  **At `3d04f31` it prints six and exits 1**, and all six are the pending re-ratification rather than
-  defects:
+  **It does: `DIVERGENCES: none`, `exit: 0`, at `35a2758` (audits recorded `07:16:32Z` and `07:16:42Z`,
+  `ratified: 62dc6be`).** `REVIEW (clean context, R4): missing` is also printed, and it is **reported,
+  not required** — the charter's own word — so it is not a divergence and does not block. For the
+  record, this is what it read **before** the anchor move — six divergences, all of them the pending
+  re-ratification rather than defects, kept here because that state is what the move cleared:
 
   ```text
   [gate] review-prompt: the working charter declares sha256:0e4b5764a... but the ratified table
@@ -50,30 +59,28 @@ Each one names what settles it. Nothing here is a judgement call dressed as a ch
 
   `REVIEW (clean context, R4): missing` is also printed, and it is **reported, not required** — the
   charter's own word — so it is not a divergence and does not block.
-- [ ] **The anchor moves to the content commit, in the tool's own order.** The three ratified hashes
-  above are already verified against the files: `keelcheck gate hash review-prompt.md` →
-  `sha256:0e4b5764…`, `keelcheck gate hash tools/coverage.py` → `sha256:973d639a…`,
-  `keelcheck gate hash tests/_artefacts/claude-reviewer.py` → `sha256:8d5e6a5e…`, all three matching
-  `CHARTER.md` lines 109–111. What is missing is Max's word on the anchor line: one commit carrying the
-  new row values (`488c0e1`'s shape), then `Ratified at: 688fce8` → that commit, then the order the
-  state file records:
-
-  1. `keelcheck gate run .` on a **clean** tree — measured at **1274.59 s**, bound 3600 s, written into
-     `.keel/runs.jsonl`;
-  2. one audit, which names the move once as `[anchor-moved]` plus one `[gate-table]` per moved row;
-  3. a second audit, which should read zero divergences.
+- [x] **The anchor moved, in the tool's own order — done 2026-10-16.** The anchor is commit **`501a404`**
+  (charter naming `62dc6be`), and the sequence ran exactly as this page prescribed: one gate run on a
+  clean tree — `gate suite: pass exit 0`, suite `126 passed`, **`TOTAL 2594 2210 85.2%`** against the
+  ratified floor 0.83, recorded under the ratified `suite` hash — then two audits at **zero
+  divergences** each. The move itself was reported once as `[anchor-moved] 688fce8 -> 62dc6be` with one
+  `[gate-table]` per moved row, which is the shape D12 asks for. The three row hashes were re-verified
+  against the files this morning, and a script confirmed the frozen-original block is byte-identical at
+  the old and new anchor (**553 bytes, sha256 `376f11a44…`**).
 
   Read from the code rather than assumed: a gate run is taken from the charter **at `Ratified at:`**, so
   the runner refuses to run the working tree's unratified gate (`gate suite: locked`) — the word comes
   first by construction, and a passing run recorded at the new hash satisfies `[gate-record]` **with no
   second run** once the anchor names it.
-- [ ] **R5's third surface — the MCP call — lands.** Settled by the file and the command list:
-  `keelcheck/mcp.py` **does not exist** at `3d04f31`, and `keelcheck --help` advertises seven commands
-  (`charter`, `audit`, `gate run`, `gate hash`, `review`, `hook install`, `hook status`) with **no
-  `mcp`**. Mason is building `python -m keelcheck mcp` now, red first. R5's order is *git hook first,
-  CLI second, MCP third, harness adapter last*, so until it lands the order is incomplete and the
-  README's own sentence — "then MCP and a harness adapter, neither of which exists at this
-  stamp" — stays true.
+- [x] **R5's third surface — the MCP call — landed 2026-10-16.** `python -m keelcheck mcp` is a bounded
+  stdio JSON-RPC call that returns (R6's shape, with tests asserting both the behaviour and the absence
+  of a socket or a listening server), and `keelcheck --help` now lists it. Files: `keelcheck/mcp.py`
+  (+183), `keelcheck/cli.py` (+4), `tests/test_mcp_surface.py` (+292, 13 tests); commits `17e58ba` and
+  `35a2758`; coverage of the new module **95.4%** (104/109), which is what keeps the total above the
+  floor. Only `audit` is exposed as a tool — the smallest useful surface; `charter` and the others
+  follow if wanted. R5's fourth item (the harness hook adapter) is not due and not built, and the
+  README's *"then MCP and a harness adapter, neither of which exists at this stamp"* needs the first
+  half of that sentence retired before the ask.
 - [ ] **R7's demonstration closes, or the claim narrows.** Settled by the audit's drift column and the
   record: **R7's headline is a correction, not a completion** (`PROJECT-STATE.md` lines 593–604). The
   clean-context half names **1–2 of the 5** by-hand defects, not 5 of 5, and the current state names
@@ -155,12 +162,13 @@ keelcheck 0.0.1                                    # what the README's install b
 
 $ cd <a checkout of this repository at the published revision>
 $ /tmp/kc-verify/bin/keelcheck gate hash keelcheck/cli.py
-sha256:79885adac75a12d83afa49f5cea59f65e159f0332a0e929935d30dc4340df2c0   # at 3d04f31
+sha256:5779df4d4008517ba51d79500e1cebec3bdc428cbd6bb11c48481b39ad4180df   # at 35a2758
 ```
 
 The second command hashes a file **in the checkout**, not in the installed package, so the digest must
-be read at a named revision: it is `sha256:79885ada…` at `3d04f31`, and it changes whenever
-`keelcheck/cli.py` changes. A verification that does not name its revision is not a verification.
+be read at a named revision: it is `sha256:5779df4d…` at `35a2758` (it was `sha256:79885ada…` at
+`3d04f31`; the CLI gained the `mcp` command in between), and it changes whenever `keelcheck/cli.py`
+changes. A verification that does not name its revision is not a verification.
 
 When the wheel is on the index, run exactly the above and paste the real output into the README's install
 section in place of "not run here".
@@ -171,17 +179,19 @@ section in place of "not run here".
   no remote. That banner in the README stays until the upload succeeds.
 - **No CI, no badge.** R8's own cell says the suite and the gate run on a checkout, not in a pipeline.
   There is no published green badge to point at, and this page must not imply one.
-- **The MCP surface does not exist** (§1) and the drift half of R7 is partial (§1). Claims in the README
-  that depend on either become true only when each lands; until then they are aspirational and said so.
-- **The README's gate row reads the anchor's table, not the working charter.** It says *"two gates are
-  ratified: `review-prompt` `sha256:90df6ebc…` and `suite` (coverage) `sha256:c0b4c4ca…`"* — those are
-  the values at `688fce8`. The working charter now declares **three** rows with different hashes
-  (`0e4b5764…`, `973d639a…`, `8d5e6a5e…`), none ratified at the anchor yet. Both statements are true of
-  different revisions, and the checklist is where that is said out loud.
+- **The MCP surface exists as of 2026-10-16** (§1: `python -m keelcheck mcp`, R5's third), and the
+  drift half of R7 is **partial** (§1). README claims that depended on the MCP surface become true; the
+  ones that depend on the drift half stay aspirational and must say so.
+- **The README's gate row describes an older anchor.** It says *"two gates are ratified:
+  `review-prompt` `sha256:90df6ebc…` and `suite` (coverage) `sha256:c0b4c4ca…`"* — the values at
+  `688fce8`. **The ratified table is now three rows at `501a404`** (`0e4b5764…`, `973d639a…`,
+  `8d5e6a5e…`), and the working charter and the anchor now declare the same three. Both of the README's
+  statements are true of the revision they were written at, and the row is expected to be rewritten
+  from the anchor rather than from this page.
 - **`tools/coverage.py` is a ratified gate.** It appears in the charter's gate table with a content hash,
   and `keelcheck audit` fails when it differs from the ratified one. **A publish is not a reason to move
   that hash**, and this checklist does not touch it: the file is edited only as a gate change, under a
-  re-ratification from Max, exactly like the pending one in §1.
+  re-ratification from Max — which is what §1's anchor move was.
 - **The version is `0.0.1` and it is the first thing anyone would install.** There is no released
   version anywhere, so there is no upgrade path to describe and no compatibility promise to make.
 

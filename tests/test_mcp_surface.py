@@ -8,22 +8,30 @@ What is asserted, and why each one is the property rather than a convenience:
 
 1. the command is reachable the way the other surfaces are (`python -m keelcheck mcp`), and registered
    in the CLI's own help;
-2. a stdio session answers `initialize` and `tools/list` as JSON-RPC 2.0, newline-delimited;
+2. a stdio session answers `initialize` and `tools/list` as JSON-RPC 2.0, newline-delimited, and
+   **notifications are never answered** — the protocol requires it, and a surface that answers them
+   desynchronises every client that sends one;
 3. **the process ends when its stdin closes.** That is R6's "no daemon and no server" made observable:
    the whole session is one `communicate` call, so a surface that outlives its input fails by timeout
    rather than passing quietly;
-4. `audit` comes back as a **result, not a protocol error** — a divergence is what the audit is for, and
-   the caller sees the exit code the way a shell would;
-5. the surface opens no socket, checked at the source, because that is the half of R6 a behavioural test
-   cannot see.
+4. `audit` comes back as a **result, not a protocol error**, for a diverging repository (exit 1) and for
+   a clean one (exit 0) — a divergence is what the audit is for, and the caller sees the exit code the
+   way a shell would;
+5. every rejection is a *named* code rather than a crash: unparseable line, non-object request, missing
+   method, unknown method, unknown tool, and `params`/`arguments` that are not objects;
+6. the surface opens no socket and has no loop that outlives the call, checked at the source, because
+   that is the half of R6 a behavioural test cannot see.
 
-Kept in this file rather than `test_review_cli.py` or `test_hook_cli.py` so Proctor verifies it instead
-of rewriting it (Gilbert's assignment, 2026-10-16).
+The unit-level cases call `handle()` directly, which is how the error paths become reachable without
+inventing a malformed CLI session for each one; the subprocess cases are the ones that prove the process
+boundary. Kept in this file rather than `test_review_cli.py` or `test_hook_cli.py` so Proctor verifies it
+instead of rewriting it (Gilbert's assignment, 2026-10-16).
 """
 
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -35,27 +43,24 @@ MCP = REPO / "keelcheck" / "mcp.py"
 REQUIREMENTS = [("R1", "the parser exists", "code: the charter parser", "—", "**met**")]
 
 
-def _session(lines: list[dict], *, timeout: float = 60.0) -> tuple[int, list[dict], str]:
+def _session(lines: list[dict | str], *, timeout: float = 60.0) -> tuple[int, list[dict], str]:
     """One bounded session: write every request, close stdin, read everything back.
 
     The close is the test. A surface that never returns cannot pass here, because the only way this
-    call ends is the process ending.
+    call ends is the process ending. A `str` entry is written verbatim, so a caller can send something
+    that is not JSON.
     """
-    payload = "".join(json.dumps(line) + "\n" for line in lines)
+    payload = "".join(
+        (line if isinstance(line, str) else json.dumps(line)) + "\n" for line in lines
+    )
     done = subprocess.run(
         [sys.executable, "-m", "keelcheck", "mcp"],
         input=payload, capture_output=True, text=True, encoding="utf-8",
         cwd=str(REPO), timeout=timeout,
-        env={**_support_env(), "PYTHONIOENCODING": "utf-8"},
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
     answers = [json.loads(line) for line in done.stdout.splitlines() if line.strip()]
     return done.returncode, answers, done.stderr
-
-
-def _support_env() -> dict:
-    import os
-
-    return dict(os.environ)
 
 
 def _initialize(request_id: int = 1) -> dict:
@@ -71,6 +76,11 @@ def _initialize(request_id: int = 1) -> dict:
     }
 
 
+def _call(name: str, arguments: dict, request_id: int = 2) -> dict:
+    return {"jsonrpc": "2.0", "id": request_id, "method": "tools/call",
+            "params": {"name": name, "arguments": arguments}}
+
+
 def _diverging_repo(scratch) -> Path:
     """A ratified charter with no executable gate: the audit reports `[vacuity]`, exit 1."""
     _support.write(scratch / "tracked.txt", "hello\n")
@@ -79,6 +89,27 @@ def _diverging_repo(scratch) -> Path:
     _support.write_charter(scratch, requirements=REQUIREMENTS, gates=[], ratified=sha)
     _support.commit_all(scratch, "ratified")
     return scratch
+
+
+def _clean_repo(scratch, record: Path | None = None) -> Path:
+    """A ratified charter with one passing gate and its run recorded at `record`: audit clean, exit 0.
+
+    The gate run and the audit must agree on the record path, which is the point of the test that uses
+    this: the tool reads the record it is given, so a run written elsewhere is not a run.
+    """
+    _support.write(scratch / "tracked.txt", "hello\n")
+    _support.write(scratch / "tools" / "gate.py", "print('ok')\n")
+    gates = [("coverage", "tools/gate.py", _support.hash_file(scratch / "tools" / "gate.py"))]
+    _support.write_charter(scratch, requirements=REQUIREMENTS, gates=gates)
+    sha = _support.init_repo(scratch)
+    _support.write_charter(scratch, requirements=REQUIREMENTS, gates=gates, ratified=sha)
+    _support.commit_all(scratch, "ratified")
+    extra = ("--record", str(record)) if record else ()
+    _support.keelcheck("gate", "run", str(scratch), *extra, "--timeout", "10")
+    return scratch
+
+
+# --- the process boundary -----------------------------------------------------
 
 
 def test_the_cli_lists_and_runs_the_mcp_command():
@@ -103,23 +134,60 @@ def test_a_stdio_session_answers_initialize_and_tools_list_and_ends_on_eof():
     assert "tools" in init.get("capabilities", {}), f"no tools capability: {init}"
 
     assert 2 in by_id and "result" in by_id[2], f"no result for tools/list: {answers}"
-    names = {tool.get("name") for tool in by_id[2]["result"].get("tools", [])}
+    tools = by_id[2]["result"].get("tools", [])
+    names = {tool.get("name") for tool in tools}
     assert "audit" in names, f"tools/list does not offer `audit`: {names}"
+    schema = next(tool for tool in tools if tool["name"] == "audit").get("inputSchema", {})
+    assert "repo" in schema.get("properties", {}), f"audit's schema names no repo: {schema}"
+
+
+def test_a_notification_is_never_answered():
+    """The protocol's own rule, and a client desynchronises without it."""
+    code, answers, stderr = _session([
+        _initialize(),
+        {"jsonrpc": "2.0", "method": "notifications/initialized"},
+        {"jsonrpc": "2.0", "id": 3, "method": "tools/list"},
+    ])
+    assert code == 0, f"the session did not end cleanly: exit {code}\n{stderr}"
+    ids = [answer.get("id") for answer in answers]
+    assert ids == [1, 3], f"a notification was answered: {answers}"
+
+
+def test_the_session_survives_a_malformed_line_and_answers_the_next_request():
+    code, answers, stderr = _session([
+        _initialize(),
+        "{not json at all",
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+    ])
+    assert code == 0, f"a bad line ended the session badly: exit {code}\n{stderr}"
+    ids = [answer.get("id") for answer in answers]
+    assert ids == [1, None, 2], f"the parse error was not reported in place: {answers}"
+    assert answers[1]["error"]["code"] == -32700, f"wrong code for a parse error: {answers[1]}"
+
+
+def test_a_request_over_the_size_cap_is_refused_rather_than_read():
+    # A long *non-space* payload: `serve` strips whitespace before measuring, so a line of spaces would
+    # be trimmed to nothing and test the parse path instead of the cap.
+    huge = json.dumps({"jsonrpc": "2.0", "id": 9, "method": "tools/list",
+                       "params": {"pad": "0" * (1024 * 1024 + 16)}})
+    code, answers, stderr = _session([huge, _initialize(request_id=2)])
+    assert code == 0, f"an oversized request ended the session badly: exit {code}\n{stderr}"
+    assert any(answer.get("error", {}).get("code") == -32600 for answer in answers), (
+        f"an oversized request was not refused with -32600: {[a.get('error') for a in answers]}")
 
 
 def test_an_unknown_method_is_a_protocol_error_not_a_crash():
     code, answers, stderr = _session([{"jsonrpc": "2.0", "id": 1, "method": "no/such/method"}])
     assert code == 0, f"a protocol error ended the process badly: exit {code}\n{stderr}"
-    assert answers and "error" in answers[0], f"an unknown method produced no error: {answers}"
-    assert answers[0]["error"].get("code"), f"the error carries no code: {answers[0]}"
+    assert answers and answers[0]["error"]["code"] == -32601, f"wrong error: {answers}"
+    assert "no/such/method" in answers[0]["error"]["message"], answers[0]
 
 
 def test_audit_comes_back_as_a_result_with_the_exit_code(scratch):
     repo = _diverging_repo(scratch)
     code, answers, stderr = _session([
         _initialize(),
-        {"jsonrpc": "2.0", "id": 2, "method": "tools/call",
-         "params": {"name": "audit", "arguments": {"repo": str(repo)}}},
+        _call("audit", {"repo": str(repo)}),
     ])
     assert code == 0, f"the session did not end cleanly: exit {code}\n{stderr}"
 
@@ -132,9 +200,31 @@ def test_audit_comes_back_as_a_result_with_the_exit_code(scratch):
     result = answer.get("result", {})
     text = "\n".join(part.get("text", "") for part in result.get("content", []))
     assert result.get("isError") is False, f"a diverging audit marked as an error: {result}"
-    assert "exit: 1" in text or "exit 1" in text, (
-        f"the result does not carry the audit's exit code:\n{text[:600]}")
+    assert "exit: 1" in text, f"the result does not carry the audit's exit code:\n{text[:600]}"
     assert "[vacuity]" in text, f"the result does not carry the audit's findings:\n{text[:600]}"
+
+
+def test_a_clean_repository_comes_back_with_exit_zero_and_a_named_record(scratch):
+    """The other side of the same call, and the `record` argument doing what it says."""
+    record = scratch / "elsewhere" / "runs.jsonl"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    repo = _clean_repo(scratch, record)
+    code, answers, stderr = _session([
+        _initialize(),
+        _call("audit", {"repo": str(repo), "record": str(record)}),
+    ])
+    assert code == 0, f"the session did not end cleanly: exit {code}\n{stderr}"
+
+    by_id = {answer.get("id"): answer for answer in answers}
+    result = by_id[2].get("result", {})
+    text = "\n".join(part.get("text", "") for part in result.get("content", []))
+    assert result.get("isError") is False, f"a clean audit marked as an error: {result}"
+    assert "exit: 0" in text, f"a clean audit did not report exit 0:\n{text[:600]}"
+    # The tool's own words, not the absence of a word: a clean run prints `DIVERGENCES: none`, so
+    # `"DIVERGENCES" not in text` would fail on a clean audit (measured, 2026-10-16).
+    assert "DIVERGENCES: none" in text, (
+        f"a clean audit did not say so in its own words:\n{text[:600]}")
+    assert record.is_file(), f"the `record` argument was not honoured: {record}"
 
 
 def test_a_usage_error_is_exit_two():
@@ -150,3 +240,53 @@ def test_the_surface_opens_no_socket_and_has_no_loop_that_outlives_the_call():
     for forbidden in ("import socket", "socket.", ".listen(", ".bind(", "socketserver", "http.server"):
         assert forbidden not in text, (
             f"R6 forbids a server: `{forbidden}` appears in {MCP.name}")
+
+
+# --- the request handler, where the error paths live --------------------------
+
+
+def _mcp():
+    """The module itself, for the cases that are cheaper to call than to spawn."""
+    sys.path.insert(0, str(REPO))
+    from keelcheck import mcp
+
+    return mcp
+
+
+def test_handle_rejects_shapes_it_cannot_answer():
+    mcp = _mcp()
+    cases = [
+        ([1, 2, 3], -32600, "a request must be a JSON object"),
+        ({"jsonrpc": "2.0", "id": 1}, -32600, "`method` string"),
+        ({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": []}, -32602,
+         "`params` must be an object"),
+        ({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "nope"}}, -32602,
+         "no tool named"),
+        ({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+          "params": {"name": "audit", "arguments": "not-an-object"}}, -32602, "must be an object"),
+    ]
+    for request, code, fragment in cases:
+        answer = mcp.handle(request)
+        assert answer and answer["error"]["code"] == code, f"{request!r} -> {answer!r}"
+        assert fragment in answer["error"]["message"], f"{request!r} -> {answer!r}"
+
+
+def test_handle_answers_a_notification_with_nothing():
+    mcp = _mcp()
+    assert mcp.handle({"jsonrpc": "2.0", "method": "notifications/initialized"}) is None
+    # A request *without* an id is not a notification the protocol defines, but it must not be answered
+    # as if it had one either: no id, no response.
+    assert mcp.handle({"jsonrpc": "2.0", "method": "tools/list"}) is None
+
+
+def test_a_tool_that_raises_is_an_error_result_and_not_a_traceback():
+    mcp = _mcp()
+    mcp.TOOL_HANDLERS["boom"] = lambda arguments: 1 / 0
+    try:
+        answer = mcp.handle(_call("boom", {}))
+    finally:
+        del mcp.TOOL_HANDLERS["boom"]
+    assert "error" not in answer, f"a failing tool became a protocol error: {answer}"
+    result = answer["result"]
+    assert result["isError"] is True, result
+    assert "the tool failed" in result["content"][0]["text"], result

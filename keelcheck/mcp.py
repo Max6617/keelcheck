@@ -99,7 +99,10 @@ def handle(request: Any) -> dict[str, Any] | None:
     method = request.get("method")
     if not isinstance(method, str):
         return _error(request_id, INVALID_REQUEST, "a request needs a `method` string")
-    if request_id is None and method.startswith("notifications/"):
+    # A request without an `id` is a notification, whatever its method: the protocol forbids answering
+    # it, and a client that gets an unsolicited response desynchronises. (JSON-RPC still allows an
+    # `id: null` on a *parse* or *invalid-request* error, which is why the two checks above run first.)
+    if request_id is None:
         return None
 
     if method == "initialize":
@@ -114,14 +117,16 @@ def handle(request: Any) -> dict[str, Any] | None:
     if method == "tools/list":
         return _result(request_id, {"tools": TOOLS})
     if method == "tools/call":
-        params = request.get("params") or {}
+        params = request.get("params")
+        params = {} if params is None else params
         if not isinstance(params, dict):
             return _error(request_id, INVALID_PARAMS, "`params` must be an object")
         name = params.get("name")
         handler = TOOL_HANDLERS.get(name) if isinstance(name, str) else None
         if handler is None:
             return _error(request_id, INVALID_PARAMS, f"no tool named {name!r}")
-        arguments = params.get("arguments") or {}
+        arguments = params.get("arguments")
+        arguments = {} if arguments is None else arguments
         if not isinstance(arguments, dict):
             return _error(request_id, INVALID_PARAMS, "`arguments` must be an object")
         try:

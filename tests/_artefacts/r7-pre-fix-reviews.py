@@ -2,7 +2,9 @@
 import subprocess, sys
 from pathlib import Path
 
-WS = Path(r"C:\Users\besen\.dsh\bot\workspace")
+WS = Path(__file__).resolve().parents[3]  # <workspace>/keel/tests/_artefacts/<this file>
+# The workspace root is derived from this file, never hardcoded: a recorded artefact must not
+# carry a machine's layout, and these scripts write recorded artefacts.
 KEEL, RG, TMP = WS / "keel", WS / "rentguard", WS / ".assay-tmp" / "r7"
 WRAPPER = KEEL / "tests" / "_artefacts" / "claude-reviewer.py"
 PY = sys.executable

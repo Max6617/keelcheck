@@ -5,7 +5,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-WS = Path(r"C:\Users\besen\.dsh\bot\workspace")
+WS = Path(__file__).resolve().parents[3]  # <workspace>/keel/tests/_artefacts/<this file>
+# The workspace root is derived from this file, never hardcoded: a recorded artefact must not
+# carry a machine's layout, and these scripts write recorded artefacts.
 sys.path.insert(0, str(WS / "keel" / "tests"))
 import _support  # noqa: E402
 

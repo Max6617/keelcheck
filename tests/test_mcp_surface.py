@@ -165,15 +165,64 @@ def test_the_session_survives_a_malformed_line_and_answers_the_next_request():
     assert answers[1]["error"]["code"] == -32700, f"wrong code for a parse error: {answers[1]}"
 
 
-def test_a_request_over_the_size_cap_is_refused_rather_than_read():
+def test_a_request_over_the_size_cap_is_refused_and_the_stream_survives():
+    """**Renamed from "…is refused rather than read", because the code does not do that.** Proctor,
+    2026-10-16: the module docstring says an unbounded read is how a bounded call stops being bounded,
+    and `for line in stdin` (mcp.py:149) materialises the whole line *before* `len(line) > MAX` is
+    asked (mcp.py:153). Measured: 128 MiB with no newline gives the child a **156.2 MiB peak working
+    set** and only then a -32600. So what a test can hold is the refusal and the stream after it, and
+    the read bound is reported to the owner of `keelcheck/mcp.py` rather than asserted against it from
+    here — a portable assertion on memory is not the kind of test this suite keeps.
+    """
     # A long *non-space* payload: `serve` strips whitespace before measuring, so a line of spaces would
     # be trimmed to nothing and test the parse path instead of the cap.
     huge = json.dumps({"jsonrpc": "2.0", "id": 9, "method": "tools/list",
                        "params": {"pad": "0" * (1024 * 1024 + 16)}})
     code, answers, stderr = _session([huge, _initialize(request_id=2)])
     assert code == 0, f"an oversized request ended the session badly: exit {code}\n{stderr}"
-    assert any(answer.get("error", {}).get("code") == -32600 for answer in answers), (
+
+    refusals = [answer for answer in answers if answer.get("error", {}).get("code") == -32600]
+    assert refusals, (
         f"an oversized request was not refused with -32600: {[a.get('error') for a in answers]}")
+    assert refusals[0]["id"] is None, (
+        f"a refusal for a request that was never read cannot carry its id: {refusals[0]}")
+    assert not [answer for answer in answers if answer.get("id") == 9], (
+        "the oversized request was answered as a request, so its body was parsed: "
+        f"{[a for a in answers if a.get('id') == 9]}")
+    assert [answer.get("id") for answer in answers] == [None, 2], (
+        f"the stream desynchronised after the refusal: {answers}")
+
+
+def test_every_answer_carries_jsonrpc_2_0_and_echoes_the_id():
+    """The member every JSON-RPC answer must carry, and which no case here asserted until now: drop it
+    and a strict client is entitled to discard the answer, while all thirteen original cases still
+    pass. Measured 2026-10-16: `jsonrpc` is `"2.0"` in every answer, so this is a pin, not a red."""
+    code, answers, stderr = _session([
+        _initialize(request_id=1),
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+        {"jsonrpc": "2.0", "id": 7, "method": "no/such/method"},
+    ])
+    assert code == 0, f"the session did not end cleanly: exit {code}\n{stderr}"
+    assert [answer.get("id") for answer in answers] == [1, 2, 7], answers
+    for answer in answers:
+        assert answer.get("jsonrpc") == "2.0", f"an answer without the required member: {answer}"
+        assert ("result" in answer) != ("error" in answer), (
+            f"an answer carries both a result and an error, or neither: {answer}")
+
+
+def test_a_blank_line_is_not_a_request_and_does_not_desynchronise():
+    """The one input path with no case: `serve` skips empty lines before parsing (mcp.py:151-152). A
+    client that sends a stray newline — which every hand-written harness does — must not get an answer
+    for it, and must not lose the next request."""
+    code, answers, stderr = _session([
+        _initialize(request_id=1),
+        "   ",
+        "",
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+    ])
+    assert code == 0, f"a blank line ended the session badly: exit {code}\n{stderr}"
+    assert [answer.get("id") for answer in answers] == [1, 2], (
+        f"a blank line was answered or the stream desynchronised: {answers}")
 
 
 def test_an_unknown_method_is_a_protocol_error_not_a_crash():
@@ -233,13 +282,23 @@ def test_a_usage_error_is_exit_two():
         f"a usage error did not exit 2:\n{_support.combined(done)}")
 
 
-def test_the_surface_opens_no_socket_and_has_no_loop_that_outlives_the_call():
-    """R6's other half, at the source: no socket, no listening, no bind."""
+def test_the_surface_opens_no_socket_at_the_source():
+    """R6's other half, at the source — **and only that half, which is what the name now says.**
+
+    The old name claimed "no loop that outlives the call" and asserted nothing about loops: the body
+    was, and is, a substring scan of this one file. The behavioural half is real but lives in
+    `test_a_stdio_session_answers_initialize_and_tools_list_and_ends_on_eof`, where `_session` ends
+    only when the process ends — a *non-daemon* thread or an open listener keeps it alive and the test
+    fails by timeout. What this cannot see, stated so the pair is not overread: a daemon thread, a
+    socket built from a computed name, a socket opened in any module this one imports, and anything
+    spelled differently. It is a lint with a reason, not a proof.
+    """
     assert MCP.is_file(), f"the surface does not exist: {MCP}"
     text = MCP.read_text(encoding="utf-8")
-    for forbidden in ("import socket", "socket.", ".listen(", ".bind(", "socketserver", "http.server"):
+    for forbidden in ("import socket", "socket.", ".listen(", ".bind(", "socketserver", "http.server",
+                      "threading", "Thread(", "asyncio"):
         assert forbidden not in text, (
-            f"R6 forbids a server: `{forbidden}` appears in {MCP.name}")
+            f"R6 forbids a server or a loop that outlives the call: `{forbidden}` appears in {MCP.name}")
 
 
 # --- the request handler, where the error paths live --------------------------

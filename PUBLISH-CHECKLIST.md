@@ -17,11 +17,10 @@ that installs from the index rather than from a wheel path.
   (`17e58ba`, `35a2758`), which does not touch the three gate files — verified by
   `git diff 501a404 35a2758 -- review-prompt.md tools/coverage.py tests/_artefacts/claude-reviewer.py`,
   which prints nothing.
-- **The wheel measurement was taken at `c5168d0`** — `keelcheck-0.0.1-py3-none-any.whl`, 55,005 bytes,
-  sha256 `c05efef8…` — and is recorded in the README's install section and in rentguard's
-  `docs/VERIFICATION.md`. A rebuild at the current revision produces a different file: the package now
-  carries `keelcheck/mcp.py` and the CLI lists an eighth command, so the wheel a publish would upload is
-  not the wheel that was measured, and the install evidence has to be re-taken before the ask.
+- **The wheel measurement was re-taken on 2026-10-16 at the tree `ed9b40e`** — 60,473 bytes, sha256
+  `9cbaa378…`, install and console-script smoke included in §1 — and the earlier one (55,005 bytes,
+  sha256 `c05efef8…`, at `c5168d0`) is kept as history. Both are recorded in the README's install section
+  and in rentguard's `docs/VERIFICATION.md`.
 - **There is no git remote and no CI in this repository.** `git remote -v` prints nothing and
   `docs/ARTEFACT-MAP.md` A25 records it. So there is no "push" half to this page at all: **the upload
   is the publication**, and the only thing to verify afterwards is the index.
@@ -102,12 +101,17 @@ Each one names what settles it. Nothing here is a judgement call dressed as a ch
   than deciding anything — and **`CHANGELOG.md`**, headed `## 0.0.1 — unreleased`, naming what ships and
   what does not. `license = { text = "MIT" }` is a metadata line, not a licence; the file is what a
   stranger looks for first and the changelog is second.
-- [x] **The wheel builds and installs into a clean venv.** Measured, at `c5168d0`, by the route in §2:
-  `python -m pip wheel . --no-deps --no-build-isolation -w dist` produced
-  `keelcheck-0.0.1-py3-none-any.whl` (55,005 bytes, sha256 `c05efef8…`) in 27 s, the venv's
-  `pip install --no-index --no-deps` printed `Successfully installed keelcheck-0.0.1`, `keelcheck
-  --version` printed `keelcheck 0.0.1`, and `keelcheck gate hash keelcheck/cli.py` printed
-  `sha256:79885ada…`, exit 0.
+- [x] **The wheel builds and installs into a clean venv — re-measured 2026-10-16 at the current tree.**
+  Built from the tree at `ed9b40e` (whose package is `c5b1092`'s) by the route in §2:
+  `keelcheck-0.0.1-py3-none-any.whl`, **60,473 bytes, sha256 `9cbaa378…`**, in 8 s. A fresh venv's
+  `pip install --no-index --no-deps` printed `Successfully installed keelcheck-0.0.1`; the installed
+  package **carries `mcp.py`** (14 modules); `keelcheck --version` printed `keelcheck 0.0.1`; `--help`
+  lists **eight** commands, the eighth being `mcp`; `keelcheck gate hash keelcheck/cli.py` printed
+  `sha256:5779df4d…`; and the **installed console script** answered an MCP session —
+  `tools/list` came back with the `audit` tool. The previous measurement (55,005 bytes, sha256
+  `c05efef8…`, at `c5168d0`) is superseded rather than deleted: the package has since gained `mcp.py`
+  and the CLI its eighth command, which is exactly why this page says a wheel measurement names its
+  revision.
 
 ## 2. The exact commands, in order
 
@@ -115,11 +119,14 @@ Run from the checkout root, on a **clean** tree. This host has no route to PyPI,
 the **host interpreter** (which carries `setuptools`) and the isolated path is deliberately not used:
 
 ```console
-$ git status --porcelain          # must print nothing
+$ git status --porcelain          # must print nothing — and it did, before and after the build
 $ python -m pip wheel . --no-deps --no-build-isolation -w dist
-#   Created wheel for keelcheck: filename=keelcheck-0.0.1-py3-none-any.whl size=55005 sha256=c05efef8…
-# Successfully built keelcheck            [27 s, exit 0]
+#   Created wheel for keelcheck: filename=keelcheck-0.0.1-py3-none-any.whl size=60473 sha256=9cbaa378…
+# Successfully built keelcheck            [8 s, exit 0, 2026-10-16, tree ed9b40e]
 ```
+
+The same command at `c5168d0` produced 55,005 bytes / sha256 `c05efef8…` in 27 s. Both are the same
+route on different trees, which is the point of naming the tree beside the number.
 
 An sdist is what the index also wants, built the same way — `python -m build` is **not available on this
 host** (`No module named build.__main__`), so the sdist step is named and unproven here:
@@ -165,13 +172,18 @@ keelcheck 0.0.1                                    # what the README's install b
 
 $ cd <a checkout of this repository at the published revision>
 $ /tmp/kc-verify/bin/keelcheck gate hash keelcheck/cli.py
-sha256:5779df4d4008517ba51d79500e1cebec3bdc428cbd6bb11c48481b39ad4180df   # at 35a2758
+sha256:5779df4d4008517ba51d79500e1cebec3bdc428cbd6bb11c48481b39ad4180df   # at ed9b40e (package c5b1092)
 ```
 
 The second command hashes a file **in the checkout**, not in the installed package, so the digest must
-be read at a named revision: it is `sha256:5779df4d…` at `35a2758` (it was `sha256:79885ada…` at
-`3d04f31`; the CLI gained the `mcp` command in between), and it changes whenever `keelcheck/cli.py`
-changes. A verification that does not name its revision is not a verification.
+be read at a named revision: it is `sha256:5779df4d…` at `ed9b40e`, whose package is `c5b1092`'s (it was
+`sha256:79885ada…` at `3d04f31`; the CLI gained the `mcp` command in between), and it changes whenever
+`keelcheck/cli.py` changes. A verification that does not name its revision is not a verification.
+
+**The wheel half of this page is fresh; the index half cannot be run here.** The build, the install into
+a clean venv and the console-script smoke were all re-measured today against the wheel above; what stays
+unrun is only the part that needs an index — `pip install keelcheck` with network — because `keelcheck`
+returns 404 on PyPI and this host has no route to it.
 
 When the wheel is on the index, run exactly the above and paste the real output into the README's install
 section in place of "not run here".

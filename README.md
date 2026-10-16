@@ -61,36 +61,41 @@ The freeze is checkable, and two things about it are worth a stranger's attentio
   record keeps the anchor *used on that run*, and a change is reported as `[anchor-moved]` with both SHAs
   (D12). The record shows the change rather than letting it pass.
 - Gates answer the same rule from the other side. An agent may propose one; once a human ratifies it,
-  changing it needs a new approval and the audit fails on a hash mismatch. Two gates are ratified today:
-  the review prompt (`kind: prompt`) and `tools/coverage.py`, the coverage gate (`kind: gate`,
-  `CHARTER.md` lines 107–110).
+  changing it needs a new approval and the audit fails on a hash mismatch. **Three gates are ratified
+  today**, at the anchor `501a404`: the review prompt (`kind: prompt`), `tools/coverage.py`, the coverage
+  gate (`kind: gate`), and the reviewer wrapper (`kind: reviewer`, which pins the command a required
+  review must have been started by — `CHARTER.md` lines 112–116).
 
 ## The 60-second demo
 
-The audit runs today. Measured in the window above, against a copy of keelcheck's own run record:
+The audit runs today. Measured at `0f14231`, the revision this page was last corrected at:
 
 ```
-python -m keelcheck audit .            # from the repository root, --record pointing at a copy of .keel/runs.jsonl
+python -m keelcheck audit .            # from the repository root
 
 keelcheck audit -- …\keel
-commit:   ec879771…
-ratified: 688fce8
-sections: 6/6  requirements: 9  gates ratified: 2 (1 executable)  wishes: 0
+commit:   0f14231…
+ratified: 62dc6be
+sections: 6/6  requirements: 9  gates ratified: 3 (1 executable)  wishes: 0
 
-DIVERGENCES (1)
-  [gate-record] suite: the recorded run of this gate did not pass (result: fail, timeout) in …
-    a record proves the gate executed, not that it passed
+DIVERGENCES: none
+
 REVIEW (clean context, R4): missing
   no review line …; run `keelcheck review <repo> --reviewer "<command>"` (D15)
-exit: 1
+exit: 0
 ```
 
-That is the honest 60 seconds, and it is a better demonstration than a green one: **the tool's single
-finding about its own repository is that its own gate has never passed.** The record holds three `suite`
-runs at the current ratified hash — two `fail` (exit 1) and one `timeout` (exit null) — which is why the
+**And this is what it printed before the milestone, kept because it is the honest history:** a single
+divergence, `[gate-record] suite: the recorded run of this gate did not pass`, with the suite gate never
+having passed at the ratified hash — two `fail` (exit 1) and one `timeout` (exit null) — which is why the
 gate's timeout was raised 600 → 1800 s and titled *a bound against a hang, not against slowness*
-(`PROJECT-STATE.md` lines 590–592). Nobody has to trust the summary line: `_check_run_record`
-(`keelcheck/audit.py` lines 381–408) requires a **pass**, not merely an execution.
+(`PROJECT-STATE.md` lines 590–592). The first passing run is recorded at `35a2758` (85.2% against the
+0.83 floor) and the newest at `c5b1092` (85.2%); the earlier failures stay in `.keel/runs.jsonl` as
+history rather than being tidied away. Nobody has to trust either summary line: `_check_run_record`
+(`keelcheck/audit.py` lines 381–408) requires a **pass**, not merely an execution — so the audit said so
+out loud for as long as that was true, and stopped saying it when it stopped being true.
+
+## The 60-second demo — the same command on a repository with no anchor
 
 On a real repository without an anchor, the same command refuses to call anything healthy:
 
@@ -219,9 +224,9 @@ in which a bypass appears as a **missing** line.
 |---|---|---|
 | the frozen-original block is 553 bytes, sha256 `376f11a4…`, byte-identical at `ae375c6`, `117ac7c` and `688fce8` | `keelcheck charter CHARTER.md`; `git show` of all three commits | yes |
 | the anchor is `688fce8` and lives once, in the charter's `Ratified at:` line | `CHARTER.md` line 26; D17 and the 2026-10-15 record | yes |
-| two gates are ratified: `review-prompt` `sha256:90df6ebc…` and `suite` (coverage) `sha256:c0b4c4ca…` | `CHARTER.md` lines 107–110; `keelcheck charter` | yes |
+| three gates are ratified at the anchor `501a404`: `review-prompt` `sha256:0e4b5764…`, `suite` (coverage) `sha256:973d639a…`, `reviewer` `sha256:8d5e6a5e…` | `CHARTER.md` lines 112–116; `keelcheck audit` | yes |
 | the coverage gate's floor is **0.83**, from the first honest measurement 2031/2419 | `PROJECT-STATE.md` lines 584–589 | **no — quoted; re-measure with `gate run`** |
-| the record holds three `suite` runs at the ratified hash: two `fail`, one `timeout` — never a pass | `.keel/runs.jsonl` (3 `gate` lines) | yes — code |
+| the record's newest `suite` run is a **pass** at the ratified hash (`c5b1092`, 85.2%; the first was `35a2758`), with the earlier two `fail` and one `timeout` kept as history | `.keel/runs.jsonl` | yes — code |
 | the drift half names **2 of 5** by-hand defects at each of the three pre-fix revisions, and none of them at the current state (a different MCP item and a partial guard gap are named there) | `PROJECT-STATE.md` lines 593–597; `tests/_artefacts/assay_r7_drift_*.json` | yes — the assays are committed, re-recorded 2026-10-16 with each run naming its cleaned copy |
 | keelcheck: 77 commits at `c8778b4`, 88 at `574a44f`, 11 landed during this pass; 83 tracked files | `git rev-list --count`, `git ls-files`, measured 2026-10-15 | yes — commits |
 | rentguard: 106 commits at `449a339`, 108 at `3287a4f`; its `CHARTER.md` unchanged at 5821 bytes | `git -C rentguard log`; the file itself | yes |

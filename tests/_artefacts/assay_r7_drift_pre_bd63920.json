@@ -2,46 +2,47 @@
   "exit": 1,
   "line": {
     "kind": "review",
-    "at": "2026-10-14T21:32:52Z",
-    "commit": "bd63920ad32af74187a532e101ff45d2966f39a0",
+    "at": "2026-10-16T09:42:23Z",
+    "commit": "d812cd3e8080e9c286a2add8de7617a44fd2c9e6",
     "ratified": null,
-    "manifest": "sha256:9d06cd6fd1ba246cd0c26d0150ee49ae1cabb916c3f9d18d27778f5593b4afa2",
-    "context": "sha256:ab37185796904e647f21fa5630897f4251e979ac320536053808b5914068a871",
-    "prompt": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "manifest": "sha256:c602c2a274cc88c1389ee258e7e75a67653953f7b554d437a2715c5c320a6b8b",
+    "context": "sha256:097e2c7ae5c8247b86512fffb5e42af34f223ca838386308ae2209887e8c137c",
+    "prompt": "sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91",
     "prompt_path": "review-prompt.md",
     "prompt_ratified": true,
-    "ratified_in": "keel@117ac7c",
-    "working_copy_hash": "sha256:1f8b54b07bbef5e49c29c0b685ceb1e68500073bab86112c2f11428a89cf2ce1",
+    "ratified_in": "keel@62dc6be",
+    "working_copy_hash": "sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91",
     "working_copy_differs": false,
     "command": [
       "C:\\Python312\\python.exe",
-      "C:\\Users\\besen\\.dsh\\bot\\workspace\\keel\\tests\\_artefacts\\claude-reviewer.py"
+      "C:\\kc\\keel\\tests\\_artefacts\\claude-reviewer.py"
     ],
     "exit": 0,
     "result": "pass",
     "history_reachable": "unknown",
-    "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-9d06cd6fd1ba-31552\\tree",
-    "files": 48,
-    "bytes": 405602,
+    "export": "C:\\kc\\.assay-tmp\\r7clean\\review-c602c2a274cc-3540\\tree",
+    "files": 46,
+    "bytes": 387926,
     "truncated": false,
     "warnings": [],
     "verdict": "divergence",
     "items": {
       "missing": 2,
       "unrequested": 2,
-      "shifted": 8,
-      "verified": 12,
+      "shifted": 6,
+      "verified": 10,
       "unverified": 0
     },
     "unreviewed": [
-      "Whether anything was actually published (public remote, PyPI upload, announcement): no git history or remote configuration is in this directory, so the 'do not publish' constraint can only be judged as 'no evidence of publication in the tree'",
-      "Whether the test suite and tools/coverage.py pass on the current tree: I did not execute them (shell execution was unavailable here), so pass/fail and the coverage figure are not verified",
-      "Whether the real RunPod rentals in docs/M2-REAL-RENTAL.md happened as recorded and stayed within budget: they are attested only by prose in the tree",
-      "Whether the original's 'dedicated Bot team' process and the 'ask the user nothing else' constraint were followed: these are process properties that the repository state cannot show"
+      "Whether the test suite passes on the current state: I read it and did not run it (the tree is not laid out as an importable `rentguard` package here, and running it would write scratch directories).",
+      "The current measured line coverage: tools/coverage.py was read, not executed.",
+      "How the code behaves against the real RunPod API: only the payload handling and the recorded transcripts could be judged.",
+      "Whether the work was done 'with a dedicated Bot team' and whether 'do not ask the user anything else' was honoured: these are process requirements, and the state cannot show them.",
+      "Whether anything was actually published (public repo, PyPI, announcement): nothing in the tree shows a remote or a release, but that cannot be established from inside this directory."
     ],
     "coverage": {
-      "files_seen": 48,
-      "files_total": 48
+      "files_seen": 46,
+      "files_total": 46
     },
     "claims": [
       {
@@ -49,31 +50,15 @@
         "subject": "MCP surface: `watch` and `init` tools",
         "evidence": "mcp_server.py",
         "verified": true,
-        "why": "The original asks for a complete MCP surface, but TOOLS exposes only 8 of the 10 CLI commands; a Bot can rent through MCP but cannot start the guard that enforces the cap (docs/mcp.md admits this is a gap)",
-        "confidence": "high"
-      },
-      {
-        "class": "missing",
-        "subject": "End-to-end proof of the guard (`watch`) on a real rented GPU",
-        "evidence": "docs/VERIFICATION.md",
-        "verified": true,
-        "why": "The paid M2 runs covered up/run/pull/down/ledger only; the table marks `watch` stopping a live pod as 'only described', so the cap, which is the tool's core promise, was never proven on a real billing machine",
+        "why": "The original asks for a complete MCP surface, but TOOLS and dispatch expose only 8 of the 10 CLI commands; there is no `watch` or `init`, so a Bot that rents through MCP cannot start the guard that enforces the cap (docs/mcp.md says the same).",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "guard idle rule (idle_since_start_minutes)",
+        "subject": "guard idle rule (guard.watch / Snapshot.effective_idle_minutes)",
         "evidence": "guard.py",
         "verified": true,
-        "why": "`watch` passes the wall-clock minutes since the guard started as `idle_since_start_minutes` whatever the GPU utilisation, and `effective_idle_minutes` takes the max, so with the default 10-minute window a busy machine gets stopped as 'idle' after about 10 minutes of watching; no test covers this, because every test runs with interval=0",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "`up --json` and MCP `rentguard_start` structured output",
-        "evidence": "cli.py",
-        "verified": true,
-        "why": "`_open_if_needed`, `_print_access` and the `wait_running` log call `print()` rather than `note()`, so in --json mode stdout carries prose before the JSON document; this breaks the documented 'exactly one JSON document' contract, and MCP start returns no structuredContent on success",
+        "why": "watch() passes wall-clock time since the guard started as `idle_since_start_minutes` whatever the GPU utilisation, and effective_idle_minutes takes the max, so any watched pod, even a busy one, is stopped as 'idle' once idle_minutes have passed; docs/cap.md describes the rule as 'GPU utilisation held at 0 for the idle window', and no test covers watch with a non-zero interval.",
         "confidence": "high"
       },
       {
@@ -81,63 +66,63 @@
         "subject": "MCP `rentguard_run` command handling",
         "evidence": "mcp_server.py",
         "verified": true,
-        "why": "`dispatch` splits the command string on whitespace and the CLI then shell-quotes each word, so a compound or quoted command sent through MCP reaches the remote shell mangled; this is the same defect M2 paid to find and fixed only on the CLI path",
+        "why": "dispatch splits the command string on whitespace and cli._remote_command then shell-quotes each word, so a compound command sent over MCP (e.g. 'mkdir -p results; hostname > x') reaches the remote shell as quoted words; that is the M2 defect the CLI fixed, so MCP `run` no longer means what CLI `run` means.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "Documentation of F-4 (--dry-run) and F-5 (idle clamp)",
+        "subject": "documentation of F-4 (--dry-run) and F-5 (idle clamp)",
         "evidence": "docs/KNOWN-FAILURES.md",
         "verified": true,
-        "why": "The docs (KNOWN-FAILURES, cap.md, limitations.md, quickstart.md, VERIFICATION.md) still say --dry-run rents machines and must not be used, and that the idle clamp is missing with no test, but cli.py checks dry_run before create, guard.py clamps idle to uptime, and tests/test_money_paths.py covers both, so the docs describe a different tool from the code",
+        "why": "KNOWN-FAILURES, cap.md, quickstart.md, limitations.md and VERIFICATION.md all say `up --dry-run` rents a machine ('do not use') and that the idle reading is unclamped with no test, but cli.py checks dry_run before any create, guard._idle_minutes_since_boot clamps to uptime, and tests/test_money_paths.py covers both, so the documentation the original asked for now describes behaviour the code does not have.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "Documented test evidence (74 tests; test_money_paths = 33)",
+        "subject": "documented test counts and status wording",
         "evidence": "docs/cap.md",
         "verified": true,
-        "why": "cap.md, VERIFICATION.md, providers.md and fake.md cite 74 tests with 33 in test_money_paths, but the tree has 39 tests in that file plus tests/test_runpod_transport.py, which no doc lists, so the stated evidence no longer matches the suite",
+        "why": "The docs give 74 tests with test_money_paths.py at 33, but that file now has about 39 and tests/test_runpod_transport.py is not listed at all; the documented guard lines ('NO HEARTBEAT — nothing is watching this instance', 'heartbeat 12.4 min old — the guard is probably dead') also differ from what cli.cmd_status prints ('NO GUARD — …', 'probably dead (heartbeat … min old)').",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "Real-rental proof record (count and cost)",
+        "subject": "KNOWN-FAILURES F-1 and F-3 still listed as open",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "The file's own rule removes a defect once a test covers it, yet F-1 is covered by tests/test_known_failures.py and tests/test_drift.py, and F-3's required instance stamping exists as cli._instance_name with tests in test_money_paths.py, and both are still presented as open defects.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "end-to-end proof of the guard (`watch`) on a real rented GPU",
+        "evidence": "docs/VERIFICATION.md",
+        "verified": true,
+        "why": "The original asks for an end-to-end proof on a real rented GPU, but VERIFICATION.md says `watch` stopping a live pod was 'never through the CLI against a real machine', and the M2 runs (docs/M2-REAL-RENTAL.md) cover up/run/pull/down only, at a revision before the dry-run, idle-clamp and two-sample fixes.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "record of the real-GPU proof (count and cost)",
         "evidence": "CHANGELOG.md",
         "verified": true,
-        "why": "CHANGELOG, quickstart, VERIFICATION and M2-REAL-RENTAL record two rentals for $0.017, while CHARTER.md R5 claims 3 rentals for $0.0264, and no file in the tree documents the third",
-        "confidence": "low"
-      },
-      {
-        "class": "shifted",
-        "subject": "Release-readiness definition",
-        "evidence": "docs/PUBLISH-CHECKLIST.md",
-        "verified": true,
-        "why": "The status table says nothing remains before the publication ask, yet its own definition of 'publishable' has no check for a complete MCP surface or a proven guard, both of which the original requires",
-        "confidence": "low"
-      },
-      {
-        "class": "shifted",
-        "subject": "ssh known-hosts handling on non-Windows",
-        "evidence": "runpod.py",
-        "verified": true,
-        "why": "limitations.md says UserKnownHostsFile=NUL applies on Windows, but RunPod.ssh_argv hardcodes the literal 'NUL' on every OS (the `{null}` placeholder that cli._ssh substitutes is never used), so on Linux/macOS ssh writes a file named NUL",
+        "why": "CHANGELOG.md, docs/M2-REAL-RENTAL.md and docs/quickstart.md record two rentals for $0.017, while CHARTER.md R5 records 3 rentals for $0.0264, and CHARTER W4 says a paid run's guard stopped a 32-second-old pod, which VERIFICATION.md says never happened through the CLI, so the evidence for the original's e2e requirement contradicts itself.",
         "confidence": "low"
       },
       {
         "class": "unrequested",
-        "subject": "tests/_artefacts/ (assay probe scripts and UTF-16 PowerShell transcripts)",
-        "evidence": "tests/_artefacts/assay_money_paths_2026-10-14.txt",
+        "subject": "tests/_artefacts/ (probe scripts and assay run logs)",
+        "evidence": "tests/_artefacts/assay_f1_2026-10-14.txt",
         "verified": true,
-        "why": "Internal audit transcripts, which record failures from old revisions and absolute local paths, are tracked in what is meant to be a publishable release tree, and the original never asked for them",
+        "why": "Internal audit transcripts (UTF-16 PowerShell captures with German error noise, 'NO GIT COMMIT' run logs) and one-off probe scripts that write to .assay-tmp ship in the tree of what the original asked to be a publishable release, and nothing asked for them.",
         "confidence": "low"
       },
       {
         "class": "unrequested",
-        "subject": "94% code / 100% feature coverage target attributed to the user",
+        "subject": "94% line coverage / 100% feature coverage target and CI ratchet",
         "evidence": "tools/coverage.py",
         "verified": true,
-        "why": "coverage.py and ci.yml present '94% of the code with 100% of the features' as the target the user set, but the frozen original contains no coverage target",
+        "why": "The original asks to harden the money-critical paths with tests; the numeric 94%/100% target (CHARTER R10, the CI comment 'the target the user set') does not appear in the original and may come from conversation the frozen text does not record.",
         "confidence": "low"
       }
     ]
@@ -150,31 +135,15 @@
         "subject": "MCP surface: `watch` and `init` tools",
         "evidence": "mcp_server.py",
         "verified": true,
-        "why": "The original asks for a complete MCP surface, but TOOLS exposes only 8 of the 10 CLI commands; a Bot can rent through MCP but cannot start the guard that enforces the cap (docs/mcp.md admits this is a gap)",
-        "confidence": "high"
-      },
-      {
-        "class": "missing",
-        "subject": "End-to-end proof of the guard (`watch`) on a real rented GPU",
-        "evidence": "docs/VERIFICATION.md",
-        "verified": true,
-        "why": "The paid M2 runs covered up/run/pull/down/ledger only; the table marks `watch` stopping a live pod as 'only described', so the cap, which is the tool's core promise, was never proven on a real billing machine",
+        "why": "The original asks for a complete MCP surface, but TOOLS and dispatch expose only 8 of the 10 CLI commands; there is no `watch` or `init`, so a Bot that rents through MCP cannot start the guard that enforces the cap (docs/mcp.md says the same).",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "guard idle rule (idle_since_start_minutes)",
+        "subject": "guard idle rule (guard.watch / Snapshot.effective_idle_minutes)",
         "evidence": "guard.py",
         "verified": true,
-        "why": "`watch` passes the wall-clock minutes since the guard started as `idle_since_start_minutes` whatever the GPU utilisation, and `effective_idle_minutes` takes the max, so with the default 10-minute window a busy machine gets stopped as 'idle' after about 10 minutes of watching; no test covers this, because every test runs with interval=0",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "`up --json` and MCP `rentguard_start` structured output",
-        "evidence": "cli.py",
-        "verified": true,
-        "why": "`_open_if_needed`, `_print_access` and the `wait_running` log call `print()` rather than `note()`, so in --json mode stdout carries prose before the JSON document; this breaks the documented 'exactly one JSON document' contract, and MCP start returns no structuredContent on success",
+        "why": "watch() passes wall-clock time since the guard started as `idle_since_start_minutes` whatever the GPU utilisation, and effective_idle_minutes takes the max, so any watched pod, even a busy one, is stopped as 'idle' once idle_minutes have passed; docs/cap.md describes the rule as 'GPU utilisation held at 0 for the idle window', and no test covers watch with a non-zero interval.",
         "confidence": "high"
       },
       {
@@ -182,84 +151,86 @@
         "subject": "MCP `rentguard_run` command handling",
         "evidence": "mcp_server.py",
         "verified": true,
-        "why": "`dispatch` splits the command string on whitespace and the CLI then shell-quotes each word, so a compound or quoted command sent through MCP reaches the remote shell mangled; this is the same defect M2 paid to find and fixed only on the CLI path",
+        "why": "dispatch splits the command string on whitespace and cli._remote_command then shell-quotes each word, so a compound command sent over MCP (e.g. 'mkdir -p results; hostname > x') reaches the remote shell as quoted words; that is the M2 defect the CLI fixed, so MCP `run` no longer means what CLI `run` means.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "Documentation of F-4 (--dry-run) and F-5 (idle clamp)",
+        "subject": "documentation of F-4 (--dry-run) and F-5 (idle clamp)",
         "evidence": "docs/KNOWN-FAILURES.md",
         "verified": true,
-        "why": "The docs (KNOWN-FAILURES, cap.md, limitations.md, quickstart.md, VERIFICATION.md) still say --dry-run rents machines and must not be used, and that the idle clamp is missing with no test, but cli.py checks dry_run before create, guard.py clamps idle to uptime, and tests/test_money_paths.py covers both, so the docs describe a different tool from the code",
+        "why": "KNOWN-FAILURES, cap.md, quickstart.md, limitations.md and VERIFICATION.md all say `up --dry-run` rents a machine ('do not use') and that the idle reading is unclamped with no test, but cli.py checks dry_run before any create, guard._idle_minutes_since_boot clamps to uptime, and tests/test_money_paths.py covers both, so the documentation the original asked for now describes behaviour the code does not have.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "Documented test evidence (74 tests; test_money_paths = 33)",
+        "subject": "documented test counts and status wording",
         "evidence": "docs/cap.md",
         "verified": true,
-        "why": "cap.md, VERIFICATION.md, providers.md and fake.md cite 74 tests with 33 in test_money_paths, but the tree has 39 tests in that file plus tests/test_runpod_transport.py, which no doc lists, so the stated evidence no longer matches the suite",
+        "why": "The docs give 74 tests with test_money_paths.py at 33, but that file now has about 39 and tests/test_runpod_transport.py is not listed at all; the documented guard lines ('NO HEARTBEAT — nothing is watching this instance', 'heartbeat 12.4 min old — the guard is probably dead') also differ from what cli.cmd_status prints ('NO GUARD — …', 'probably dead (heartbeat … min old)').",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "Real-rental proof record (count and cost)",
+        "subject": "KNOWN-FAILURES F-1 and F-3 still listed as open",
+        "evidence": "docs/KNOWN-FAILURES.md",
+        "verified": true,
+        "why": "The file's own rule removes a defect once a test covers it, yet F-1 is covered by tests/test_known_failures.py and tests/test_drift.py, and F-3's required instance stamping exists as cli._instance_name with tests in test_money_paths.py, and both are still presented as open defects.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "end-to-end proof of the guard (`watch`) on a real rented GPU",
+        "evidence": "docs/VERIFICATION.md",
+        "verified": true,
+        "why": "The original asks for an end-to-end proof on a real rented GPU, but VERIFICATION.md says `watch` stopping a live pod was 'never through the CLI against a real machine', and the M2 runs (docs/M2-REAL-RENTAL.md) cover up/run/pull/down only, at a revision before the dry-run, idle-clamp and two-sample fixes.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "record of the real-GPU proof (count and cost)",
         "evidence": "CHANGELOG.md",
         "verified": true,
-        "why": "CHANGELOG, quickstart, VERIFICATION and M2-REAL-RENTAL record two rentals for $0.017, while CHARTER.md R5 claims 3 rentals for $0.0264, and no file in the tree documents the third",
-        "confidence": "low"
-      },
-      {
-        "class": "shifted",
-        "subject": "Release-readiness definition",
-        "evidence": "docs/PUBLISH-CHECKLIST.md",
-        "verified": true,
-        "why": "The status table says nothing remains before the publication ask, yet its own definition of 'publishable' has no check for a complete MCP surface or a proven guard, both of which the original requires",
-        "confidence": "low"
-      },
-      {
-        "class": "shifted",
-        "subject": "ssh known-hosts handling on non-Windows",
-        "evidence": "runpod.py",
-        "verified": true,
-        "why": "limitations.md says UserKnownHostsFile=NUL applies on Windows, but RunPod.ssh_argv hardcodes the literal 'NUL' on every OS (the `{null}` placeholder that cli._ssh substitutes is never used), so on Linux/macOS ssh writes a file named NUL",
+        "why": "CHANGELOG.md, docs/M2-REAL-RENTAL.md and docs/quickstart.md record two rentals for $0.017, while CHARTER.md R5 records 3 rentals for $0.0264, and CHARTER W4 says a paid run's guard stopped a 32-second-old pod, which VERIFICATION.md says never happened through the CLI, so the evidence for the original's e2e requirement contradicts itself.",
         "confidence": "low"
       },
       {
         "class": "unrequested",
-        "subject": "tests/_artefacts/ (assay probe scripts and UTF-16 PowerShell transcripts)",
-        "evidence": "tests/_artefacts/assay_money_paths_2026-10-14.txt",
+        "subject": "tests/_artefacts/ (probe scripts and assay run logs)",
+        "evidence": "tests/_artefacts/assay_f1_2026-10-14.txt",
         "verified": true,
-        "why": "Internal audit transcripts, which record failures from old revisions and absolute local paths, are tracked in what is meant to be a publishable release tree, and the original never asked for them",
+        "why": "Internal audit transcripts (UTF-16 PowerShell captures with German error noise, 'NO GIT COMMIT' run logs) and one-off probe scripts that write to .assay-tmp ship in the tree of what the original asked to be a publishable release, and nothing asked for them.",
         "confidence": "low"
       },
       {
         "class": "unrequested",
-        "subject": "94% code / 100% feature coverage target attributed to the user",
+        "subject": "94% line coverage / 100% feature coverage target and CI ratchet",
         "evidence": "tools/coverage.py",
         "verified": true,
-        "why": "coverage.py and ci.yml present '94% of the code with 100% of the features' as the target the user set, but the frozen original contains no coverage target",
+        "why": "The original asks to harden the money-critical paths with tests; the numeric 94%/100% target (CHARTER R10, the CI comment 'the target the user set') does not appear in the original and may come from conversation the frozen text does not record.",
         "confidence": "low"
       }
     ],
     "counts": {
       "missing": 2,
       "unrequested": 2,
-      "shifted": 8,
-      "verified": 12,
+      "shifted": 6,
+      "verified": 10,
       "unverified": 0
     },
     "unreviewed": [
-      "Whether anything was actually published (public remote, PyPI upload, announcement): no git history or remote configuration is in this directory, so the 'do not publish' constraint can only be judged as 'no evidence of publication in the tree'",
-      "Whether the test suite and tools/coverage.py pass on the current tree: I did not execute them (shell execution was unavailable here), so pass/fail and the coverage figure are not verified",
-      "Whether the real RunPod rentals in docs/M2-REAL-RENTAL.md happened as recorded and stayed within budget: they are attested only by prose in the tree",
-      "Whether the original's 'dedicated Bot team' process and the 'ask the user nothing else' constraint were followed: these are process properties that the repository state cannot show"
+      "Whether the test suite passes on the current state: I read it and did not run it (the tree is not laid out as an importable `rentguard` package here, and running it would write scratch directories).",
+      "The current measured line coverage: tools/coverage.py was read, not executed.",
+      "How the code behaves against the real RunPod API: only the payload handling and the recorded transcripts could be judged.",
+      "Whether the work was done 'with a dedicated Bot team' and whether 'do not ask the user anything else' was honoured: these are process requirements, and the state cannot show them.",
+      "Whether anything was actually published (public repo, PyPI, announcement): nothing in the tree shows a remote or a release, but that cannot be established from inside this directory."
     ],
     "coverage": {
-      "files_seen": 48,
-      "files_total": 48
-    }
+      "files_seen": 46,
+      "files_total": 46
+    },
+    "coverage_mismatch": null
   },
-  "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-9d06cd6fd1ba-31552\\tree",
-  "manifest": "sha256:9d06cd6fd1ba246cd0c26d0150ee49ae1cabb916c3f9d18d27778f5593b4afa2"
+  "export": "C:\\kc\\.assay-tmp\\r7clean\\review-c602c2a274cc-3540\\tree",
+  "manifest": "sha256:c602c2a274cc88c1389ee258e7e75a67653953f7b554d437a2715c5c320a6b8b"
 }

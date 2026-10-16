@@ -6,8 +6,15 @@ a detached worktree, so the answers are the landed parser's, not a working tree'
 **Input:** `rentguard/CHARTER.md` at `rentguard@a72e7c4`; the byte-identical snapshot
 `rentguard-CHARTER-a72e7c4.md` beside this file is what was parsed, and the live file still matches it.
 **Raw output:** `assay_rentguard_parser_b81c374.txt` / `.json`; the drift documents are
-`assay_r7_drift_one_call_2026-10-14.json` (current state `310f449`), `assay_r7_drift_pre_bd63920.json`,
+`assay_r7_drift_one_call_2026-10-16.json` (current state `310f449`), `assay_r7_drift_pre_bd63920.json`,
 `assay_r7_drift_pre_ce69cea.json`, `assay_r7_drift_pre_c512125.json`.
+**Re-recorded 2026-10-16** at the user's word (*"out and rerecord"*), to take the author's machine out of
+the evidence: each of the four was run again against a **cleaned copy** of the same revision (local paths
+elided to `<workspace>`, the two UTF-16 capture logs removed), and the copies are named in §3. The
+recorder is `r7-pre-fix-reviews.py` for the three pre-fix revisions. **Every number in this file below is
+the re-recording's**; the 2026-10-14/15 figures are kept in §5 as history rather than deleted, and the
+finding they support — 2 of the 5 by-hand defects named at the pre-fix revisions, none at three of them,
+R7 not met as written — is **the same on both recordings**.
 **Typo repair, stated rather than quietly done (2026-10-15):** the earlier revision of this file had
 lost the leading `b` of `bd63920`, the `a` of `assay_…` and similar at several places, in prose that was
 never re-read. They are repaired here; no measurement and no claim changed, and the JSON beside this
@@ -57,10 +64,17 @@ verdict `divergence`, exit 1.
 
 | revision | when | seconds | anchor (UTC) | files seen/total | verified | missing / unrequested / shifted | named of the five |
 |---|---|---|---|---|---|---|---|
-| `310f449` (current state) | 2026-10-14 | 241 | — | 71/71 | 14 | 3 / 3 / 8 | **1 cleanly, 1 partly** |
-| `bd63920` (pre-fix) | 2026-10-14 | 187 | 21:32:52 | 48/48 | 12 | 2 / 2 / 8 | **2** |
-| `ce69cea` (pre-fix) | 2026-10-15 | 189 | 19:57:55 | 47/47 | 14 | 1 / 3 / 10 | **2** |
-| `c512125` (pre-fix) | 2026-10-15 | 198 | 20:01:37 | 56/56 | 12 | 1 / 3 / 8 | **0 (both are fixed by then)** |
+| `310f449` (current state) | 2026-10-16 | 209.0 | — | 69/69 | 13 | 4 / 3 / 6 | **1 as a different MCP item, 1 partly** |
+| `bd63920` (pre-fix) | 2026-10-16 | 127.7 | 09:42:23 | 46/46 | 10 | 2 / 2 / 6 | **2** |
+| `ce69cea` (pre-fix) | 2026-10-16 | 142.9 | 09:44:47 | 45/45 | 12 | 3 / 2 / 7 | **2** |
+| `c512125` (pre-fix) | 2026-10-16 | 258.8 | 09:49:06 | 54/54 | 10 | 2 / 2 / 6 | **0 (both are fixed by then)** |
+
+**The copies the four runs reviewed, named so a reader can tell them from the revisions themselves:**
+`310f449` → copy `abb95cedef`, `bd63920` → `d812cd3e80`, `ce69cea` → `c5d24cfe15`, `c512125` →
+`e88777b6a4`. Each is that revision with the two UTF-16 captures removed and three local paths in
+`docs/VERIFICATION.md` elided to `<workspace>`; nothing else was touched, and the file counts above are
+the cleaned copies' (`48/48` → `46/46` at `bd63920`, `47/47` → `45/45` at `ce69cea`, `56/56` → `54/54` at
+`c512125`).
 
 The reviewer declared its own limits with each run — no suite executed, no git metadata,
 `history_reachable: unknown` because the export is provably `.git`-less while the reviewer's own loaded
@@ -74,8 +88,8 @@ finds it. **Measured: it does not.** The readiest honest sentence is the table.
 
 | # | by-hand defect (human) | parser half | drift, current state (`310f449`) | drift, pre-fix (`bd63920` / `ce69cea` / `c512125`) |
 |---|---|---|---|---|
-| 1 | no way to arm the guard over MCP | **symptom only** — R2 is a wish whose state says `met` | not named; a *different* MCP defect was named (`run`'s `command.split()`) | **named at `bd63920`**: `[missing] MCP surface: watch and init tools` — "a Bot can rent through MCP but cannot start the guard that enforces the cap". **Named at `ce69cea`** as a claim: `[shifted] CHANGELOG MCP claim` — "mcp_server.py exposes no watch tool and docs/mcp.md states watch is not exposed". **Not named at `c512125`** — it reports the opposite state ("mcp_server.py now advertises eleven tools including rentguard_watch", docs stale), which is the fix having landed |
-| 2 | the guard could stop a healthy pod | **missed** — R4 reads `NOT MET`, honest about the gap, silent about the behaviour | partly: the R4 gap as unproven | **named at `bd63920`**: `[shifted] guard idle rule (idle_since_start_minutes)` — "with the default 10-minute window a busy machine gets stopped as 'idle' after about 10 minutes of watching". **Named at `ce69cea`**: `[missing] Money-critical guard path: idle-stop clamp (F-5)` — "a 32-second-old paid pod can be stopped". **Not named at `c512125`** — it lists F-5 only as a stale open defect in the docs, because the clamp is in the code by then |
+| 1 | no way to arm the guard over MCP | **symptom only** — R2 is a wish whose state says `met` | not named as that defect; a *different* MCP item was named (`[shifted] watch / MCP rentguard_watch: the stopped field`) | **named at `bd63920`**: `[missing] MCP surface: watch and init tools` — "a Bot that rents through MCP cannot start the guard that enforces the cap". **Named at `ce69cea`**: `[missing] MCP tools for watch and init` — "without watch, a Bot can rent through MCP but cannot start the guard". **Not named at `c512125`** — it names the *documentation* as shifted ("mcp_server.py advertises eleven tools including rentguard_watch, docs stale"), which is the fix having landed |
+| 2 | the guard could stop a healthy pod | **missed** — R4 reads `NOT MET`, honest about the gap, silent about the behaviour | partly: `[missing] guard.watch stop path (hardening of a money-critical path)` and the frozen original's end-to-end proof, both as gaps rather than as the defect | **named at `bd63920`**: `[shifted] guard idle rule (guard.watch / Snapshot.effective_idle_minutes)` — "watch() passes wall-clock time since the guard started as `idle_since_start_minutes` whatever the GPU utilisation … any watched pod, even a busy one, is stopped as 'idle'". **Named at `ce69cea`**: `[missing] A fix, with a test, for the guard's idle-clamp defect (F-5)` — "a pod 32 seconds old can be stopped as idle, and no test covers it". **Not named at `c512125`** — F-5 appears only as a stale open defect in the docs, because the clamp is in the code by then |
 | 3 | the cap exists only while `watch` runs | **found as a state class** — R9's `enforced-by` is prose and its state says wish | not named | **not named at any of the three.** Closest is `bd63920`'s `[missing] End-to-end proof of the guard (watch) on a real rented GPU` — a different claim ("never proven on a real billing machine", not "the cap stops when `watch` exits") |
 | 4 | no technical lock on publishing | **found as a state class** — R8 has neither cell → wish | not named as a mechanism; publication itself is `unreviewed` | **not named at any of the three.** `ce69cea` and `c512125` put the act out of reach in `unreviewed` — "no git remote or history to check" — and what they name is the *readiness claim* exceeding the tree (`[shifted] Release-readiness status`, `[shifted] publish readiness claim`). A too-high claim, not the absent lock |
 | 5 | the volume path unexercised | **missed** — prose in the wishes section, no requirement row | not named | **not named at any of the three.** `ce69cea`'s `[shifted] Quickstart configuration guidance` names `volume_name` vs `volume_id` (a config-doc divergence) and `c512125`'s `[shifted] docs/KNOWN-FAILURES.md` notes "volumes in doctor" as an implemented remedy — neither is the unexercised path |
@@ -112,6 +126,23 @@ harness faults, both mine and both fixed before the released runs:
   with `The %SystemRoot% environment variable is not set` — a failure with no reviewer call made is a
   harness fault and must not be recorded as a reviewer fault. One retry with the whole environment: 189 s
   and 198 s, both clean.
+
+**The 2026-10-16 re-record hit the same fault again, which is why it is written down twice.** The fix
+above had been applied to the *run*, not to the script: `r7-pre-fix-reviews.py` still passed
+`env={"PYTHONIOENCODING": …, "PATH": …}`, so the first re-record attempt produced three artefacts whose
+whole content was `exit: 2` and claude's `%SystemRoot%` sentence. Nothing was kept from that attempt —
+the files were overwritten by the run that worked — and the script now passes the parent's environment
+with the encoding pinned, with the reason in a comment beside it. **A harness fault that is fixed only in
+the transcript comes back the next time the transcript is not read.**
+
+**What the re-record changed, and what it did not.** Changed: the numbers in §3 (they are the new runs'),
+the file counts (the cleaned copies carry two fewer each), and the quoted subjects in §4, which the
+reviewer worded differently — `ce69cea` now names the idle clamp as `[missing]` rather than `[shifted]`,
+which is a sharper version of the same finding. Not changed: **2 of 5 at each pre-fix revision, 0 at
+`c512125`, and R7 not met as written** — the earlier recording, at `310f449` 241 s / `bd63920` 187 s /
+`ce69cea` 189 s / `c512125` 198 s with 14/12/14/12 verified items, supports the same sentence, and the
+older artefacts were not kept because they carry the author's machine in the provenance fields they
+record.
 
 ## 6. What a mechanical half can and cannot carry (unchanged)
 

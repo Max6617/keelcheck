@@ -16,3 +16,7 @@ pytest-cache-files-*/
 # (`.keel-test-tmp`, `.keel-write-probe-*`), and the probe prefix does not end in `-tmp`.
 .*-tmp/
 .keel-*/
+
+# Held on the machine that ran them, not published: UTF-16 suite captures that carry the author's
+# workspace root, which the 2026-10-16 path pass took out of the tree (see PROJECT-STATE.md).
+tests/_artefacts/assay_suite_*.txt

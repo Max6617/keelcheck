@@ -1,0 +1,287 @@
+# R7 drift half - one Claude Code call, re-recorded 2026-10-16
+# Reviewer: claude -p via tests/_artefacts/claude-reviewer.py (wrapped for keel's one-JSON-object contract)
+# Input: a CLEANED COPY of rentguard@310f449 at abb95cedefbd (git worktree; local paths elided to
+#   <workspace>, the two UTF-16 capture logs removed - see PROJECT-STATE.md, the path-hygiene entry).
+# Prompt: --prompt-repo keel; prompt_ratified=True, ratified_in=keel@62dc6be
+# Result: exit 1, verdict divergence, counts {'missing': 4, 'unrequested': 3, 'shifted': 6, 'verified': 13, 'unverified': 0}, coverage 69/69, wall 209.0s.
+
+{
+  "exit": 1,
+  "line": {
+    "kind": "review",
+    "at": "2026-10-16T09:52:36Z",
+    "commit": "abb95cedefbd38a06f2c4169b326c78c323345e2",
+    "ratified": null,
+    "manifest": "sha256:c6f928b9cf225db5dfa98c048db479cbcfa0fe54e9c17860459bbfdb7247597a",
+    "context": "sha256:ec5ec5ce50225b488b75c0735f291381c75a07de5838749a56c264de10ebbf5d",
+    "prompt": "sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91",
+    "prompt_path": "review-prompt.md",
+    "prompt_ratified": true,
+    "ratified_in": "keel@62dc6be",
+    "working_copy_hash": "sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91",
+    "working_copy_differs": false,
+    "command": [
+      "C:\\Python312\\python.exe",
+      "C:\\kc\\keel\\tests\\_artefacts\\claude-reviewer.py"
+    ],
+    "exit": 0,
+    "result": "pass",
+    "history_reachable": "unknown",
+    "export": "C:\\kc\\.assay-tmp\\r7clean\\review-c6f928b9cf22-32756\\tree",
+    "files": 69,
+    "bytes": 706777,
+    "truncated": false,
+    "warnings": [],
+    "verdict": "divergence",
+    "items": {
+      "missing": 4,
+      "unrequested": 3,
+      "shifted": 6,
+      "verified": 13,
+      "unverified": 0
+    },
+    "unreviewed": [
+      "Whether the suite and coverage figures hold (322 passed, 98.4%): no test or coverage command was executed, so they were judged from the text only.",
+      "Original constraint 'do not publish anything publicly' (R8): the handed state has no git metadata or remote configuration, so 'no remote, nothing pushed, no tags' cannot be checked.",
+      "Process clauses of the original ('with a dedicated Bot team', 'deciding all design questions autonomously', 'do not ask the user anything else'): these are not observable in repository state. The tree cites rulings by 'Gilbert' and a volume deletion 'on the user's instruction', but nothing here shows who asked whom."
+    ],
+    "coverage": {
+      "files_seen": 69,
+      "files_total": 69
+    },
+    "claims": [
+      {
+        "class": "missing",
+        "subject": "frozen original: 'prove it end-to-end on a real rented GPU' (the cap/guard)",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The real rentals exercised up/run/pull/down and the ledger arithmetic, but `watch` (the only thing that enforces the cap, which is the tool's purpose) has never been armed against a real billing pod, so the end-to-end proof covers the books but not the guard.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "guard.watch stop path (hardening of a money-critical path)",
+        "evidence": "guard.py",
+        "verified": true,
+        "why": "guard.watch calls provider.action(stop) directly, with no bound, no force_stop escalation and no try, so a refused or failing stop skips ledger.close and leaves the row open. The bounded, close-anyway hardening built for `down` and `up` (cli._stop_machine) never reached the one path that enforces the cap, and no test covers a failing guard stop.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "row-before-machine invariant on the resume path of `up`",
+        "evidence": "cli.py",
+        "verified": true,
+        "why": "The defect-10 rule (a row exists before anything can bill) covers only `create`. When `up` resumes an EXITED instance it calls action('start') and wait_running before _open_if_needed opens any row, so a failure or interrupt there leaves a started machine with no ledger row and no stop, and no test covers it.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "`watch` / MCP rentguard_watch and rentguard_watch_once: the `stopped` field",
+        "evidence": "cli.py",
+        "verified": true,
+        "why": "cmd_watch sets stopped=True for every reason except 'guard-iteration-limit' and 'instance gone', so a provider error (nothing reached, nothing stopped) or an already-EXITED machine is reported to a Bot as 'the guard stopped the machine', with exit 0. docs/mcp.md says this field means whether the guard stopped anything.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "R5: the record of the real rentals",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "Charter R5 and the publish checklist claim three rentals totalling $0.0264, including a real A4000→4090 fallback. The M2 record, CHANGELOG.md, docs/quickstart.md and docs/VERIFICATION.md document only two RTX 4090 runs totalling $0.017. The third rental and the fallback have no record anywhere in the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "real-GPU spend 'within a small budget'",
+        "evidence": "tests/test_cross_root_claims.py",
+        "verified": true,
+        "why": "The tree records real spend outside the three-rental figure: a stray A6000 rented under rentguard's old default name ($2.14), a community pod ($0.06745, tests/test_stop_cannot_hang.py), and pod 2abx0hz2boe6ow found live with no ledger row. '$0.0264' therefore understates what proving the tool on real GPUs cost.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "CHARTER.md R3/R10 state",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "The charter still reports 189 tests at 74b9f7a, 90.2% coverage, an 89% floor and R10 'half met'. tools/coverage.py has a 0.98 floor, and the checklist reports 322 tests and 98.4% with the target met, so the one file a human reads no longer describes the state it governs.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "R10: '94% of the code' coverage target",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "tools/coverage.py, ci.yml and charter R10 call a 94% line-coverage target 'the target the user set', but the frozen original asks only that the money-critical paths be hardened with tests and names no coverage figure.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "docs/cap.md, docs/limitations.md and docs/KNOWN-FAILURES.md describe superseded states",
+        "evidence": "docs/cap.md",
+        "verified": true,
+        "why": "cap.md still presents the 74-test suite at af1ba5a and says no test covers the --dry-run defect, though the same page says it is fixed and tested. limitations.md says `down` reads only a `volume` key and calls mcp_server.py the weakest module, both contradicted by cli.py and the checklist. KNOWN-FAILURES.md says fixed defects leave the file but keeps four of them.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "documented guard-heartbeat output of `status`",
+        "evidence": "docs/quickstart.md",
+        "verified": true,
+        "why": "quickstart.md, cap.md and VERIFICATION.md quote 'NO HEARTBEAT — nothing is watching this instance' and 'heartbeat 12.4 min old — the guard is probably dead', but cmd_status prints 'NO GUARD — …' and 'probably dead (heartbeat N min old)'. The text a user is told to check for is not what the tool prints.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "open defect: a stopped instance that cannot resume blocks every later rental",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "The M2 record lists as still open that `up` dies trying to resume a recorded stopped instance and that there is no `forget` command. cmd_up still behaves that way, and the defect appears in neither docs/KNOWN-FAILURES.md nor docs/limitations.md.",
+        "confidence": "low"
+      },
+      {
+        "class": "unrequested",
+        "subject": "tests/_artefacts/ (probe scripts and assay transcripts)",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
+        "verified": true,
+        "why": "Internal process residue is tracked in the release tree: UTF-16 PowerShell transcripts with sandbox error noise, 'NO GIT COMMIT' runs with failing intermediate results, and probes that write outside the repo. The original asked for a publishable release, not for these artefacts.",
+        "confidence": "low"
+      },
+      {
+        "class": "unrequested",
+        "subject": "DSH_SECRET_RUNPOD_API_KEY as the primary documented key variable",
+        "evidence": "config.py",
+        "verified": true,
+        "why": "The development sandbox's secret-naming convention became the product's first-choice environment variable and is shown in doctor output and the docs, which a public release never needed.",
+        "confidence": "low"
+      }
+    ]
+  },
+  "review": {
+    "verdict": "divergence",
+    "items": [
+      {
+        "class": "missing",
+        "subject": "frozen original: 'prove it end-to-end on a real rented GPU' (the cap/guard)",
+        "evidence": "docs/PUBLISH-CHECKLIST.md",
+        "verified": true,
+        "why": "The real rentals exercised up/run/pull/down and the ledger arithmetic, but `watch` (the only thing that enforces the cap, which is the tool's purpose) has never been armed against a real billing pod, so the end-to-end proof covers the books but not the guard.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "guard.watch stop path (hardening of a money-critical path)",
+        "evidence": "guard.py",
+        "verified": true,
+        "why": "guard.watch calls provider.action(stop) directly, with no bound, no force_stop escalation and no try, so a refused or failing stop skips ledger.close and leaves the row open. The bounded, close-anyway hardening built for `down` and `up` (cli._stop_machine) never reached the one path that enforces the cap, and no test covers a failing guard stop.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "row-before-machine invariant on the resume path of `up`",
+        "evidence": "cli.py",
+        "verified": true,
+        "why": "The defect-10 rule (a row exists before anything can bill) covers only `create`. When `up` resumes an EXITED instance it calls action('start') and wait_running before _open_if_needed opens any row, so a failure or interrupt there leaves a started machine with no ledger row and no stop, and no test covers it.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "`watch` / MCP rentguard_watch and rentguard_watch_once: the `stopped` field",
+        "evidence": "cli.py",
+        "verified": true,
+        "why": "cmd_watch sets stopped=True for every reason except 'guard-iteration-limit' and 'instance gone', so a provider error (nothing reached, nothing stopped) or an already-EXITED machine is reported to a Bot as 'the guard stopped the machine', with exit 0. docs/mcp.md says this field means whether the guard stopped anything.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "R5: the record of the real rentals",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "Charter R5 and the publish checklist claim three rentals totalling $0.0264, including a real A4000→4090 fallback. The M2 record, CHANGELOG.md, docs/quickstart.md and docs/VERIFICATION.md document only two RTX 4090 runs totalling $0.017. The third rental and the fallback have no record anywhere in the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "real-GPU spend 'within a small budget'",
+        "evidence": "tests/test_cross_root_claims.py",
+        "verified": true,
+        "why": "The tree records real spend outside the three-rental figure: a stray A6000 rented under rentguard's old default name ($2.14), a community pod ($0.06745, tests/test_stop_cannot_hang.py), and pod 2abx0hz2boe6ow found live with no ledger row. '$0.0264' therefore understates what proving the tool on real GPUs cost.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "CHARTER.md R3/R10 state",
+        "evidence": "CHARTER.md",
+        "verified": true,
+        "why": "The charter still reports 189 tests at 74b9f7a, 90.2% coverage, an 89% floor and R10 'half met'. tools/coverage.py has a 0.98 floor, and the checklist reports 322 tests and 98.4% with the target met, so the one file a human reads no longer describes the state it governs.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "R10: '94% of the code' coverage target",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "tools/coverage.py, ci.yml and charter R10 call a 94% line-coverage target 'the target the user set', but the frozen original asks only that the money-critical paths be hardened with tests and names no coverage figure.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "docs/cap.md, docs/limitations.md and docs/KNOWN-FAILURES.md describe superseded states",
+        "evidence": "docs/cap.md",
+        "verified": true,
+        "why": "cap.md still presents the 74-test suite at af1ba5a and says no test covers the --dry-run defect, though the same page says it is fixed and tested. limitations.md says `down` reads only a `volume` key and calls mcp_server.py the weakest module, both contradicted by cli.py and the checklist. KNOWN-FAILURES.md says fixed defects leave the file but keeps four of them.",
+        "confidence": "high"
+      },
+      {
+        "class": "shifted",
+        "subject": "documented guard-heartbeat output of `status`",
+        "evidence": "docs/quickstart.md",
+        "verified": true,
+        "why": "quickstart.md, cap.md and VERIFICATION.md quote 'NO HEARTBEAT — nothing is watching this instance' and 'heartbeat 12.4 min old — the guard is probably dead', but cmd_status prints 'NO GUARD — …' and 'probably dead (heartbeat N min old)'. The text a user is told to check for is not what the tool prints.",
+        "confidence": "high"
+      },
+      {
+        "class": "missing",
+        "subject": "open defect: a stopped instance that cannot resume blocks every later rental",
+        "evidence": "docs/M2-REAL-RENTAL.md",
+        "verified": true,
+        "why": "The M2 record lists as still open that `up` dies trying to resume a recorded stopped instance and that there is no `forget` command. cmd_up still behaves that way, and the defect appears in neither docs/KNOWN-FAILURES.md nor docs/limitations.md.",
+        "confidence": "low"
+      },
+      {
+        "class": "unrequested",
+        "subject": "tests/_artefacts/ (probe scripts and assay transcripts)",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
+        "verified": true,
+        "why": "Internal process residue is tracked in the release tree: UTF-16 PowerShell transcripts with sandbox error noise, 'NO GIT COMMIT' runs with failing intermediate results, and probes that write outside the repo. The original asked for a publishable release, not for these artefacts.",
+        "confidence": "low"
+      },
+      {
+        "class": "unrequested",
+        "subject": "DSH_SECRET_RUNPOD_API_KEY as the primary documented key variable",
+        "evidence": "config.py",
+        "verified": true,
+        "why": "The development sandbox's secret-naming convention became the product's first-choice environment variable and is shown in doctor output and the docs, which a public release never needed.",
+        "confidence": "low"
+      }
+    ],
+    "counts": {
+      "missing": 4,
+      "unrequested": 3,
+      "shifted": 6,
+      "verified": 13,
+      "unverified": 0
+    },
+    "unreviewed": [
+      "Whether the suite and coverage figures hold (322 passed, 98.4%): no test or coverage command was executed, so they were judged from the text only.",
+      "Original constraint 'do not publish anything publicly' (R8): the handed state has no git metadata or remote configuration, so 'no remote, nothing pushed, no tags' cannot be checked.",
+      "Process clauses of the original ('with a dedicated Bot team', 'deciding all design questions autonomously', 'do not ask the user anything else'): these are not observable in repository state. The tree cites rulings by 'Gilbert' and a volume deletion 'on the user's instruction', but nothing here shows who asked whom."
+    ],
+    "coverage": {
+      "files_seen": 69,
+      "files_total": 69
+    },
+    "coverage_mismatch": null
+  },
+  "export": "C:\\kc\\.assay-tmp\\r7clean\\review-c6f928b9cf22-32756\\tree",
+  "manifest": "sha256:c6f928b9cf225db5dfa98c048db479cbcfa0fe54e9c17860459bbfdb7247597a"
+}

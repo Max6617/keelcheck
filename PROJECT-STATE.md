@@ -616,10 +616,19 @@ shortfall is the finding.
   residuals stay named rather than closed.
 - **Ruling 2026-10-15 (Gilbert): recorded artefacts are evidence, so they are not rewritten — but new ones
   must not carry the host's absolute paths.** `tests/_artefacts/` ships 39 matches of the author's machine
-  (`C:\Users\besen\.dsh\…`), which the R7 drift review called unrequested in rentguard's tree; the fix is not
+  (`<workspace>\…`), which the R7 drift review called unrequested in rentguard's tree; the fix is not
   a rewrite, because a rewritten transcript is a falsified one. Instead: captures normalise the checkout root
   to a placeholder **at write time**, and the existing files stand as they are with one line saying whose
   machine they record. Pre-publication item, owned by whoever writes the artefact, not a live blocker.
+  **Completed 2026-10-16 at the user's word (*"out and rerecord"*), and the method is what the ruling asked
+  for rather than a reversal of it: nothing was rewritten.** The five scripts that write artefacts derive the
+  workspace root instead of hardcoding it; the two probe logs and the four drift artefacts were
+  **re-recorded** (the drift half against cleaned copies, with the cleaning named in each companion note);
+  the five UTF-16 captures that cannot be re-recorded are **untracked and held on this machine**, with the
+  reason in each repository's `.gitignore`; and the two prose files that quoted a host path
+  (`rentguard/docs/VERIFICATION.md`, this file) elide it now. rentguard's `cli.py` keeps its match: it is the
+  generic example `"C:\Users\me"` in a docstring, not a machine's path. Scan after the pass: **zero matches**
+  in either repository, in UTF-8 or UTF-16.
 - **Instance hazard, found and handled by Folio (2026-10-15):** a Bot runs a separate conversation per
   group, so the `keel — charter and audit` Folio and the Folio in its own chat were both editing `README.md`
   and `docs/ARTEFACT-MAP.md`. The own-chat instance found a fresher snapshot, read it, verified what it could

@@ -118,7 +118,8 @@ now run, and the result is smaller than the claim:
 | **combined** | R7 reads **met in part at the pre-fix revisions** and **not met as written on the current state**. It is not "the audit reproduces the by-hand audit", and this page will not say it is |
 
 Sources: `tests/_artefacts/R7-demonstration-mechanical-2026-10-14.md`, the four `assay_r7_drift_*.json`
-assays, and `PROJECT-STATE.md` lines 593–597.
+assays — **re-recorded 2026-10-16** against cleaned copies, the reason and the copies named in that
+file's §3 — and `PROJECT-STATE.md` lines 593–597.
 
 ### The five by-hand defects, all six names
 
@@ -221,7 +222,7 @@ in which a bypass appears as a **missing** line.
 | two gates are ratified: `review-prompt` `sha256:90df6ebc…` and `suite` (coverage) `sha256:c0b4c4ca…` | `CHARTER.md` lines 107–110; `keelcheck charter` | yes |
 | the coverage gate's floor is **0.83**, from the first honest measurement 2031/2419 | `PROJECT-STATE.md` lines 584–589 | **no — quoted; re-measure with `gate run`** |
 | the record holds three `suite` runs at the ratified hash: two `fail`, one `timeout` — never a pass | `.keel/runs.jsonl` (3 `gate` lines) | yes — code |
-| the drift half names **2 of 5** by-hand defects at each of the three pre-fix revisions, none at the current state | `PROJECT-STATE.md` lines 593–597; `tests/_artefacts/assay_r7_drift_*.json` | yes — the assays are committed |
+| the drift half names **2 of 5** by-hand defects at each of the three pre-fix revisions, and none of them at the current state (a different MCP item and a partial guard gap are named there) | `PROJECT-STATE.md` lines 593–597; `tests/_artefacts/assay_r7_drift_*.json` | yes — the assays are committed, re-recorded 2026-10-16 with each run naming its cleaned copy |
 | keelcheck: 77 commits at `c8778b4`, 88 at `574a44f`, 11 landed during this pass; 83 tracked files | `git rev-list --count`, `git ls-files`, measured 2026-10-15 | yes — commits |
 | rentguard: 106 commits at `449a339`, 108 at `3287a4f`; its `CHARTER.md` unchanged at 5821 bytes | `git -C rentguard log`; the file itself | yes |
 | rentguard: 189 passed / 0 failed, 45 subtests, coverage floor 90.2% | `rentguard/CHARTER.md` lines 30 and 44, pinned at `74b9f7a` | **no — quoted, not re-measured** |

@@ -83,7 +83,7 @@ assays under `tests/_artefacts/`, not here.
 | The numbers rentguard's charter pins | `rentguard/CHARTER.md` line 30 (*"Re-measured at `74b9f7a` (clean worktree, 189 passed / 0 failed, 45 subtests…)"*), coverage floor 90.2% line 44 | pinned revision exists | **quoted, not re-measured** |
 | The revisions R7 names, and the fixes they precede | `CHARTER.md` line 101: `bd63920`, `ce69cea`, `c512125`, `310f449`; D7 pairs them with `590c58e`, `d5fdaea`, `da51005` | all seven exist in `rentguard` and are ancestors of its HEAD | `git cat-file -t`, `git merge-base --is-ancestor` |
 | The by-hand catalogue | one catalogue, **all six names, the merge stated** (D11 F6, lines 278–287): R2; **R4 and W4 as one finding in two stages**; W1 (R9); W2 (R8); W3 | ruled | rentguard's own W4 (lines 67–74) is the authority for the merge |
-| **R7's result, both halves** | mechanical: `tests/_artefacts/R7-demonstration-mechanical-2026-10-14.md`; drift: the four assays `assay_r7_drift_*.json`; summary `PROJECT-STATE.md` lines 593–597 | **run** | **drift names 2 of the 5 at each of the three pre-fix revisions and none at the current state; mechanical gives identical divergence lists at `bd63920` and `310f449` and names the five only as state classes, with W4 and W3 invisible to it** |
+| **R7's result, both halves** | mechanical: `tests/_artefacts/R7-demonstration-mechanical-2026-10-14.md`; drift: the four assays `assay_r7_drift_*.json`, **re-recorded 2026-10-16**; summary `PROJECT-STATE.md` lines 593–597 | **run** | **drift names 2 of the 5 at each of the three pre-fix revisions (10–12 items each, `unverified: 0`) and none of them at the current state; mechanical gives identical divergence lists at `bd63920` and `310f449` and names the five only as state classes, with W4 and W3 invisible to it** |
 
 ## 3. What runs today — measured inside the window above; each run names the commit it read
 
@@ -198,14 +198,21 @@ the current state, but cannot read our runs, our gate output, or the review the 
 Named, not patched: un-ignoring it is a design decision (ship the record with the source, or keep it
 local), and the private remote makes it cheap to revisit.
 
-**F19 — going public exposes local paths, and that is the whole of it.** With the repository readable, a
-scan over the tracked tree finds **19 absolute host-path matches in 5 files** (`tests/_artefacts/`: the
-four `assay_r7_drift_*` JSONs and `assay_gate_surface_53ea564.txt`), **43 mentions of the local
-username**, and **no credential material** (tokens, keys and PEM markers scanned by pattern). So the
-exposure is a machine layout and a username, not a secret. Named, not patched: those files are the
-recorded evidence for R7's demonstration, and rewriting recorded evidence to tidy a path would trade the
-demonstration's value for cosmetics — a scrub means re-recording, which is a decision rather than a
-cleanup.
+**F19 — going public exposes local paths. CLOSED 2026-10-16, by re-recording rather than by editing.**
+Was: with the repository readable, a scan over the tracked tree found **19 absolute host-path matches in 5
+files** (`tests/_artefacts/`: the four `assay_r7_drift_*` JSONs and `assay_gate_surface_53ea564.txt`),
+**43 mentions of the local username**, and **no credential material** — a machine layout, not a secret. At
+the user's word (*"out and rerecord"*) the pass ran on both repositories and is recorded in
+`PROJECT-STATE.md`: the **five scripts that write artefacts derive the workspace root** instead of
+hardcoding it (`WS = Path(__file__).resolve().parents[3]`, with the reason in each file); the two probe
+logs and the four drift artefacts were **re-recorded** — the drift half against cleaned copies, each
+copy named in the R7 file's §3 — so nothing was rewritten; the five UTF-16 captures that cannot be
+re-recorded are **untracked and held on the machine that produced them**, with the reason in each
+repository's `.gitignore`; and the two pages that quoted a host path (`rentguard/docs/VERIFICATION.md`,
+`PROJECT-STATE.md`) elide it now, saying so rather than eliding quietly. rentguard's `cli.py` keeps its
+match on purpose — it is the generic example `C:\Users\me` in a docstring, not a machine's path, and
+"cleaning" it would be the mistake this pass exists to avoid. **Scan after the pass: zero matches in
+either repository, in UTF-8 or UTF-16.**
 
 ## 5. Not covered here
 

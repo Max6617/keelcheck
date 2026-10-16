@@ -2,141 +2,127 @@
   "exit": 1,
   "line": {
     "kind": "review",
-    "at": "2026-10-15T20:01:37Z",
-    "commit": "c51212590db06d0fe782e7cbd579cc0d7d1bb672",
+    "at": "2026-10-16T09:49:06Z",
+    "commit": "e88777b6a43b45aa6117f467a13c9705141984b3",
     "ratified": null,
-    "manifest": "sha256:1f9343c1541e42f060b749c56f53d129a8fb1b3eb7f088a355635d3498842fb1",
-    "context": "sha256:cb1e7c2dbd612c656f791ee6687723da1a1b42ee7fc3bfaf53bb644c276e45ac",
-    "prompt": "sha256:90df6ebca467f5a196c7c2a912297ffcf3cafb147fdc040ba3ce101eb0aff7f2",
+    "manifest": "sha256:eddf53e2cc18d03f67d145a4c6106112e3feb4433d8d7118a03d654178a969b5",
+    "context": "sha256:02ca01d32735fc99037599fcb4215579617541bb290f89c46cdef38f95e754f4",
+    "prompt": "sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91",
     "prompt_path": "review-prompt.md",
     "prompt_ratified": true,
-    "ratified_in": "keel@688fce8",
-    "working_copy_hash": "sha256:90df6ebca467f5a196c7c2a912297ffcf3cafb147fdc040ba3ce101eb0aff7f2",
+    "ratified_in": "keel@62dc6be",
+    "working_copy_hash": "sha256:0e4b5764ab8c25f17105988a0094c4afe3ecbb45f8fd967d3a4ebf2debdf2e91",
     "working_copy_differs": false,
     "command": [
       "C:\\Python312\\python.exe",
-      "C:\\Users\\besen\\.dsh\\bot\\workspace\\keel\\tests\\_artefacts\\claude-reviewer.py"
+      "C:\\kc\\keel\\tests\\_artefacts\\claude-reviewer.py"
     ],
     "exit": 0,
     "result": "pass",
     "history_reachable": "unknown",
-    "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-1f9343c1541e-15332\\tree",
-    "files": 56,
-    "bytes": 488459,
+    "export": "C:\\kc\\.assay-tmp\\r7clean\\review-eddf53e2cc18-23068\\tree",
+    "files": 54,
+    "bytes": 470783,
     "truncated": false,
     "warnings": [],
     "verdict": "divergence",
     "items": {
-      "missing": 1,
-      "unrequested": 3,
-      "shifted": 8,
-      "verified": 12,
+      "missing": 2,
+      "unrequested": 2,
+      "shifted": 6,
+      "verified": 10,
       "unverified": 0
     },
     "unreviewed": [
-      "Whether the test suite currently passes: no shell was available, so the pass/fail state of tests/ is judged from source only",
-      "Whether anything was published externally (git remotes, PyPI, announcements): this is not observable from the files provided",
-      "The paid-rental figures in docs/M2-REAL-RENTAL.md and CHARTER.md R5 cannot be checked against a provider account from inside this directory"
+      "Process clauses of the original (a dedicated Bot team, design questions decided autonomously, nothing asked of the user except publication approval) cannot be observed from the tree.",
+      "Whether anything was published (public repo, PyPI, announcement) cannot be confirmed: no published artefact appears in the tree, but remote and registry state is outside this directory.",
+      "The test suite and tools/coverage.py were not run; pass/fail and coverage judgements come from reading the code only.",
+      "File hashes were not checked against KEELCHECK-MANIFEST.json (the hash command was not approved); on-disk sizes differ from the manifest byte counts in a way consistent with CRLF line endings.",
+      "The real-rental facts in docs/M2-REAL-RENTAL.md (instance ids, costs, transcripts) cannot be checked against anything in this directory."
     ],
     "coverage": {
-      "files_seen": 56,
-      "files_total": 56
+      "files_seen": 54,
+      "files_total": 54
     },
     "claims": [
       {
         "class": "shifted",
-        "subject": "docs/mcp.md",
+        "subject": "MCP surface documentation (docs/mcp.md, docs/limitations.md)",
         "evidence": "docs/mcp.md",
         "verified": true,
-        "why": "The MCP page says eight of the ten commands are exposed and calls the missing watch/init a gap, but mcp_server.py now advertises eleven tools including rentguard_watch, rentguard_watch_once and rentguard_init, so the documentation no longer describes the MCP surface (tests/test_feature_matrix.py asserts this and is described there as expected-red).",
+        "why": "The pages say eight of ten commands are exposed and that watch and init are not, but mcp_server.py advertises eleven tools including rentguard_watch, rentguard_watch_once and rentguard_init, so the requested documentation describes a different MCP surface; tests/test_feature_matrix.py's docs-vs-server check cannot pass against it.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "docs/KNOWN-FAILURES.md",
-        "evidence": "docs/KNOWN-FAILURES.md",
-        "verified": true,
-        "why": "F-4 (dry-run creates) and F-5 (idle clamp) are listed as open with 'No test covers it', yet cli.py checks dry_run before any create and guard._idle_minutes_since_boot clamps provider idle to uptime, both covered by tests/test_money_defects.py and tests/test_money_paths.py, and F-3/F-6 remedies (root-derived instance name, volumes in doctor) are also in the code.",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "docs/cap.md",
+        "subject": "user-facing docs on up --dry-run (F-4) and the guard idle clamp (F-5)",
         "evidence": "docs/cap.md",
         "verified": true,
-        "why": "The cap page tells users the guard has an unfixed idle defect and that `up --dry-run` is broken at af1ba5a, and cites a 74-test suite, none of which matches the current guard.py, cli.py or tests/ directory.",
+        "why": "cap.md, quickstart.md, limitations.md and VERIFICATION.md still say --dry-run rents a machine and the guard stops fresh pods, and tell users not to use them, while cli.py now checks dry_run before any create and guard.py clamps provider idle to uptime, both covered by tests/test_money_defects.py and tests/test_money_paths.py.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "docs/limitations.md",
-        "evidence": "docs/limitations.md",
+        "subject": "docs/KNOWN-FAILURES.md open-defect list",
+        "evidence": "docs/KNOWN-FAILURES.md",
         "verified": true,
-        "why": "Limitations still states `up --dry-run` is unsafe and that the MCP server covers eight of ten commands with no watch or init, both contradicted by cli.py and mcp_server.py.",
+        "why": "F-4 and F-5 are listed as open with no test covering them, and F-6 (storage invisible) and F-3 (fixed default instance name) as unaddressed, yet the code fixes all four and tests/test_money_defects.py, tests/test_storage.py and InstanceNaming in tests/test_money_paths.py cover them, so the defect record no longer means what it says.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "docs/quickstart.md",
-        "evidence": "docs/quickstart.md",
-        "verified": true,
-        "why": "The quickstart warns not to use `up --dry-run` and shows guard lines ('NO HEARTBEAT — ...', 'heartbeat 12.4 min old — the guard is probably dead') that cli.py no longer prints ('NO GUARD — ...', 'probably dead (heartbeat ... old)'), so its transcripts are not the tool's real output.",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "R2 and R6 state column",
+        "subject": "CHARTER.md requirement states R2, R6 and wish W4",
         "evidence": "CHARTER.md",
         "verified": true,
-        "why": "The charter records R2 as NOT MET for lack of watch/init and R6 as partial because the README omits adopt, but mcp_server.py exposes watch and init and README.md documents adopt, so the recorded state no longer matches the project.",
+        "why": "The charter records R2 as NOT MET for lacking watch and init, R6 as partial because the README omits adopt, and W4 as the guard stopping fresh pods, but mcp_server.py exposes watch and init, README.md documents adopt, and guard.py clamps idle to uptime, so the project's own status table describes a different state from the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "R10 coverage target (94% of code, 100% of features)",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "The original asks for the money-critical paths to be hardened with tests and sets no coverage percentage, yet tools/coverage.py, .github/workflows/ci.yml and CHARTER.md R10 present 94%/100% as the target the user set.",
         "confidence": "high"
       },
       {
         "class": "missing",
-        "subject": "guard proven on a real rented GPU",
+        "subject": "end-to-end proof of the guard (watch) on a real rented GPU (charter R4)",
         "evidence": "docs/VERIFICATION.md",
         "verified": true,
-        "why": "The original asks for an end-to-end proof on a real rented GPU, and the cap guard is the point of the tool, but VERIFICATION.md says watch was never run through the CLI against a real machine, M2-REAL-RENTAL.md covers only up/run/pull/down/ledger, and the idle-clamp fix has never run on a real pod.",
+        "why": "The original asks for an end-to-end proof on a real rented GPU, but the paid runs in docs/M2-REAL-RENTAL.md covered only up/run/pull/down; VERIFICATION.md and CHARTER.md R4 record that watch, the part that enforces the cap, never stopped a real pod through the CLI, and the later changes to up and the guard were not re-run on a real machine.",
         "confidence": "high"
       },
       {
-        "class": "shifted",
-        "subject": "R5 evidence (real-rental record)",
-        "evidence": "docs/M2-REAL-RENTAL.md",
-        "verified": true,
-        "why": "The charter cites '3 rentals, $0.0264', but M2-REAL-RENTAL.md, CHANGELOG.md and quickstart.md record two rentals for $0.017, and the third paid rental (the one W4 says the guard stopped at 32 s) is not documented anywhere in the tree.",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "publish readiness claim",
+        "class": "missing",
+        "subject": "publishable-release readiness per its own definition",
         "evidence": "docs/PUBLISH-CHECKLIST.md",
         "verified": true,
-        "why": "The checklist status says nothing remains before the single publication question and cites a green 74-test M1, while tests/test_feature_matrix.py declares two rows expected red and the charter marks R2, R4 and R10 NOT MET, so the readiness that would justify asking the user is not established by the current tree.",
+        "why": "The checklist status says nothing remains before the ask, but its own boxes are false in the tree: pyproject.toml deliberately has no project URLs, KNOWN-FAILURES.md still lists defects as open and untested, and tests/test_feature_matrix.py holds a check (advertised MCP tools equal those named in docs/mcp.md) that cannot pass against the current docs, so the CI test step would be red.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "evidence for the real-GPU proof (charter R5)",
+        "evidence": "CHANGELOG.md",
+        "verified": true,
+        "why": "CHARTER.md R5 records 3 rentals for $0.0264 while CHANGELOG.md, docs/M2-REAL-RENTAL.md and docs/quickstart.md say two rentals for $0.017, and CHANGELOG.md calls run 1 deliberately failed when M2-REAL-RENTAL.md shows it failed on defects.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "guard-status wording in the docs",
+        "evidence": "docs/quickstart.md",
+        "verified": true,
+        "why": "quickstart.md, cap.md and VERIFICATION.md show status printing 'NO HEARTBEAT — nothing is watching this instance' and 'heartbeat N min old — the guard is probably dead', but cli.py cmd_status now prints 'NO GUARD — ...' and 'probably dead (heartbeat N min old) — ...', so the transcripts presented as real output no longer match the tool.",
         "confidence": "low"
       },
       {
         "class": "unrequested",
-        "subject": "tests/_artefacts/",
-        "evidence": "tests/_artefacts/assay_money_paths_2026-10-14.txt",
+        "subject": "tests/_artefacts/ probes and audit transcripts",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
         "verified": true,
-        "why": "Audit transcripts (UTF-16 PowerShell captures with German error text and absolute paths under C:\\Users\\besen\\.dsh\\...) and probe scripts that write into a sibling .assay-tmp directory are committed into a release-bound tree, and the original never asked for them.",
-        "confidence": "high"
-      },
-      {
-        "class": "unrequested",
-        "subject": "R10 coverage target and ratchet",
-        "evidence": "tools/coverage.py",
-        "verified": true,
-        "why": "The 94%-of-code / 100%-of-features target and its CI ratchet appear nowhere in the original, and their own figures disagree (coverage.py records a floor of 0.89 'measured 89.7%' while CHARTER.md R10 records 74.8%).",
-        "confidence": "low"
-      },
-      {
-        "class": "unrequested",
-        "subject": "sandbox-specific test plumbing",
-        "evidence": "tests/conftest.py",
-        "verified": true,
-        "why": "The suite globally monkeypatches shutil.rmtree and tempfile.mkdtemp for the 'DSH sandbox' and creates scratch directories outside the checkout (parents[2]/.rentguard-test-tmp, .assay-tmp), which ties a publishable release's tests to the Bot team's workspace; the original never asked for this.",
+        "why": "Internal audit captures (UTF-16 PowerShell transcripts including failed runs) and ad-hoc probe scripts that write to .assay-tmp outside the checkout ship in the release tree; the original asks for none of this and none of it is part of the product or the test suite.",
         "confidence": "low"
       }
     ]
@@ -146,118 +132,105 @@
     "items": [
       {
         "class": "shifted",
-        "subject": "docs/mcp.md",
+        "subject": "MCP surface documentation (docs/mcp.md, docs/limitations.md)",
         "evidence": "docs/mcp.md",
         "verified": true,
-        "why": "The MCP page says eight of the ten commands are exposed and calls the missing watch/init a gap, but mcp_server.py now advertises eleven tools including rentguard_watch, rentguard_watch_once and rentguard_init, so the documentation no longer describes the MCP surface (tests/test_feature_matrix.py asserts this and is described there as expected-red).",
+        "why": "The pages say eight of ten commands are exposed and that watch and init are not, but mcp_server.py advertises eleven tools including rentguard_watch, rentguard_watch_once and rentguard_init, so the requested documentation describes a different MCP surface; tests/test_feature_matrix.py's docs-vs-server check cannot pass against it.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "docs/KNOWN-FAILURES.md",
-        "evidence": "docs/KNOWN-FAILURES.md",
-        "verified": true,
-        "why": "F-4 (dry-run creates) and F-5 (idle clamp) are listed as open with 'No test covers it', yet cli.py checks dry_run before any create and guard._idle_minutes_since_boot clamps provider idle to uptime, both covered by tests/test_money_defects.py and tests/test_money_paths.py, and F-3/F-6 remedies (root-derived instance name, volumes in doctor) are also in the code.",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "docs/cap.md",
+        "subject": "user-facing docs on up --dry-run (F-4) and the guard idle clamp (F-5)",
         "evidence": "docs/cap.md",
         "verified": true,
-        "why": "The cap page tells users the guard has an unfixed idle defect and that `up --dry-run` is broken at af1ba5a, and cites a 74-test suite, none of which matches the current guard.py, cli.py or tests/ directory.",
+        "why": "cap.md, quickstart.md, limitations.md and VERIFICATION.md still say --dry-run rents a machine and the guard stops fresh pods, and tell users not to use them, while cli.py now checks dry_run before any create and guard.py clamps provider idle to uptime, both covered by tests/test_money_defects.py and tests/test_money_paths.py.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "docs/limitations.md",
-        "evidence": "docs/limitations.md",
+        "subject": "docs/KNOWN-FAILURES.md open-defect list",
+        "evidence": "docs/KNOWN-FAILURES.md",
         "verified": true,
-        "why": "Limitations still states `up --dry-run` is unsafe and that the MCP server covers eight of ten commands with no watch or init, both contradicted by cli.py and mcp_server.py.",
+        "why": "F-4 and F-5 are listed as open with no test covering them, and F-6 (storage invisible) and F-3 (fixed default instance name) as unaddressed, yet the code fixes all four and tests/test_money_defects.py, tests/test_storage.py and InstanceNaming in tests/test_money_paths.py cover them, so the defect record no longer means what it says.",
         "confidence": "high"
       },
       {
         "class": "shifted",
-        "subject": "docs/quickstart.md",
-        "evidence": "docs/quickstart.md",
-        "verified": true,
-        "why": "The quickstart warns not to use `up --dry-run` and shows guard lines ('NO HEARTBEAT — ...', 'heartbeat 12.4 min old — the guard is probably dead') that cli.py no longer prints ('NO GUARD — ...', 'probably dead (heartbeat ... old)'), so its transcripts are not the tool's real output.",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "R2 and R6 state column",
+        "subject": "CHARTER.md requirement states R2, R6 and wish W4",
         "evidence": "CHARTER.md",
         "verified": true,
-        "why": "The charter records R2 as NOT MET for lack of watch/init and R6 as partial because the README omits adopt, but mcp_server.py exposes watch and init and README.md documents adopt, so the recorded state no longer matches the project.",
+        "why": "The charter records R2 as NOT MET for lacking watch and init, R6 as partial because the README omits adopt, and W4 as the guard stopping fresh pods, but mcp_server.py exposes watch and init, README.md documents adopt, and guard.py clamps idle to uptime, so the project's own status table describes a different state from the tree.",
+        "confidence": "high"
+      },
+      {
+        "class": "unrequested",
+        "subject": "R10 coverage target (94% of code, 100% of features)",
+        "evidence": "tools/coverage.py",
+        "verified": true,
+        "why": "The original asks for the money-critical paths to be hardened with tests and sets no coverage percentage, yet tools/coverage.py, .github/workflows/ci.yml and CHARTER.md R10 present 94%/100% as the target the user set.",
         "confidence": "high"
       },
       {
         "class": "missing",
-        "subject": "guard proven on a real rented GPU",
+        "subject": "end-to-end proof of the guard (watch) on a real rented GPU (charter R4)",
         "evidence": "docs/VERIFICATION.md",
         "verified": true,
-        "why": "The original asks for an end-to-end proof on a real rented GPU, and the cap guard is the point of the tool, but VERIFICATION.md says watch was never run through the CLI against a real machine, M2-REAL-RENTAL.md covers only up/run/pull/down/ledger, and the idle-clamp fix has never run on a real pod.",
+        "why": "The original asks for an end-to-end proof on a real rented GPU, but the paid runs in docs/M2-REAL-RENTAL.md covered only up/run/pull/down; VERIFICATION.md and CHARTER.md R4 record that watch, the part that enforces the cap, never stopped a real pod through the CLI, and the later changes to up and the guard were not re-run on a real machine.",
         "confidence": "high"
       },
       {
-        "class": "shifted",
-        "subject": "R5 evidence (real-rental record)",
-        "evidence": "docs/M2-REAL-RENTAL.md",
-        "verified": true,
-        "why": "The charter cites '3 rentals, $0.0264', but M2-REAL-RENTAL.md, CHANGELOG.md and quickstart.md record two rentals for $0.017, and the third paid rental (the one W4 says the guard stopped at 32 s) is not documented anywhere in the tree.",
-        "confidence": "high"
-      },
-      {
-        "class": "shifted",
-        "subject": "publish readiness claim",
+        "class": "missing",
+        "subject": "publishable-release readiness per its own definition",
         "evidence": "docs/PUBLISH-CHECKLIST.md",
         "verified": true,
-        "why": "The checklist status says nothing remains before the single publication question and cites a green 74-test M1, while tests/test_feature_matrix.py declares two rows expected red and the charter marks R2, R4 and R10 NOT MET, so the readiness that would justify asking the user is not established by the current tree.",
+        "why": "The checklist status says nothing remains before the ask, but its own boxes are false in the tree: pyproject.toml deliberately has no project URLs, KNOWN-FAILURES.md still lists defects as open and untested, and tests/test_feature_matrix.py holds a check (advertised MCP tools equal those named in docs/mcp.md) that cannot pass against the current docs, so the CI test step would be red.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "evidence for the real-GPU proof (charter R5)",
+        "evidence": "CHANGELOG.md",
+        "verified": true,
+        "why": "CHARTER.md R5 records 3 rentals for $0.0264 while CHANGELOG.md, docs/M2-REAL-RENTAL.md and docs/quickstart.md say two rentals for $0.017, and CHANGELOG.md calls run 1 deliberately failed when M2-REAL-RENTAL.md shows it failed on defects.",
+        "confidence": "low"
+      },
+      {
+        "class": "shifted",
+        "subject": "guard-status wording in the docs",
+        "evidence": "docs/quickstart.md",
+        "verified": true,
+        "why": "quickstart.md, cap.md and VERIFICATION.md show status printing 'NO HEARTBEAT — nothing is watching this instance' and 'heartbeat N min old — the guard is probably dead', but cli.py cmd_status now prints 'NO GUARD — ...' and 'probably dead (heartbeat N min old) — ...', so the transcripts presented as real output no longer match the tool.",
         "confidence": "low"
       },
       {
         "class": "unrequested",
-        "subject": "tests/_artefacts/",
-        "evidence": "tests/_artefacts/assay_money_paths_2026-10-14.txt",
+        "subject": "tests/_artefacts/ probes and audit transcripts",
+        "evidence": "tests/_artefacts/assay_full_run_2026-10-14.txt",
         "verified": true,
-        "why": "Audit transcripts (UTF-16 PowerShell captures with German error text and absolute paths under C:\\Users\\besen\\.dsh\\...) and probe scripts that write into a sibling .assay-tmp directory are committed into a release-bound tree, and the original never asked for them.",
-        "confidence": "high"
-      },
-      {
-        "class": "unrequested",
-        "subject": "R10 coverage target and ratchet",
-        "evidence": "tools/coverage.py",
-        "verified": true,
-        "why": "The 94%-of-code / 100%-of-features target and its CI ratchet appear nowhere in the original, and their own figures disagree (coverage.py records a floor of 0.89 'measured 89.7%' while CHARTER.md R10 records 74.8%).",
-        "confidence": "low"
-      },
-      {
-        "class": "unrequested",
-        "subject": "sandbox-specific test plumbing",
-        "evidence": "tests/conftest.py",
-        "verified": true,
-        "why": "The suite globally monkeypatches shutil.rmtree and tempfile.mkdtemp for the 'DSH sandbox' and creates scratch directories outside the checkout (parents[2]/.rentguard-test-tmp, .assay-tmp), which ties a publishable release's tests to the Bot team's workspace; the original never asked for this.",
+        "why": "Internal audit captures (UTF-16 PowerShell transcripts including failed runs) and ad-hoc probe scripts that write to .assay-tmp outside the checkout ship in the release tree; the original asks for none of this and none of it is part of the product or the test suite.",
         "confidence": "low"
       }
     ],
     "counts": {
-      "missing": 1,
-      "unrequested": 3,
-      "shifted": 8,
-      "verified": 12,
+      "missing": 2,
+      "unrequested": 2,
+      "shifted": 6,
+      "verified": 10,
       "unverified": 0
     },
     "unreviewed": [
-      "Whether the test suite currently passes: no shell was available, so the pass/fail state of tests/ is judged from source only",
-      "Whether anything was published externally (git remotes, PyPI, announcements): this is not observable from the files provided",
-      "The paid-rental figures in docs/M2-REAL-RENTAL.md and CHARTER.md R5 cannot be checked against a provider account from inside this directory"
+      "Process clauses of the original (a dedicated Bot team, design questions decided autonomously, nothing asked of the user except publication approval) cannot be observed from the tree.",
+      "Whether anything was published (public repo, PyPI, announcement) cannot be confirmed: no published artefact appears in the tree, but remote and registry state is outside this directory.",
+      "The test suite and tools/coverage.py were not run; pass/fail and coverage judgements come from reading the code only.",
+      "File hashes were not checked against KEELCHECK-MANIFEST.json (the hash command was not approved); on-disk sizes differ from the manifest byte counts in a way consistent with CRLF line endings.",
+      "The real-rental facts in docs/M2-REAL-RENTAL.md (instance ids, costs, transcripts) cannot be checked against anything in this directory."
     ],
     "coverage": {
-      "files_seen": 56,
-      "files_total": 56
-    }
+      "files_seen": 54,
+      "files_total": 54
+    },
+    "coverage_mismatch": null
   },
-  "export": "C:\\Users\\besen\\.dsh\\bot\\workspace\\.assay-tmp\\r7\\review-1f9343c1541e-15332\\tree",
-  "manifest": "sha256:1f9343c1541e42f060b749c56f53d129a8fb1b3eb7f088a355635d3498842fb1"
+  "export": "C:\\kc\\.assay-tmp\\r7clean\\review-eddf53e2cc18-23068\\tree",
+  "manifest": "sha256:eddf53e2cc18d03f67d145a4c6106112e3feb4433d8d7118a03d654178a969b5"
 }

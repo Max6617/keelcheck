@@ -722,3 +722,33 @@ shortfall is the finding.
   verification — and two things would make the README's claims true rather than aspirational before it is
   written: R5's third surface (the MCP call) and R7's demonstration closing. **Next user-facing artefact after
   those land, Scribe's shape**, not now: written today it would be stale by morning.
+
+- **Ruling on the Â§7 objective, 2026-10-16 07:0x â€” Max chose (a), accept the flat zero, and "still stop
+  everything".** The brief's options were (a) keep mod-113 and publish the probably-flat `M(t)`, (b)
+  task-relevant features with a prereg amendment, (c) another head weight or horizon. His word: *"A but
+  still stop everything."* So the line publishes the prereg's first falsifier and nothing further runs
+  for it â€” **no grid rental, no re-shake, no frozen-head arm and no `--features off` control**, all of
+  which were live options in the final hour. That last clause matters because the recommendation from
+  this side was the $0 CPU controls and then (c-frozen) (`stage0/features/S7-C-PATH.md` Â§2), and the
+  decision went against it; the file records that rather than reading as though the lane had chosen (a).
+- **What (a) publishes, stated so no later page overreaches it:** `M(t) = 0` is measured and the
+  instrument is valid (identity carry **128/128**, noise null **0/128**), and an **exact lossless
+  rotation** of the code also scores **0/128** â€” so the honest sentence is *"the code did not present
+  itself in the generator's basis; whether another objective would have produced separation is
+  untested"*, **not** *"the model never used the features"*. The partial-RÂ² series says the readout's
+  code content rose 0.093 â†’ 0.215 over the diverging shakedown run, which is the opposite of "never
+  used". Sources: `stage0/features/results/basis_blindness_check.json`,
+  `partial_r2_batchB-shakedown-lr1e-3-s1.json`.
+- **The follow-on items, all unstarted by this ruling, for whoever resumes the line:** the two CPU
+  controls that would settle whether Batch B's diverging trajectory is the injection or the cache path
+  (one control with `--features off`, cache on, 40,000 steps), the re-shake that would re-price the
+  bounds, and the bounds card itself (`max_hours_per_run` â‰¥ 15.79 h and `cap_usd` â‰¥ $24.02, both priced
+  from the diverging run). They are recorded in `S7-C-PATH.md` Â§3â€“Â§4 and in `BOTTLENECKS.md` B16/B18,
+  and they are not to be started on anyone's initiative.
+- **Housekeeping, so the morning reader is not misled:** the night's goal window closed at 05:07 and the
+  last file in this workspace moved at 00:25, so nothing has run since â€” no pods, no volumes, no
+  accrual (pod-timing root **$9.96 of $22.50**, workspace root **$2.30 of $5.00**). rentguard is
+  published at **`605564e`** and its CI run **`38814870047`** reads **completed / success** across all
+  three interpreter legs; keel is clean at `27b446b` with nothing of its own outstanding; the only keel
+  item still gated is the anchor move, which needs one line from Max in the keel room.
+

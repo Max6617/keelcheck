@@ -282,6 +282,107 @@ def test_a_usage_error_is_exit_two():
         f"a usage error did not exit 2:\n{_support.combined(done)}")
 
 
+def test_a_request_must_say_jsonrpc_2_0():
+    """JSON-RPC 2.0 requires the member to be exactly `"2.0"`; anything else is an invalid request."""
+    code, answers, stderr = _session([
+        {"id": 1, "method": "tools/list"},                      # member absent
+        {"jsonrpc": "1.0", "id": 2, "method": "tools/list"},    # wrong version
+        _initialize(request_id=3),                              # the control: this one must work
+    ])
+    assert code == 0, f"the session did not end cleanly: exit {code}\n{stderr}"
+    by_id = {answer.get("id"): answer for answer in answers}
+    for request_id in (1, 2):
+        answer = by_id.get(request_id, {})
+        assert answer.get("error", {}).get("code") == -32600, (
+            f"a request without `jsonrpc: \"2.0\"` was not refused: {answer}")
+    assert "result" in by_id.get(3, {}), f"the valid request was refused too: {answers}"
+
+
+def _peak_mib(pid: int) -> float | None:
+    """The peak working set of a live process, or None where it cannot be read.
+
+    Peak rather than current: the defect is the *high-water mark* of holding an over-long line, and it
+    has already happened by the time the child answers. Windows through `psapi`, elsewhere through
+    `/proc`, so this is a measurement on either platform rather than a skip.
+    """
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        class Counters(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        psapi = ctypes.WinDLL("psapi", use_last_error=True)
+        handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return None
+        try:
+            counters = Counters()
+            counters.cb = ctypes.sizeof(Counters)
+            if not psapi.GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb):
+                return None
+            return counters.PeakWorkingSetSize / (1024 * 1024)
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        with open(f"/proc/{pid}/status", encoding="utf-8") as status:
+            for line in status:
+                if line.startswith("VmHWM:"):
+                    return int(line.split()[1]) / 1024
+    except OSError:
+        return None
+    return None
+
+
+def test_an_over_long_request_is_refused_without_holding_it_in_memory():
+    """The cap must refuse *before* the line is in memory, not after.
+
+    Proctor measured the first landing: 128 MiB with no newline cost 156.2 MiB of peak working set for a
+    1 MiB cap. The line is written from here and never held by the assertion; what is checked is the
+    child's own high-water mark, plus the two behaviours the refusal must keep — a `-32600` with a
+    **null id**, and a stream that stays ordered for the request behind it.
+    """
+    line_mib = 32
+    payload = "0" * (line_mib * 1024 * 1024)
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "keelcheck", "mcp"],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, encoding="utf-8", cwd=str(REPO),
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+    )
+    try:
+        proc.stdin.write(payload)
+        proc.stdin.write("\n")
+        proc.stdin.write(json.dumps(_initialize(request_id=2)) + "\n")
+        proc.stdin.flush()
+        first = json.loads(proc.stdout.readline())
+        second = json.loads(proc.stdout.readline())
+        peak = _peak_mib(proc.pid)
+    finally:
+        proc.stdin.close()
+        proc.wait(timeout=120)
+
+    assert first.get("error", {}).get("code") == -32600, f"the over-long line was not refused: {first}"
+    assert first.get("id") is None, f"a refusal with no request to answer must carry a null id: {first}"
+    assert second.get("id") == 2 and "result" in second, (
+        f"the stream lost its order after an over-long line: {second}")
+    assert proc.returncode == 0, f"the session did not end cleanly: exit {proc.returncode}"
+    assert peak is None or peak < line_mib, (
+        f"a {line_mib} MiB line cost {peak:.1f} MiB of peak working set under a 1 MiB cap: the cap "
+        "reads the line before it refuses it. The threshold is the line's own size, not a tuned "
+        "constant: holding it costs at least that much (measured 85.3 MiB), a bounded read costs the "
+        "interpreter's baseline and no more (measured 22.7 MiB).")
+
+
 def test_the_surface_opens_no_socket_at_the_source():
     """R6's other half, at the source — **and only that half, which is what the name now says.**
 

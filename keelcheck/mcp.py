@@ -13,7 +13,9 @@ only shape the charter allows.
     keelcheck mcp            # one session on stdin/stdout, ends at EOF
 
 Protocol, in brief: `initialize` answers with the protocol version, `serverInfo` and the `tools`
-capability; `tools/list` names the tools; `tools/call` runs one. A tool's *finding* is a result, never a
+capability; `tools/list` names the tools; `tools/call` runs one. Every request must carry
+`"jsonrpc": "2.0"` exactly — that member is checked, and a request without it or with another version is
+an invalid request, which JSON-RPC answers with `-32600`. A tool's *finding* is a result, never a
 protocol error — an audit that reports divergences answers `isError: false` with the exit code inside the
 text, because that is what the caller asked for. Notifications (no `id`) are never answered, which the
 protocol requires.
@@ -96,6 +98,11 @@ def handle(request: Any) -> dict[str, Any] | None:
     if not isinstance(request, dict):
         return _error(None, INVALID_REQUEST, "a request must be a JSON object")
     request_id = request.get("id")
+    # JSON-RPC 2.0 requires the member to be exactly `"2.0"`; a request without it, or with another
+    # version, is an *invalid request* and the spec's own answer is -32600. Checked before the
+    # notification rule, because an invalid request with no id is still answered (with a null id).
+    if request.get("jsonrpc") != "2.0":
+        return _error(request_id, INVALID_REQUEST, 'a request must carry `"jsonrpc": "2.0"`')
     method = request.get("method")
     if not isinstance(method, str):
         return _error(request_id, INVALID_REQUEST, "a request needs a `method` string")
@@ -145,25 +152,40 @@ def handle(request: Any) -> dict[str, Any] | None:
 
 
 def serve(stdin: TextIO, stdout: TextIO) -> int:
-    """Answer requests until stdin closes. Returns the process exit code for the session."""
-    for line in stdin:
-        line = line.strip()
+    """Answer requests until stdin closes. Returns the process exit code for the session.
+
+    **The cap is enforced before the line is in memory.** `readline(cap + 1)` holds at most one byte
+    more than the cap, and an over-long line is then discarded in bounded chunks until its newline, so an
+    over-long request never becomes a resident buffer. Measured on the first landing, which read the
+    whole line first: 32 MiB with no newline cost **85.3 MiB** of peak working set under a 1 MiB cap
+    (Proctor measured 156.2 MiB at 128 MiB). The refusal keeps a **null id** — the bytes carrying the
+    request's id may be the ones being discarded — and consumes the newline, so the stream stays ordered
+    for whatever follows.
+    """
+    while True:
+        line = stdin.readline(MAX_REQUEST_BYTES + 1)
         if not line:
-            continue
+            return 0
+        responses: list[dict[str, Any]] = []
         if len(line) > MAX_REQUEST_BYTES:
-            responses = [_error(None, INVALID_REQUEST, f"a request may not exceed {MAX_REQUEST_BYTES} bytes")]
+            while line and not line.endswith("\n"):
+                line = stdin.readline(MAX_REQUEST_BYTES + 1)
+            responses = [
+                _error(None, INVALID_REQUEST, f"a request may not exceed {MAX_REQUEST_BYTES} bytes")
+            ]
         else:
-            try:
-                request = json.loads(line)
-            except json.JSONDecodeError as exc:
-                responses = [_error(None, PARSE_ERROR, f"not JSON: {exc.msg}")]
-            else:
-                answer = handle(request)
-                responses = [] if answer is None else [answer]
+            text = line.strip()
+            if text:
+                try:
+                    request = json.loads(text)
+                except json.JSONDecodeError as exc:
+                    responses = [_error(None, PARSE_ERROR, f"not JSON: {exc.msg}")]
+                else:
+                    answer = handle(request)
+                    responses = [] if answer is None else [answer]
         for response in responses:
             stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
-        stdout.flush()
-    return 0
+            stdout.flush()
 
 
 def main(argv: list[str] | None = None) -> int:

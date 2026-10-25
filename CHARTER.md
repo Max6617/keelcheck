@@ -23,23 +23,15 @@ And the recommendation those words accept, as written in `ECC-ASSESSMENT.md` bef
 
 ## Ratification
 
-Ratified at: `62dc6be` — the ratification commit, and the reference side of every comparison (D1, D8). Moved
-from the freeze commit `ae375c6` at the user's word on 2026-10-14 so that keelcheck's first gate counts as
-ratified (D17); the frozen-original block is byte-identical at both commits (553 bytes, sha256
-`376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`), so the move changes only which gate
-table is the reference. Moved again to `688fce8` at the user's word on 2026-10-15, for the rename to
-`keelcheck` and the coverage row. **Moved to `62dc6be` at the user's word on 2026-10-16** — the HEAD that was
-current when this move was written, since a commit cannot name its own hash; the charter this commit carries
-has the same three rows, so a reference read at either revision sees one table. The move ratifies the three
-rows below, the `reviewer` row included, so a required review counts only when the command that started it
-is the ratified wrapper (R4). The frozen-original block is unchanged by every move, and each appears in the
-record once as `[anchor-moved]` — a named human event, not a re-measurement (D12).
-
-- **Gates ratified: three** — `review-prompt`, a `kind: prompt` row hashed over git-normalized bytes (D15);
-  `suite`, the coverage gate, a `kind: gate` row the audit executes (floor 0.83; decisions D19 and D20); and
-  `reviewer`, the wrapper the R7 demonstration ran. With an executable gate ratified beside the prompt and
-  reviewer rows, the mechanical half's vacuity line has nothing left to report.
-
+Ratified at: `326864e` — the public root, and the reference side of every comparison (D1, D8). The
+frozen-original block is **553 bytes**, sha256
+`376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`, byte-identical at every anchor this
+charter has named, so a move changes only which gate table is the reference. During development the anchor
+moved three times, each at the maintainer's word and each recorded once as `[anchor-moved]` — a named
+human event, not a re-measurement (D12). The development history is not published, so this charter names
+the public root as its anchor rather than the chain that led to it. This anchor ratifies the three rows
+below, the `reviewer` row included, so a required review counts only when the command that started it is
+the ratified wrapper (R4).
 ## What it is for
 
 Two artefacts, one loop.

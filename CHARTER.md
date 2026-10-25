@@ -23,7 +23,7 @@ And the recommendation those words accept, as written in `ECC-ASSESSMENT.md` bef
 
 ## Ratification
 
-Ratified at: `326864e` — the public root, and the reference side of every comparison (D1, D8). The
+Ratified at: `9263ba2` — the public root, and the reference side of every comparison (D1, D8). The
 frozen-original block is **553 bytes**, sha256
 `376f11a44ebc140f705430a06df8df72f05ab59d2120f4a6e09db1a405e85716`, byte-identical at every anchor this
 charter has named, so a move changes only which gate table is the reference. During development the anchor
@@ -32,6 +32,11 @@ human event, not a re-measurement (D12). The development history is not publishe
 the public root as its anchor rather than the chain that led to it. This anchor ratifies the three rows
 below, the `reviewer` row included, so a required review counts only when the command that started it is
 the ratified wrapper (R4).
+
+The anchor moved once more on 2026-10-25 and no content moved with it: the published commits carried the
+agent that wrote them in their author line, so the chain was rewritten with the maintainer as author,
+every tree, message and timestamp unchanged. The frozen block above is untouched; what changed is the sha
+of the root this line names.
 ## What it is for
 
 Two artefacts, one loop.

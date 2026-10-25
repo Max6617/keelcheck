@@ -650,11 +650,12 @@ def check_gate(audit: Audit, gate: Gate, working: Gate | None) -> None:
             audit.warnings.extend(f"{name}: {w}" for w in warnings)
             if current != gate.hash:
                 entry["status"] = "changed"
-                audit.add(
-                    "gate",
-                    name,
-                    f"{path}: {_change_detail(audit.repo, sha if audit.ratified_at else "", gate, current)}",
+                # The detail is built outside the f-string: a `"`-quoted string inside a
+                # `"`-delimited f-string is 3.12+ syntax, and `pyproject.toml` declares 3.10.
+                detail = _change_detail(
+                    audit.repo, sha if audit.ratified_at else "", gate, current
                 )
+                audit.add("gate", name, f"{path}: {detail}")
             else:
                 entry["status"] = "locked"
 

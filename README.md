@@ -115,6 +115,10 @@ That is the intended first run. The next steps are to commit the charter, put th
 record. From then on `keelcheck audit .` is the command that answers "does the repository still match
 what was approved?" — and it exits non-zero when the answer is no.
 
+**On a fresh clone of this repository**, `keelcheck audit .` reports one `[gate-record]` divergence: the
+append-only run record lives in `.keel/`, which is not part of the repository. Run
+`keelcheck gate run .` once and the record exists; the audit then reads clean.
+
 ## Commands and exit codes
 
 | command | what it does | 0 | 1 | 2 |

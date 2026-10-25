@@ -1,0 +1,11 @@
+{
+  "session_id": "0f7c2b1e-0000-4000-8000-000000000001",
+  "transcript_path": "{REPO}/.claude/transcript.jsonl",
+  "cwd": "{REPO}",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "ls -la",
+    "description": "list the directory"
+  }
+}

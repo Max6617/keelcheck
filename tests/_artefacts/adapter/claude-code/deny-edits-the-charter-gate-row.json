@@ -1,0 +1,13 @@
+{
+  "session_id": "0f7c2b1e-0000-4000-8000-000000000003",
+  "transcript_path": "{REPO}/.claude/transcript.jsonl",
+  "cwd": "{REPO}",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "{REPO}/CHARTER.md",
+    "old_string": "| coverage | tools/gate.py | sha256:0000",
+    "new_string": "| coverage | tools/gate.py | sha256:1111",
+    "replace_all": false
+  }
+}

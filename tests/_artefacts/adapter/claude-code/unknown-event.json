@@ -1,0 +1,9 @@
+{
+  "session_id": "0f7c2b1e-0000-4000-8000-000000000005",
+  "cwd": "{REPO}",
+  "hook_event_name": "SessionStart",
+  "tool_name": "Unknown",
+  "tool_input": {
+    "note": "an event this adapter does not know, from a harness that configured it anyway"
+  }
+}

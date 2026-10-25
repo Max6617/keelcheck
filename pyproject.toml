@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keelcheck"
+version = "0.1.0"
+description = "One frozen human-approved original; requirements that name their mechanism or are marked wishes; hashed gates; an audit that reports divergence."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Max Reischl" }]
+keywords = ["charter", "audit", "agents", "gates", "intent"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.scripts]
+keelcheck = "keelcheck.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Max6617/keelcheck"
+Repository = "https://github.com/Max6617/keelcheck"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["keelcheck"]
+
+[tool.pytest.ini_options]
+# pytest creates its cache directory through a mode-0700 temporary directory; in a confined environment
+# a run that keeps the cache plugin can leave a ``pytest-cache-files-*`` directory in the repository
+# root, and a later run then fails *collection* on it. ``testpaths`` keeps collection inside ``tests/``
+# whatever else is in the root, and ``norecursedirs`` skips such a directory that is already there.
+#
+# ``cache_dir`` is deliberately not set: the coverage gate runs pytest with ``-p no:cacheprovider``,
+# which disables the plugin that owns the key, so pytest would report the key as unknown. ``testpaths``
+# and ``norecursedirs`` are what make the cache harmless.
+testpaths = ["tests"]
+norecursedirs = [".*", "build", "dist", "*.egg", "pytest-cache-files-*", "node_modules"]

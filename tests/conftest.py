@@ -39,7 +39,16 @@ _real_mkdtemp = tempfile.mkdtemp
 
 
 def _tolerant_rmtree(path, ignore_errors=False, onerror=None, *, onexc=None):
-    return _real_rmtree(path, ignore_errors=True, onerror=onerror, onexc=onexc)
+    """`shutil.rmtree` that never fails on a refused permission change.
+
+    ``onexc`` is 3.12+'s spelling of the callback and ``onerror`` is the one before it; passing
+    either to an interpreter that does not have it is a TypeError, which is how this hook turned
+    into a collection error on 3.10 and 3.11 the first time CI ran the suite there. Each name is
+    forwarded only when it is the one this interpreter defines.
+    """
+    if onexc is not None:
+        return _real_rmtree(path, ignore_errors=True, onexc=onexc)
+    return _real_rmtree(path, ignore_errors=True, onerror=onerror)
 
 
 def _writable_mkdtemp(suffix=None, prefix=None, dir=None):

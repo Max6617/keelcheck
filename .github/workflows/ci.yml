@@ -16,7 +16,12 @@ jobs:
         # 3.10 is the floor `pyproject.toml` declares, so it is tested rather than asserted.
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
+      # Full history, not the single-commit default: the charter's `Ratified at:` names a commit in
+      # the past, and both the gate and the audit read the charter *at* that commit. A one-commit
+      # clone reports "[anchor] ... not an ancestor of HEAD" and exits 2 -- measured on the first run.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -38,7 +43,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      # Full history, not the single-commit default: the charter's `Ratified at:` names a commit in
+      # the past, and both the gate and the audit read the charter *at* that commit. A one-commit
+      # clone reports "[anchor] ... not an ancestor of HEAD" and exits 2 -- measured on the first run.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:

@@ -21,7 +21,6 @@ WRAPPER = _support.REPO / "tests" / "_artefacts" / "claude-reviewer.py"
 def _fake_claude(scratch, output: str, *, exit_code: int = 0, capture_stdin: bool = False):
     """A `claude` on PATH that prints ``output`` once and optionally records its stdin."""
     bindir = scratch / "bin"
-    _support.write(bindir / "claude.py", "")  # placeholder so the directory exists
     script = bindir / "claude.py"
     _support.write(
         script,
@@ -31,9 +30,19 @@ def _fake_claude(scratch, output: str, *, exit_code: int = 0, capture_stdin: boo
         + f"sys.stdout.write({output!r})\n"
         + f"sys.exit({exit_code})\n",
     )
-    # a `claude` executable that runs the python file; a .cmd shim works on Windows
-    shim = bindir / "claude.cmd"
-    shim.write_text(f'@"{sys.executable}" "{script}" %*\n', encoding="ascii", newline="\n")
+    # A `claude` executable that runs the python file. Windows decides what is runnable by PATHEXT, so
+    # the shim is `claude.cmd`; elsewhere the file has to be named `claude` and carry an exec bit. The
+    # `.cmd`-only version was measured leaving the wrapper with "no `claude` on PATH" on Linux, which
+    # is three failures that say nothing about the product.
+    if os.name == "nt":
+        shim = bindir / "claude.cmd"
+        shim.write_text(f'@"{sys.executable}" "{script}" %*\n', encoding="ascii", newline="\n")
+    else:
+        shim = bindir / "claude"
+        shim.write_text(
+            f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding="utf-8", newline="\n"
+        )
+        shim.chmod(0o755)
     return bindir, shim
 
 

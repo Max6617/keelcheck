@@ -216,6 +216,13 @@ Not done, or not proved:
 - **Not a memory or learning layer.** It keeps an anchor, not a memory.
 - **Not a job runner.** It does not start, schedule or supervise work.
 
+## Conventions
+
+Decision numbers such as **D12** or **D19**, used in this repository's code, tests and charter, refer to
+the project's internal decision record, which is not published. The charter's requirement and gate rows are
+the normative text: wherever a decision number appears, the sentence beside it states what was decided, and
+the number only records that a written decision exists behind it.
+
 ## Licence
 
 MIT. See [`LICENSE`](LICENSE).

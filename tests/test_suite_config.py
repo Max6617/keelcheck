@@ -12,10 +12,16 @@ the configuration that makes such a directory harmless: it is never collected.
 
 from __future__ import annotations
 
-import tomllib
 from fnmatch import fnmatch
 
+import pytest
+
 import _support
+
+try:  # 3.11+. The package itself declares 3.10, so this test says so instead of failing collection.
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - measured on 3.10 in CI
+    tomllib = None
 
 
 def _pytest_options() -> dict:
@@ -24,6 +30,10 @@ def _pytest_options() -> dict:
     return data.get("tool", {}).get("pytest", {}).get("ini_options", {})
 
 
+@pytest.mark.skipif(
+    tomllib is None,
+    reason="tomllib is 3.11+; the pyproject configuration cannot be read on this interpreter",
+)
 def test_a_stray_pytest_cache_directory_cannot_break_collection():
     options = _pytest_options()
     norecurse = options.get("norecursedirs", [])

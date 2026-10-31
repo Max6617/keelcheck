@@ -37,6 +37,7 @@ commands:
   hook status <repo>  report which hooks are installed (R5)
   mcp                 an MCP session on stdin/stdout: a bounded call that returns (R5, R6)
   adapter <harness>   the harness hook adapter: one event in, a decision out (R5, R6)
+  version             print the keelcheck version (also --version, -V)
 
   keelcheck <command> --help   for that command's options
 """

@@ -118,6 +118,15 @@ def locked_paths(repo: Path | str) -> dict[str, str]:
     the run record. Built from the same `load_charter`/`load_reference` pair the audit uses, so the
     adapter cannot disagree with the audit about what is locked.
     """
+    return _lock(repo)[0]
+
+
+def _lock(repo: Path | str) -> tuple[dict[str, str], bool]:
+    """(the locked artefacts, whether the charter could be read to build them).
+
+    `locked_paths` drops the flag; `_decide` needs it, because a lock built without the charter's rows is
+    only the charter and the record, and a write to a ratified gate must not pass on that.
+    """
     repo = Path(repo).resolve()
     locked: dict[str, str] = {CHARTER_NAME: "(the charter's gate table)"}
     runs, _ = record.record_paths(repo)
@@ -127,8 +136,8 @@ def locked_paths(repo: Path | str) -> dict[str, str]:
         locked[runs.as_posix()] = "(the run record)"
     try:
         _, charter = load_charter(repo)
-    except Exception:  # noqa: BLE001 - an unreadable charter is decided by the caller, which denies
-        return locked
+    except Exception:  # noqa: BLE001 - reported to the caller through the flag, which denies
+        return locked, False
     audit = _audit(repo)
     audit.charter = charter
     try:
@@ -140,7 +149,7 @@ def locked_paths(repo: Path | str) -> dict[str, str]:
     for row in rows:
         if row.path:
             locked[row.path.replace("\\", "/")] = row.name or "(unnamed row)"
-    return locked
+    return locked, True
 
 
 def _hashes(repo: Path, path: str, locked: dict[str, str], rows: list) -> tuple[str | None, str | None]:
@@ -248,7 +257,7 @@ def _deny(repo: Path, candidate: str, locked: dict[str, str], command: str | Non
 
 def _decide(event: dict, repo: Path) -> dict:
     """The decision itself, inside the caller's deadline. Split out so `decide` owns the bound."""
-    locked = locked_paths(repo)
+    locked, readable = _lock(repo)
     base = {
         "locked": sorted(locked),
         "gate": None,
@@ -256,6 +265,10 @@ def _decide(event: dict, repo: Path) -> dict:
         "path": None,
         "command": None,
     }
+    if not readable:
+        return {**base, "decision": "deny",
+                "reason": ("the charter cannot be read, so this build cannot tell what is locked: an "
+                           "adapter that cannot read its lock must not allow a write")}
     if event.get("hook_event_name") not in (None, KNOWN_EVENT):
         return {**base, "decision": "deny",
                 "reason": (f"the event is {event.get('hook_event_name')!r}, which this build does not "

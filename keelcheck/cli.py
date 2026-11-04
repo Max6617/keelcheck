@@ -7,6 +7,12 @@ returns.
     keelcheck audit   <repo>      hash-locked gates, the frozen original, the wishes (R2, R3)
     keelcheck gate    run <repo>  run the ratified gates and record the run (R2)
     keelcheck gate    hash <path> the hash a gate row records, over git-normalized content (D9)
+    keelcheck review  <repo>      start a reviewer with no history and record what it was handed (R4)
+    keelcheck hook    install <repo> install the pre-commit hook that runs the ratified gates (R5)
+    keelcheck hook    status <repo>  report which hooks are installed (R5)
+    keelcheck mcp                 an MCP session on stdin/stdout: a bounded call that returns (R5, R6)
+    keelcheck adapter <harness>   the harness hook adapter: one event in, a decision out (R5, R6)
+    keelcheck version             print the keelcheck version (also --version, -V)
 """
 
 from __future__ import annotations

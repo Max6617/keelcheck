@@ -37,7 +37,7 @@ and `.keel/review-context.json` (the runner's inputs for the clean-context revie
   prints `[anchor-moved]`, names both SHAs and exits 1.
 - **A3** the record paths above, tracked by git; `--record <path>` overrides the location (needed for
   the demonstration, because D4 keeps `rentguard/` read-only). `keelcheck audit` accepts a directory and
-  writes `<dir>/runs.jsonl`; `keelcheck gate run` does not yet — that is red in `test_gate_cli.py`.
+  writes `<dir>/runs.jsonl`; `keelcheck gate run` does the same, since `record.record_paths` handles a directory for both commands.
 
 Only A1–A3's *shape* lives in `_support.ASSUMPTIONS`; the values above are ruled. One edit to
 `_support.py` still moves every test if a shape changes again.

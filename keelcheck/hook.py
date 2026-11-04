@@ -181,8 +181,11 @@ def install(repo: Path | str, *, hook: str = "pre-commit", force: bool = False) 
 
 
 def status(repo: Path | str) -> dict:
-    """What is installed where, without touching anything. A query: exit 0 either way."""
+    """What is installed where, without touching anything. A query: exit 0 whether or not the hook is installed, 2 when there is no repository to ask about."""
     repo = Path(repo).resolve()
+    if not gitcmd.is_repo(repo):
+        return {"repo": str(repo), "hooks_path": None, "hooks": {}, "exit": 2,
+                "error": f"{repo} is not a git repository"}
     directory = hooks_dir(repo)
     hooks: dict[str, dict] = {}
     for name in HOOK_NAMES:
@@ -233,9 +236,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "status":
         report = status(args.repo)
+        if report.get("error"):
+            emit_err(f"keelcheck hook status: {report['error']}")
         if args.json:
             emit(json.dumps(report, indent=2, ensure_ascii=False))
-        else:
+        elif not report.get("error"):
             emit(f"hooks: {report['hooks_path']}")
             for name, entry in report["hooks"].items():
                 if entry["state"] == "installed":

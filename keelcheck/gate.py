@@ -56,6 +56,13 @@ def _tail(text: str, limit: int = OUTPUT_TAIL) -> str:
     return text if len(text) <= limit else "..." + text[-limit:]
 
 
+def _as_text(data: bytes | str | None) -> str:
+    """TimeoutExpired carries bytes even under text=True."""
+    if data is None:
+        return ""
+    return data.decode("utf-8", errors="replace") if isinstance(data, bytes) else data
+
+
 def _run_one(repo: Path, path: Path, timeout: float) -> tuple[int | None, str, str]:
     """Run one gate script. Returns (exit status or None, result, captured output)."""
     absolute = (repo / path).resolve()
@@ -71,7 +78,7 @@ def _run_one(repo: Path, path: Path, timeout: float) -> tuple[int | None, str, s
             timeout=timeout,
         )
     except subprocess.TimeoutExpired as exc:
-        captured = (exc.stdout or "") if isinstance(exc.stdout, str) else ""
+        captured = _as_text(exc.stdout) + _as_text(exc.stderr)
         return None, TIMEOUT, f"timed out after {timeout:g}s\n{captured}"
     except OSError as exc:
         return None, ERROR, f"could not execute {absolute}: {exc}"

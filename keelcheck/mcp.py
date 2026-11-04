@@ -161,13 +161,17 @@ def serve(stdin: TextIO, stdout: TextIO) -> int:
     (and 156.2 MiB at 128 MiB). The refusal keeps a **null id** — the bytes carrying the
     request's id may be the ones being discarded — and consumes the newline, so the stream stays ordered
     for whatever follows.
+
+    The read is bounded in characters (`readline` counts characters on a text stream), and the cap is
+    checked in bytes: after the read, a line whose UTF-8 encoding, without its newline, exceeds the cap
+    is refused the same way.
     """
     while True:
         line = stdin.readline(MAX_REQUEST_BYTES + 1)
         if not line:
             return 0
         responses: list[dict[str, Any]] = []
-        if len(line) > MAX_REQUEST_BYTES:
+        if len(line) > MAX_REQUEST_BYTES or len(line.removesuffix("\n").encode("utf-8")) > MAX_REQUEST_BYTES:
             while line and not line.endswith("\n"):
                 line = stdin.readline(MAX_REQUEST_BYTES + 1)
             responses = [

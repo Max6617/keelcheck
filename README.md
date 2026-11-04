@@ -127,10 +127,13 @@ append-only run record lives in `.keel/`, which is not part of the repository. R
 | `keelcheck audit <repo>` | check gate hashes against the ratified table, the frozen original, the sections, the run record and the review state | no divergence | divergence of any kind | could not run honestly: no charter, no anchor, no git (or `--fail-on-wish` found wishes) |
 | `keelcheck gate run <repo>` | run every ratified `kind: gate` row and record the run | every gate passed | a gate failed, a hash differs, a gate is missing, or no gate is ratified | could not run honestly |
 | `keelcheck gate hash <path>` | print the content hash a gate row records, over git-normalized bytes | printed | — | no such file, or outside the repository |
-| `keelcheck review <repo> --reviewer "<command>"` | run a clean-context reviewer and record what it was handed | review recorded, verdict `clean` | divergence, partial, unverified or inconsistent verdict, or the ratified prompt no longer matches its hash | could not run honestly: no charter, no anchor, no prompt, unwritable export/record, or the reviewer failed or timed out |
+| `keelcheck review <repo> --reviewer "<command>"` | run a clean-context reviewer and record what it was handed | review recorded, verdict `clean` | divergence, partial, unverified or inconsistent verdict, or the ratified prompt no longer matches its hash | could not run honestly: no charter, no prompt, unwritable export/record, or the reviewer failed or timed out |
 | `keelcheck adapter <harness>` | read one harness lifecycle event on stdin and answer it | allow | — | deny (the harness's decision object is printed) |
 | `keelcheck adapter install <harness>` | write the harness settings entry | written | the file already defines hooks; re-run with `--force` | unknown harness, unreadable charter, or no anchor |
 | `keelcheck hook install <repo>` | install the pre-commit hook that runs the gate | installed | already installed by something else | could not install |
+| `keelcheck hook status <repo>` | report whether the pre-commit hook is installed | 0 whether or not a hook is installed | — | not a git repository |
+| `keelcheck mcp` | serve the MCP session on stdin and stdout | session ends at EOF, 0 | — | — |
+| `keelcheck version` | print the version | prints the version, 0 | — | — |
 
 `audit` also takes `--json`, `--record <path>` (move the run record), `--require-review`, and
 `--fail-on-wish`. `gate run` takes `--record <path>` and `--json`. Run any command with `--help` for
@@ -206,8 +209,8 @@ Not done, or not proved:
 - **Gates are only as good as what they check.** The audit verifies that a gate ran and that its bytes
   are the ratified bytes; it cannot tell whether the gate measures the right thing. A gate that passes
   can still be measuring nothing.
-- **No CI is configured in this repository**, and **no package is published**. Claude Code is the only
-  adapter target built so far.
+- **CI runs the suite on Python 3.10 to 3.13 and the gate and audit on 3.12**
+  (`.github/workflows/ci.yml`). **No package is published**, and Claude Code is the only adapter target.
 
 ## What it deliberately does not do
 

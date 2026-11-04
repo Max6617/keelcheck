@@ -109,14 +109,13 @@ def _sources(repo: Path, relpath: str) -> list[tuple[Path, Path]]:
     directory and walking up to the repository root.
     """
     rel = Path(relpath)
-    found: list[tuple[Path, Path]] = []
+    found: list[tuple[Path, Path]] = [(repo / ".git" / "info" / "attributes", Path())]
     parts = list(rel.parent.parts)
     while parts:
         base = Path(*parts)
         found.append((repo / base / ".gitattributes", base))
         parts.pop()
     found.append((repo / ".gitattributes", Path()))
-    found.append((repo / ".git" / "info" / "attributes", Path()))
     return found
 
 

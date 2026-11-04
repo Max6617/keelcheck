@@ -4,9 +4,8 @@ Two files, and both exist so that a bypass leaves a mark rather than an absence:
 
 ``runs.jsonl``
     Append-only, one JSON object per line, tracked by git so that a deleted line is a diff
-    rather than a secret. Its **first line is the header** naming the ratified commit (D8
-    A2): the pointer is written twice -- in the charter's living state and here -- and
-    nowhere is it trusted alone. Then one ``audit`` object per audit run (written even when
+    rather than a secret. Its **first line is the header**, which declares the record's
+    format and version and carries no anchor (D12). Then one ``audit`` object per audit run (written even when
     the run fails, A3) and one ``gate`` object per gate execution, carrying the gate name,
     its path, its hash at that moment, the commit and the exit status (D3).
 
@@ -79,7 +78,12 @@ def read(path: Path | str) -> tuple[list[dict], list[str]]:
         return [], []
     objects: list[dict] = []
     problems: list[str] = []
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for number, raw in enumerate(path.read_bytes().split(b"\n"), start=1):
+        try:
+            line = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            problems.append(f"{path}:{number} is not UTF-8")
+            continue
         if not line.strip():
             continue
         try:

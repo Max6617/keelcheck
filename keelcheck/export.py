@@ -121,7 +121,7 @@ def _repo_paths(repo: Path) -> tuple[list[str], list[str]]:
     if listing.returncode == 0:
         tracked = [p for p in listing.stdout.split("\0") if p]
     untracked: list[str] = []
-    status = gitcmd.run(repo, "status", "--porcelain", "-z", check=False)
+    status = gitcmd.run(repo, "status", "--porcelain", "-z", "--untracked-files=all", check=False)
     if status.returncode == 0:
         for chunk in status.stdout.split("\0"):
             if chunk.startswith("?? "):

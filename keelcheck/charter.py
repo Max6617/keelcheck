@@ -795,6 +795,9 @@ def main(argv: list[str] | None = None) -> int:
     except CharterFormatError as exc:
         emit_err(f"keelcheck: not a charter: {exc}")
         return 2
+    except (OSError, UnicodeDecodeError) as exc:
+        emit_err(f"keelcheck: cannot read {args.path}: {exc}")
+        return 2
 
     if args.json:
         emit(json.dumps(charter.as_dict(), indent=2, ensure_ascii=False))

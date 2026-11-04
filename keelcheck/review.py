@@ -13,7 +13,7 @@ Exit codes:
     1   a review was recorded and its verdict was divergence, partial, unverified or inconsistent; or the
         ratified prompt's content no longer matches its hash (a weakened instruction is not a
         review)
-    2   the review could not run honestly: no charter, no anchor, no prompt, the export could not
+    2   the review could not run honestly: no charter, no prompt, the export could not
         be written, the record could not be written, or the reviewer failed, timed out, or did not
         return a usable object
 
@@ -500,7 +500,15 @@ def run_review(
     if "error" in chosen:
         return {"exit": chosen.get("exit", 2), "error": chosen["error"]}
 
-    manifest = export.build_manifest(audit)
+    try:
+        command = split_command(reviewer)
+    except ValueError as exc:
+        return {"exit": 2, "error": f"the reviewer command cannot be split: {exc}"}
+
+    try:
+        manifest = export.build_manifest(audit)
+    except normalize.NormalizationError as exc:
+        return {"exit": 2, "error": str(exc)}
     if not manifest["files"]:
         return {
             "exit": 2,
@@ -524,7 +532,6 @@ def run_review(
     except OSError as exc:
         return {"exit": 2, "error": f"the reviewer's export could not be written: {exc}"}
 
-    command = split_command(reviewer)
     run = _run_reviewer(command, tree, timeout)
     review: dict | None = None
     requirement_ids = {r.id for r in charter.requirements}

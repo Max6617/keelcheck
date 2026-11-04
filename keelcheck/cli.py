@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
 
     emit_err(f"keelcheck: unknown command: {command}\n")
     emit_err(USAGE)
-    return 1
+    return 2
 
 
 if __name__ == "__main__":  # pragma: no cover

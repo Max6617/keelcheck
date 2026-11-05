@@ -24,6 +24,7 @@ protocol requires.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import sys
 from typing import Any, Callable, TextIO
@@ -202,7 +203,9 @@ def main(argv: list[str] | None = None) -> int:
         epilog="tools: audit",
     )
     parser.parse_args(argv)
-    return serve(sys.stdin, sys.stdout)
+    stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8", errors="replace")
+    stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", newline="\n", write_through=True)
+    return serve(stdin, stdout)
 
 
 if __name__ == "__main__":  # pragma: no cover

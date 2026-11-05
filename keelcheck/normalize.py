@@ -134,6 +134,7 @@ def attributes_for(repo: Path | str, relpath: str) -> Attributes:
     """Resolve ``text`` for ``relpath`` the way git would, plus any dead-rule warning."""
     repo = Path(repo)
     result = Attributes()
+    eol: str | None = None
     for attr_file, base in _sources(repo, relpath):
         if not attr_file.is_file():
             continue
@@ -167,7 +168,12 @@ def attributes_for(repo: Path | str, relpath: str) -> Attributes:
                     continue
                 if key == "text" and result.text is None and value != "unspecified":
                     result.text = value
+                if key == "eol" and eol is None and value in ("lf", "crlf"):
+                    eol = value
             break  # the last matching line in this file wins, and we walk backwards
+    if result.text is None and eol is not None:
+        # git treats eol=lf / eol=crlf with text unspecified as text
+        result.text = "true"
     return result
 
 

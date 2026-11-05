@@ -630,13 +630,15 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
             "is not a charter, however much prose it carries"
         )
     start = charter.sections["requirements"]
+    table_found = False
     for n in range(start, len(lines)):
         if _section_of(lines[n]) and n > start:
             break
         if lines[n].strip().startswith("|"):
             charter.requirements, _ = _parse_requirements_table(lines, n, path)
+            table_found = True
             break
-    else:
+    if not table_found:
         raise CharterFormatError(f"no requirements table found after the requirements heading in {where}")
 
     # Frozen original: the whole section under its heading, heading included (D11 F9).

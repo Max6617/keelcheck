@@ -117,13 +117,12 @@ arrow round-trips through the JSON — the encoding property it exists for.
 
 **Suite at the revision then current: 88 passed, 5 skipped.** Both numbers are measurements, not estimates.
 
-**Two real findings came out of 	est_review_cli.py, and both were red against landed code** — so the
+**Two real findings came out of `test_review_cli.py`, and both were red against landed code** — so the
 ordering was red-after-code, named rather than dressed up as red-first:
 
 1. **Evidence was verified by containment only.** _inside_export returned True for *any* relative
    string, because Path.resolve() does not require the target to exist and the only test was that
-   the result sat under the export root. 
-o-such-file.md and R999 both counted as verified, and
+   the result sat under the export root. `no-such-file.md` and R999 both counted as verified, and
    the requirement-id branch D15 names was not implemented at all. Fixed before this record was written.
 2. **The export did not carry the prompt.** REVIEW-PROMPT.md was not written into the tree, so what
    the reviewer was told was not part of what was handed over whenever the prompt was not a tracked
@@ -132,9 +131,7 @@ o-such-file.md and R999 both counted as verified, and
 **One test was split, not made flaky.** The .env/private.pem test also asserted REVIEW-PROMPT.md
 was present; that assertion failed once — correctly, because the file was missing — and the fix
 followed. The secret-file case itself never failed. The two properties are now separate tests. The author's
-candidate for a real flake — two reviews in the same repo inside one second share
-
-eview-<utc second>/ — is a naming risk, not something this suite can trigger deterministically
+candidate for a real flake — two reviews in the same repo inside one second share `review-<utc second>/` — is a naming risk, not something this suite can trigger deterministically
 from outside; it is on the record instead of being covered by a test that only sometimes runs.
 
 **The R5 split is environmental and auto-detected.** git for Windows runs hooks through its own
@@ -149,14 +146,13 @@ python off PATH → still exit 0), and the body's marker and absolute paths are 
 On a host where sh works, the five come back.
 ## Backlog properties, taken in order
 
-**Covered at 10f6e2 + these tests (45 passed, 5 skipped in the two files):**
+**Covered at `f10f6e2` + these tests (45 passed, 5 skipped in the two files):**
 
 - **The cap and the never-omitted rule** (design item 8). A 21 MB tracked file trips the byte cap, the
-  line records 	runcated: true, and the gate script a row names is still in the export along with
-  the charter. ig.bin sorts before 	ools/gate.py, so a naive cap drops the named path first.
+  line records `truncated: true`, and the gate script a row names is still in the export along with
+  the charter. `big.bin` sorts before `tools/gate.py`, so a naive cap drops the named path first.
 - **--export DIR**: the tree lands under the caller's directory and the record points at it.
-- **The 1 MB stdout cap**: over it, 
-esult: malformed and the reason names the cap.
+- **The 1 MB stdout cap**: over it, `result: malformed` and the reason names the cap.
 - **core.hooksPath**: the installer resolves the hooks directory through git, so the hook lands in
   .githooks/pre-commit and not in the default directory.
 
@@ -164,7 +160,7 @@ esult: malformed and the reason names the cap.
 
 - *Symlinks that leave the export.* Needs a real symlink; os.symlink on this host is
   privilege-dependent, so it lands behind a capability probe (skips here) unless it works.
-- *The coverage gate* (	ools/coverage.py, R8/D13). Its red needs the script's interface stated
+- *The coverage gate* (`tools/coverage.py`, R8/D13). Its red needs the script's interface stated
   first — above all **how the floor is forced low enough to test the failing side** without editing
   the script, since the red has to prove the gate fails below the floor, not only passes above it.
 ## Corrections to this file's own findings
@@ -172,7 +168,7 @@ esult: malformed and the reason names the cap.
 - **The checkout-dependent manifest was my fixture, not the code** (withdrawn 2026-10-14, same night
   it was filed). _support.write used Path.write_text, which translates to CRLF on Windows, so
   every fixture was CRLF in the worktree while git stored whatever was committed — D9's class, and it
-  produced a false red against uild_manifest. With the fixture written LF and one state reviewed
+  produced a false red against `build_manifest`. With the fixture written LF and one state reviewed
   under both core.autocrlf configurations, both reviews produce the same manifest hash. The helper
   now writes LF, so a fixture carries the bytes a checkout of it would have. core.autocrlf is
   repo-wide, so the linked worktree in that test was never a second checkout; the test says so.

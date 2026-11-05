@@ -155,32 +155,36 @@ def install(repo: Path | str, *, hook: str = "pre-commit", force: bool = False) 
     backup = target.with_name(target.name + ".keelcheck-backup")
     body = hook_body(repo, hook)
     result["path"] = str(target)
-    if target.exists():
-        existing = target.read_bytes()
-        if MARKER.encode("utf-8") not in existing:
-            if not force:
-                result.update(
-                    exit=1,
-                    action="refused",
-                    error=(
-                        f"{target} already exists and was not written by keelcheck; it was not touched. "
-                        f"Rerun with --force to keep it beside the new hook as {backup.name} (R5)"
-                    ),
-                )
+    try:
+        if target.exists():
+            existing = target.read_bytes()
+            if MARKER.encode("utf-8") not in existing:
+                if not force:
+                    result.update(
+                        exit=1,
+                        action="refused",
+                        error=(
+                            f"{target} already exists and was not written by keelcheck; it was not touched. "
+                            f"Rerun with --force to keep it beside the new hook as {backup.name} (R5)"
+                        ),
+                    )
+                    return result
+                shutil.copyfile(target, backup)
+                _write_hook(target, body)
+                result.update(action="forced", backup=str(backup))
                 return result
-            shutil.copyfile(target, backup)
+            if existing == body.encode("utf-8"):
+                result.update(action="unchanged")
+                return result
             _write_hook(target, body)
-            result.update(action="forced", backup=str(backup))
-            return result
-        if existing == body.encode("utf-8"):
-            result.update(action="unchanged")
+            result.update(action="updated")
             return result
         _write_hook(target, body)
-        result.update(action="updated")
+        result.update(action="installed")
         return result
-    _write_hook(target, body)
-    result.update(action="installed")
-    return result
+    except OSError as exc:
+        result.update(exit=2, action=None, error=f"{target} could not be written: {exc}")
+        return result
 
 
 def status(repo: Path | str) -> dict:

@@ -132,6 +132,9 @@ def install(repo: Path | str, *, hook: str = "pre-commit", force: bool = False) 
             ),
         )
         return result
+    if not gitcmd.is_repo(repo):
+        result.update(exit=2, error=f"{repo} is not a git repository")
+        return result
     try:
         _, charter = load_charter(repo)
     except AuditError as exc:

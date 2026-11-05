@@ -209,8 +209,9 @@ Not done, or not proved:
 - **Gates are only as good as what they check.** The audit verifies that a gate ran and that its bytes
   are the ratified bytes; it cannot tell whether the gate measures the right thing. A gate that passes
   can still be measuring nothing.
-- **CI runs the suite on Python 3.10 to 3.13 and the gate and audit on 3.12**
-  (`.github/workflows/ci.yml`). **No package is published**, and Claude Code is the only adapter target.
+- **CI runs the suite on Python 3.10 and 3.13 and the gate and audit on 3.12 for each pull request, and the
+  suite on 3.10 to 3.13 on `main`** (`.forgejo/workflows/ci.yml`); GitHub runs the full set weekly, on tags and
+  by hand (`.github/workflows/ci.yml`). **No package is published**, and Claude Code is the only adapter target.
 
 ## What it deliberately does not do
 

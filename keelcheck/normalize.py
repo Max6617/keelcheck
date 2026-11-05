@@ -84,6 +84,10 @@ def _pattern_to_regex(pattern: str) -> re.Pattern | None:
     while i < len(body_src):
         char = body_src[i]
         if char == "*":
+            if body_src.startswith("**/", i):
+                out.append("(?:.*/)?")
+                i += 3
+                continue
             if body_src.startswith("**", i):
                 out.append(".*")
                 i += 2

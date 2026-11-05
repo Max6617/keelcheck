@@ -145,6 +145,8 @@ def _lock(repo: Path | str) -> tuple[dict[str, str], bool]:
     except gitcmd.GitError:
         audit.commit = None
     audit.reference = load_reference(repo, charter, audit)
+    if charter.ratified_at and audit.reference is None:
+        return locked, False  # the rows are in the charter at the anchor, which cannot be read
     rows = audit.reference.gates if audit.reference is not None else []
     for row in rows:
         if row.path:
@@ -267,7 +269,8 @@ def _decide(event: dict, repo: Path) -> dict:
     }
     if not readable:
         return {**base, "decision": "deny",
-                "reason": ("the charter cannot be read, so this build cannot tell what is locked: an "
+                "reason": ("the charter cannot be read (or the charter at its ratified commit "
+                           "cannot be), so this build cannot tell what is locked: an "
                            "adapter that cannot read its lock must not allow a write")}
     if event.get("hook_event_name") not in (None, KNOWN_EVENT):
         return {**base, "decision": "deny",

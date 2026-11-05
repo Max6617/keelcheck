@@ -10,7 +10,10 @@ REQUIREMENTS = [("R1", "the parser exists", "code: the charter parser", "—", "
 
 
 def test_status_outside_a_repository_exits_2(scratch):
-    proc = _support.keelcheck("hook", "status", str(scratch))
+    proc = _support.keelcheck(
+        "hook", "status", str(scratch),
+        env_extra={"GIT_CEILING_DIRECTORIES": str(scratch.parent)},
+    )
     assert proc.returncode == 2, f"expected exit 2:\n{_support.combined(proc)}"
     assert "not a git repository" in proc.stderr
 

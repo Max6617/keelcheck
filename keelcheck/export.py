@@ -129,6 +129,31 @@ def _repo_paths(repo: Path) -> tuple[list[str], list[str]]:
     return tracked, untracked
 
 
+def _prior_export_dirs(repo: Path, known: dict[str, bool]) -> tuple[str, ...]:
+    """Directory prefixes (with trailing slash) of review exports found inside the repository.
+
+    An export tree is identified by its manifest, by content: a `KEELCHECK-MANIFEST.json` whose
+    `keelcheck` field is the manifest kind. `review --export <dir inside the repo>` (or a record
+    kept in the repo) leaves one behind, and it holds a prior review's prompt, findings and copy of
+    the tree -- the history the next reviewer is denied.
+    """
+    found: list[str] = []
+    for rel in known:
+        head, _, name = rel.rpartition("/")
+        if name != MANIFEST_NAME or not head:
+            continue
+        try:
+            path = repo / rel
+            if path.stat().st_size > MAX_BYTES:  # a real manifest is small; never read a huge file
+                continue
+            obj = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(obj, dict) and obj.get("keelcheck") == MANIFEST_KIND:
+            found.append(head + "/")
+    return tuple(found)
+
+
 def always_paths(audit) -> list[str]:
     """Paths the reviewer must always get, or be told about: the anchor, the locked artefacts, and
     every path a requirement, a row or a **finding** names (design item 8)."""
@@ -177,6 +202,8 @@ def select_paths(audit) -> dict:
         except OSError:  # pragma: no cover - unreadable path components
             continue
 
+    prior_exports = _prior_export_dirs(repo, known)
+
     candidates: list[tuple[str, bool]] = []
     for rel, is_tracked in known.items():
         try:
@@ -189,6 +216,9 @@ def select_paths(audit) -> dict:
         reason = deny_reason(rel)
         if reason:
             skipped.append({"path": rel, "reason": reason})
+            continue
+        if any(rel.startswith(prefix) for prefix in prior_exports):
+            skipped.append({"path": rel, "reason": "denied: inside a prior review export"})
             continue
         if rel in GENERATED or rel == MANIFEST_NAME:
             skipped.append({"path": rel, "reason": "reserved: the export writes its own file at this path"})

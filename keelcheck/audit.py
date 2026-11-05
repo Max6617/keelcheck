@@ -440,17 +440,29 @@ def _command_text(line: dict) -> str:
     return str(command or "(no command recorded)")
 
 
-def _names_ratified_reviewer(line: dict, ratified: list[str]) -> bool:
-    """Does this review's command name a reviewer the ratified table accepts?
+def _names_ratified_reviewer(line: dict, ratified: list[str], repo: Path) -> bool:
+    """Does this review's command run a reviewer file the ratified table accepts?
 
     No ratified row means no comparison to make, and every command passes: the check pins a command the
-    charter names, it does not invent one. Comparison is by containment, because a command is a program
-    plus arguments (`"<python>" "<repo>/tools/reviewer.py"`) while a row names a repo-relative file.
+    charter names, it does not invent one. The recorded command is argv (a bare string is one element),
+    and a row path is named when some element is that path spelled relative (the reviewer runs with the
+    export as its cwd, which holds the same file) or is an absolute path resolving to `<repo>/<path>`.
+    Containment is not enough: `vendor/tools/reviewer.py` is not the file the hash covers.
     """
     if not ratified:
         return True
-    command = _command_text(line).replace("\\", "/")
-    return any(path.replace("\\", "/") in command for path in ratified)
+    command = line.get("command")
+    argv = command if isinstance(command, list) else [command]
+    args = [str(a) for a in argv if a is not None]
+    for path in ratified:
+        want = path.replace("\\", "/")
+        target = (repo / path).resolve()
+        for arg in args:
+            if arg.replace("\\", "/") == want:
+                return True
+            if Path(arg).is_absolute() and Path(arg).resolve() == target:
+                return True
+    return False
 
 
 def _review_state(audit: Audit) -> dict:
@@ -472,11 +484,11 @@ def _review_state(audit: Audit) -> dict:
         for obj in lines
         if obj.get("result") == "pass"
         and obj.get("verdict") != "inconsistent"
-        and _names_ratified_reviewer(obj, ratified)
+        and _names_ratified_reviewer(obj, ratified, audit.repo)
     ]
     if not usable:
         last = lines[-1]
-        if ratified and not _names_ratified_reviewer(last, ratified):
+        if ratified and not _names_ratified_reviewer(last, ratified, audit.repo):
             audit.add(
                 "reviewer-unratified",
                 "review",

@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import posixpath
 import sys
 from pathlib import Path
 from typing import Any
@@ -150,7 +151,7 @@ def _lock(repo: Path | str) -> tuple[dict[str, str], bool]:
     rows = audit.reference.gates if audit.reference is not None else []
     for row in rows:
         if row.path:
-            locked[row.path.replace("\\", "/")] = row.name or "(unnamed row)"
+            locked[posixpath.normpath(row.path.replace("\\", "/"))] = row.name or "(unnamed row)"
     return locked, True
 
 
@@ -158,7 +159,7 @@ def _hashes(repo: Path, path: str, locked: dict[str, str], rows: list) -> tuple[
     """(the ratified hash, the measured hash) for a locked path, each None where it does not apply."""
     ratified = None
     for row in rows:
-        if row.path and row.path.replace("\\", "/") == path:
+        if row.path and posixpath.normpath(row.path.replace("\\", "/")) == path:
             ratified = row.hash
             break
     try:

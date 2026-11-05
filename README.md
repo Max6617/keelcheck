@@ -104,8 +104,8 @@ sections: 6/6  requirements: 1  gates ratified: 0 (0 executable)  wishes: 0
 DIVERGENCES (1)
   [vacuity] gates: no gate is ratified at (no anchor), and no executable gate is declared …
 NOT AUDITABLE: the charter names no ratification commit (`Ratified at: <sha>`), so there is no
-  reference side to compare against: not auditable, never clean
-REVIEW (clean context): missing
+  reference side to compare against (A2): not auditable, never clean
+REVIEW (clean context, R4): missing
   …
 exit: 2
 ```

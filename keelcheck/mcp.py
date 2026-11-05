@@ -185,6 +185,8 @@ def serve(stdin: TextIO, stdout: TextIO) -> int:
                     request = json.loads(text)
                 except json.JSONDecodeError as exc:
                     responses = [_error(None, PARSE_ERROR, f"not JSON: {exc.msg}")]
+                except RecursionError:
+                    responses = [_error(None, PARSE_ERROR, "not JSON: nested too deeply")]
                 else:
                     answer = handle(request)
                     responses = [] if answer is None else [answer]

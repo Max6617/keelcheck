@@ -190,6 +190,9 @@ def select_paths(audit) -> dict:
         if reason:
             skipped.append({"path": rel, "reason": reason})
             continue
+        if rel in GENERATED or rel == MANIFEST_NAME:
+            skipped.append({"path": rel, "reason": "reserved: the export writes its own file at this path"})
+            continue
         candidates.append((rel, is_tracked))
 
     ordered = sorted(candidates, key=lambda item: (item[0] not in always, item[0]))

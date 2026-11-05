@@ -117,6 +117,8 @@ def run(
         raise GitTimeout(
             f"git {' '.join(args)} did not finish within the caller's {budget:.3g}s bound"
         ) from exc
+    except OSError as exc:
+        raise GitError(f"git cannot be started: {exc}") from exc
     if check and proc.returncode != 0:
         detail = (proc.stderr or proc.stdout or "").strip() or f"exit {proc.returncode}"
         raise GitError(f"git {' '.join(args)}: {detail}")
@@ -124,7 +126,12 @@ def run(
 
 
 def is_repo(repo: Path | str) -> bool:
-    return run(repo, "rev-parse", "--git-dir", check=False).returncode == 0
+    try:
+        return run(repo, "rev-parse", "--git-dir", check=False).returncode == 0
+    except GitTimeout:
+        raise
+    except GitError:
+        return False
 
 
 def head(repo: Path | str) -> str:
@@ -205,6 +212,8 @@ def blob_bytes(repo: Path | str, rev: str, path: str) -> bytes | None:
         raise GitTimeout(
             f"git cat-file blob {rev}:{path} did not finish within the caller's {budget:.3g}s bound"
         ) from exc
+    except OSError as exc:
+        raise GitError(f"git cannot be started: {exc}") from exc
     if proc.returncode != 0:
         return None
     return proc.stdout

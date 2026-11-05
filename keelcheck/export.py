@@ -143,7 +143,10 @@ def _prior_export_dirs(repo: Path, known: dict[str, bool]) -> tuple[str, ...]:
         if name != MANIFEST_NAME or not head:
             continue
         try:
-            obj = json.loads((repo / rel).read_text(encoding="utf-8"))
+            path = repo / rel
+            if path.stat().st_size > MAX_BYTES:  # a real manifest is small; never read a huge file
+                continue
+            obj = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
         if isinstance(obj, dict) and obj.get("keelcheck") == MANIFEST_KIND:

@@ -153,7 +153,13 @@ def write_json(path: Path | str, obj: dict) -> None:
 def _write_line(path: Path, obj: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     line = json.dumps(obj, ensure_ascii=False, sort_keys=True)
-    with open(path, "a", encoding="utf-8", newline="\n") as handle:
-        handle.write(line + "\n")
+    with open(path, "a+b") as handle:
+        size = handle.seek(0, os.SEEK_END)
+        prefix = b""
+        if size:
+            handle.seek(size - 1)
+            if handle.read(1) != b"\n":
+                prefix = b"\n"
+        handle.write(prefix + (line + "\n").encode("utf-8"))
         handle.flush()
         os.fsync(handle.fileno())

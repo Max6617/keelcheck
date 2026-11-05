@@ -196,6 +196,11 @@ class Audit:
                 f"  the last review attempt produced no verdict ({line.get('result')}): "
                 f"{line.get('reason', '(no reason recorded)')}"
             )
+        elif status == "unverifiable":
+            out.append(
+                "  the current state could not be hashed, so freshness was not measured "
+                "(see NOT AUDITABLE)"
+            )
         else:
             out.append(
                 f"  no review line in {self.record_path.name}; run "
@@ -498,7 +503,19 @@ def _review_state(audit: Audit) -> dict:
             "manifest": None,
             "recorded": last.get("manifest"),
         }
-    manifest = export.build_manifest(audit)
+    try:
+        manifest = export.build_manifest(audit)
+    except normalize.NormalizationError as exc:
+        audit.cannot_run = (
+            "the current state cannot be hashed honestly, so no recorded review can be checked "
+            f"against it: {exc}"
+        )
+        return {
+            "status": "unverifiable",
+            "line": usable[-1],
+            "manifest": None,
+            "recorded": usable[-1].get("manifest"),
+        }
     current = manifest["manifest_sha256"]
     for obj in reversed(usable):
         if obj.get("manifest") == current:

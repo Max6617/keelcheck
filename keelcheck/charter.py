@@ -572,13 +572,16 @@ def _frozen_block(lines: list[str], start: int, level: int) -> str:
     beside its hash so that a redefinition shows up as a length change rather than as a
     second defensible hash.
     """
-    end = len(lines)
+    return "\n".join(lines[start:_frozen_end(lines, start, level)])
+
+
+def _frozen_end(lines: list[str], start: int, level: int) -> int:
+    """The index one past the last line of the frozen section that starts at ``start``."""
     for n in range(start + 1, len(lines)):
         found = _section_of(lines[n])
         if found and found[0] <= level:
-            end = n
-            break
-    return "\n".join(lines[start:end])
+            return n
+    return len(lines)
 
 
 def parse_charter(text: str, path: Path | None = None) -> Charter:
@@ -593,6 +596,7 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
 
     charter = Charter(path=path, title=title, frozen_original="")
     frozen_seen = False
+    frozen_span = range(0)
 
     section_for_line: dict[int, str | None] = {}
     for n, line in enumerate(lines):
@@ -640,6 +644,7 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
         found = _section_of(line)
         if found and _normalize(found[1]) in ("the frozen original", "frozen original"):
             charter.frozen_original = _frozen_block(lines, n, found[0])
+            frozen_span = range(n, _frozen_end(lines, n, found[0]))
             frozen_seen = True
             break
     if not frozen_seen:
@@ -647,12 +652,15 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
             found = _section_of(line)
             if found and "original" in _normalize(found[1]):
                 charter.frozen_original = _frozen_block(lines, n, found[0])
+                frozen_span = range(n, _frozen_end(lines, n, found[0]))
                 break
 
     # The ratification commit: named in the living state, never in the frozen original (A2).
     # Any spelling is parsed, so a miss is never silent; only the canonical plain line is
     # silent (D12), and the audit reports the others as `[format]`.
-    for line in lines:
+    for n, line in enumerate(lines):
+        if n in frozen_span:
+            continue
         found = RATIFIED_LINE.search(line)
         if found:
             charter.ratified_at = found.group(1).lower()
@@ -662,7 +670,9 @@ def parse_charter(text: str, path: Path | None = None) -> Charter:
 
     # The review declaration: `Review: required` in the living state (D15). Absent means the
     # missing-review line is still reported and is not fatal.
-    for line in lines:
+    for n, line in enumerate(lines):
+        if n in frozen_span:
+            continue
         if REVIEW_LINE.search(line):
             charter.review_required = True
             charter.review_line = line.strip()
